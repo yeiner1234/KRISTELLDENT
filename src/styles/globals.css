@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Instrument Sans", system-ui, "Segoe UI", Roboto, sans-serif;
+
+  /* Core clinic palette — exact obligatory values, single source of truth */
+  --color-brand-50: #eef6f7;
+  --color-brand-600: #0f7b86;
+  --color-brand-700: #0a656e;
+  --color-brand-900: #12232b;
+
+  --color-surface: #ffffff;
+  --color-surface-alt: #f7f9fa;
+  --color-tint: #f0f7f8;
+  --color-ink-secondary: #2c3f47;
+  --color-ink-tertiary: #5d7078;
+  --color-border: #e6ebef;
+
+  /* Semantic confirmation accent for the appointment-confirmed state */
+  --color-confirm: #12714b;
+  --color-confirm-bg: #e7f6ef;
+
+  --shadow-soft: 0 1px 3px rgba(18, 35, 43, 0.04);
+  --shadow-soft-hover: 0 12px 28px rgba(18, 35, 43, 0.09);
+  --shadow-panel: 0 18px 40px rgba(18, 35, 43, 0.14);
+  --shadow-hero-image: 0 26px 60px rgba(18, 35, 43, 0.16);
+  --shadow-cta: 0 8px 22px rgba(15, 123, 134, 0.2);
+  --shadow-navbar: 0 1px 3px rgba(18, 35, 43, 0.05);
+
+  --animate-drift: drift 26s ease-in-out infinite;
+  --animate-drift-slow: drift-slow 32s ease-in-out infinite;
+  --animate-float-a: float-a 5.5s ease-in-out infinite;
+  --animate-float-b: float-b 6.5s ease-in-out -2s infinite;
+
+  @keyframes drift {
+    0%,
+    100% {
+      transform: translate(0, 0);
+    }
+    50% {
+      transform: translate(24px, -18px);
+    }
+  }
+
+  @keyframes drift-slow {
+    0%,
+    100% {
+      transform: translate(0, 0) scale(1);
+    }
+    50% {
+      transform: translate(-16px, 14px) scale(1.03);
+    }
+  }
+
+  @keyframes float-a {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
+  }
+
+  @keyframes float-b {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(5px);
+    }
+  }
+}
+
+:root {
+  color-scheme: light;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 88px;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: #12232b;
+  background-color: #f7f9fa;
+}
+
+p,
+h1,
+h2,
+h3 {
+  text-wrap: pretty;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
