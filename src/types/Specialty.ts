@@ -1,5 +1,6 @@
 export interface Specialty {
   id: string;
   name: string;
-  description: string;
+  description: string | null;
+  active: boolean;
 }

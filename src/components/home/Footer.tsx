@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
-import { Activity } from 'lucide-react';
+import logoIcon from '../../../imagenes/kristelldent-icon.png';
+import logoWordmark from '../../../imagenes/kristelldent-wordmark.png';
+import { useBranches } from '../../hooks/useBranches';
 
 const navigationLinks = [
   { label: 'Inicio', href: '#inicio' },
@@ -45,21 +47,18 @@ const socialLinks = [
 ];
 
 function Footer() {
+  const { branches } = useBranches();
+
   return (
     <footer style={{ background: '#12232b', color: '#cfe0e6' }} className="px-5 pb-[30px] pt-16">
       <div className="mx-auto grid max-w-[1240px] grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
         <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-2.5">
-            <span
-              className="flex h-[34px] w-[34px] items-center justify-center rounded-[11px]"
-              style={{ background: 'linear-gradient(140deg, #0f7b86, #0a656e)' }}
-            >
-              <Activity size={18} className="text-white" strokeWidth={2.4} />
-            </span>
-            <span className="text-[17px] font-semibold text-white">Clínica Sonrisa</span>
+          <div className="flex items-center gap-2">
+            <img src={logoIcon} alt="" className="h-[42px] w-[42px]" />
+            <img src={logoWordmark} alt="KristellDent" className="h-[20px]" />
           </div>
           <p className="text-sm leading-relaxed" style={{ color: 'rgba(207,224,230,0.8)' }}>
-            Clínica odontológica con cinco especialistas y agenda abierta. Reserva y consulta tus citas sin crear
+            Clínica odontológica con múltiples sedes y agenda abierta. Reserva y consulta tus citas sin crear
             cuenta.
           </p>
           <div className="flex gap-2">
@@ -108,15 +107,16 @@ function Footer() {
 
         <div className="flex flex-col gap-2.5">
           <h4 className="text-[12.5px] font-semibold uppercase tracking-[0.09em]" style={{ color: 'rgba(207,224,230,0.6)' }}>
-            Contacto
+            Sedes
           </h4>
-          <a href="tel:+34912000000" className="text-sm hover:text-white">
-            +34 912 000 000
+          {branches.map((branch) => (
+            <span key={branch.id} className="text-sm">
+              {branch.name}
+            </span>
+          ))}
+          <a href="#contacto" className="mt-1 text-sm hover:text-white">
+            Ver ubicaciones
           </a>
-          <a href="mailto:citas@clinica.com" className="text-sm hover:text-white">
-            citas@clinica.com
-          </a>
-          <span className="text-sm">Calle Mayor 14, 28013 Madrid</span>
         </div>
       </div>
 
@@ -124,7 +124,7 @@ function Footer() {
         className="mx-auto mt-12 flex max-w-[1240px] flex-wrap items-center justify-between gap-3 border-t pt-6 text-xs"
         style={{ borderColor: 'rgba(255,255,255,0.1)', color: 'rgba(207,224,230,0.7)' }}
       >
-        <span>© 2026 Clínica Sonrisa. Todos los derechos reservados.</span>
+        <span>© 2026 KristellDent. Todos los derechos reservados.</span>
         <div className="flex gap-5">
           <span>Aviso legal</span>
           <span>Privacidad</span>

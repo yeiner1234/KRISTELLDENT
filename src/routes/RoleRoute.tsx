@@ -1,18 +1,17 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import type { UserRole } from '../types/User';
+import type { AppRole } from '../types/User';
 
 interface RoleRouteProps {
-  allowedRoles: UserRole[];
+  allowedRoles: AppRole[];
 }
 
-// Prepared for ADMIN / PROFESSIONAL role checks. Since there is no backend yet,
-// an anonymous visitor (user === null) is still allowed through; once a session
-// exists (via useAuth) its role must match allowedRoles or it gets bounced to /login.
+// ProtectedRoute (padre en el árbol de rutas) ya garantiza que exista sesión;
+// aquí solo se decide si el rol del perfil autenticado puede entrar a esta rama.
 function RoleRoute({ allowedRoles }: RoleRouteProps) {
   const { user } = useAuth();
 
-  const hasAccess = user === null || allowedRoles.includes(user.role);
+  const hasAccess = user !== null && allowedRoles.includes(user.role);
 
   if (!hasAccess) {
     return <Navigate to="/login" replace />;

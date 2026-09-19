@@ -10,21 +10,22 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label: string;
   options: SelectOption[];
   error?: string;
+  hideLabel?: boolean;
 }
 
-function Select({ label, options, error, id, className = '', ...rest }: SelectProps) {
+function Select({ label, options, error, id, hideLabel = false, className = '', ...rest }: SelectProps) {
   const generatedId = useId();
   const selectId = id ?? generatedId;
 
   return (
     <div className="flex flex-col gap-1.5 text-left">
-      <label htmlFor={selectId} className="text-sm font-medium text-ink-secondary">
+      <label htmlFor={selectId} className={`text-sm font-medium text-adm-ink-700 ${hideLabel ? 'sr-only' : ''}`}>
         {label}
       </label>
       <select
         id={selectId}
-        className={`rounded-xl border bg-white px-4 py-2.5 text-sm text-brand-900 outline-none transition-colors focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 ${
-          error ? 'border-rose-400' : 'border-border'
+        className={`h-[42px] rounded-[10px] border bg-adm-surface-input px-3.5 text-sm text-adm-ink-700 outline-none transition-colors focus:border-brand-600 focus:bg-white focus:ring-2 focus:ring-adm-accent-ring ${
+          error ? 'border-adm-danger-text' : 'border-adm-line-field'
         } ${className}`}
         {...rest}
       >
@@ -34,7 +35,7 @@ function Select({ label, options, error, id, className = '', ...rest }: SelectPr
           </option>
         ))}
       </select>
-      {error && <span className="text-xs font-medium text-rose-600">{error}</span>}
+      {error && <span className="text-xs font-medium text-adm-danger-text">{error}</span>}
     </div>
   );
 }

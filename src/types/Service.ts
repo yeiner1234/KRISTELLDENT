@@ -4,4 +4,5 @@ export interface Service {
   specialtyId: string;
   duration: number;
   price: number;
+  active: boolean;
 }

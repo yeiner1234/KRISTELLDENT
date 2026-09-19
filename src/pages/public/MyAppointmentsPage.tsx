@@ -8,7 +8,6 @@ import EmptyState from '../../components/common/EmptyState';
 import AppointmentCard from '../../components/appointments/AppointmentCard';
 import { useAppointments } from '../../hooks/useAppointments';
 import { useProfessionals } from '../../hooks/useProfessionals';
-import { formatFullName } from '../../utils/format';
 
 interface MyAppointmentsLocationState {
   dni?: string;
@@ -58,9 +57,7 @@ function MyAppointmentsPage() {
                 <AppointmentCard
                   key={appointment.id}
                   appointment={appointment}
-                  professionalName={
-                    professional ? formatFullName(professional.firstName, professional.lastName) : undefined
-                  }
+                  professionalName={professional?.fullName}
                 />
               );
             })}

@@ -1,10 +1,16 @@
+import { UserRoundX } from 'lucide-react';
 import AnimatedSection, { RevealItem } from '../common/AnimatedSection';
 import SectionTitle from '../common/SectionTitle';
 import Button from '../common/Button';
 import ProfessionalCard from '../professionals/ProfessionalCard';
-import { professionals, specialties } from '../../data/mockData';
+import EmptyState from '../common/EmptyState';
+import Spinner from '../common/Spinner';
+import { useProfessionals, useSpecialties } from '../../hooks/useProfessionals';
 
 function ProfessionalsSection() {
+  const { professionals, isLoading } = useProfessionals();
+  const { specialties } = useSpecialties();
+
   return (
     <AnimatedSection id="profesionales" className="bg-surface-alt py-24">
       <div className="mx-auto max-w-[1240px] px-5">
@@ -20,21 +26,34 @@ function ProfessionalsSection() {
           </Button>
         </div>
 
-        <div className="mt-10 grid gap-5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(232px, 1fr))' }}>
-          {professionals.map((professional, index) => {
-            const specialty = specialties.find((item) => item.id === professional.specialtyId);
+        {isLoading ? (
+          <div className="mt-10 flex justify-center">
+            <Spinner size={28} />
+          </div>
+        ) : professionals.length === 0 ? (
+          <div className="mt-10">
+            <EmptyState
+              icon={UserRoundX}
+              title="No hay profesionales registrados"
+              description="Aún no se han publicado profesionales disponibles para reserva."
+            />
+          </div>
+        ) : (
+          <div className="mt-10 grid gap-5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(232px, 1fr))' }}>
+            {professionals.map((professional, index) => {
+              const specialtyName = specialties
+                .filter((specialty) => professional.specialtyIds.includes(specialty.id))
+                .map((specialty) => specialty.name)
+                .join(', ');
 
-            return (
-              <RevealItem key={professional.id} index={index} className="min-w-0">
-                <ProfessionalCard
-                  professional={professional}
-                  specialtyName={specialty?.name}
-                  meta={`${professional.experienceYears} años`}
-                />
-              </RevealItem>
-            );
-          })}
-        </div>
+              return (
+                <RevealItem key={professional.id} index={index} className="min-w-0">
+                  <ProfessionalCard professional={professional} specialtyName={specialtyName || undefined} />
+                </RevealItem>
+              );
+            })}
+          </div>
+        )}
       </div>
     </AnimatedSection>
   );

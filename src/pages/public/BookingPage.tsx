@@ -1,56 +1,42 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
-import SectionTitle from '../../components/common/SectionTitle';
-import Button from '../../components/common/Button';
-import Spinner from '../../components/common/Spinner';
-import Stepper from '../../components/common/Stepper';
-import SpecialtySelector from '../../components/booking/SpecialtySelector';
-import ProfessionalSelector from '../../components/booking/ProfessionalSelector';
-import DateSelector from '../../components/booking/DateSelector';
-import TimeSlot from '../../components/booking/TimeSlot';
-import { useSpecialties, useProfessionals } from '../../hooks/useProfessionals';
-import { getAvailableSlots } from '../../services/appointmentService';
-import type { TimeSlotOption } from '../../types/Schedule';
-
-const steps = ['Especialidad', 'Profesional', 'Fecha', 'Horario'];
+import { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import BookingShell from '../../components/booking/BookingShell';
+import BranchSelector from '../../components/booking/BranchSelector';
+import AttentionStep from '../../components/booking/AttentionStep';
+import ProfessionalStep, { ANY_PROFESSIONAL } from '../../components/booking/ProfessionalStep';
+import ServiceStep from '../../components/booking/ServiceStep';
+import DateTimeStep from '../../components/booking/DateTimeStep';
 
 export interface BookingSelection {
+  branchId: string;
   specialtyId: string;
+  attentionMotiveLabel: string | null;
   professionalId: string;
+  serviceId: string;
   date: string;
   time: string;
 }
 
+type IncomingState = Partial<BookingSelection> & { resumeStep?: number };
+
 function BookingPage() {
   const navigate = useNavigate();
-  const { specialties, isLoading: isLoadingSpecialties } = useSpecialties();
-  const { professionals, isLoading: isLoadingProfessionals } = useProfessionals();
+  const location = useLocation();
+  const incoming = (location.state as IncomingState | null) ?? null;
 
-  const [step, setStep] = useState(1);
-  const [specialtyId, setSpecialtyId] = useState<string | null>(null);
-  const [professionalId, setProfessionalId] = useState<string | null>(null);
-  const [date, setDate] = useState<string | null>(null);
-  const [time, setTime] = useState<string | null>(null);
-  const [slots, setSlots] = useState<TimeSlotOption[]>([]);
-  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
-
-  const availableProfessionals = useMemo(
-    () => professionals.filter((professional) => professional.specialtyId === specialtyId),
-    [professionals, specialtyId],
+  const [step, setStep] = useState(incoming?.resumeStep ?? 1);
+  const [branchId, setBranchId] = useState<string | null>(incoming?.branchId ?? null);
+  const [specialtyId, setSpecialtyId] = useState<string | null>(incoming?.specialtyId ?? null);
+  const [motiveLabel, setMotiveLabel] = useState<string | null>(incoming?.attentionMotiveLabel ?? null);
+  const [professionalChoice, setProfessionalChoice] = useState<string | null>(incoming?.professionalId ?? null);
+  const [resolvedProfessionalId, setResolvedProfessionalId] = useState<string | null>(
+    incoming?.professionalId ?? null,
   );
+  const [serviceId, setServiceId] = useState<string | null>(incoming?.serviceId ?? null);
+  const [date, setDate] = useState<string | null>(incoming?.date ?? null);
+  const [time, setTime] = useState<string | null>(incoming?.time ?? null);
 
-  useEffect(() => {
-    if (step === 4 && professionalId && date) {
-      setIsLoadingSlots(true);
-      getAvailableSlots(professionalId, date).then((data) => {
-        setSlots(data);
-        setIsLoadingSlots(false);
-      });
-    }
-  }, [step, professionalId, date]);
-
-  const goBack = () => {
+  const handleBack = () => {
     if (step === 1) {
       navigate('/');
       return;
@@ -58,95 +44,127 @@ function BookingPage() {
     setStep((current) => current - 1);
   };
 
-  const handleSelectSpecialty = (id: string) => {
+  const handleChangeSpecialty = (id: string, motive: string | null) => {
     setSpecialtyId(id);
-    setProfessionalId(null);
-    setStep(2);
+    setMotiveLabel(motive);
+    setProfessionalChoice(null);
+    setResolvedProfessionalId(null);
+    setServiceId(null);
   };
 
-  const handleSelectProfessional = (id: string) => {
-    setProfessionalId(id);
-    setStep(3);
-  };
-
-  const handleSelectDate = (value: string) => {
-    setDate(value);
+  const handleChangeProfessional = (id: string) => {
+    setProfessionalChoice(id);
+    setResolvedProfessionalId(id === ANY_PROFESSIONAL ? null : id);
+    setServiceId(null);
+    setDate(null);
     setTime(null);
-    setStep(4);
   };
 
-  const handleContinue = () => {
-    if (!specialtyId || !professionalId || !date || !time) {
+  const handleChangeService = (id: string) => {
+    setServiceId(id);
+    setDate(null);
+    setTime(null);
+  };
+
+  const handleSelectTime = (selectedTime: string, professionalId: string) => {
+    setTime(selectedTime);
+    setResolvedProfessionalId(professionalId);
+  };
+
+  const handleFinish = () => {
+    if (!branchId || !specialtyId || !resolvedProfessionalId || !serviceId || !date || !time) {
       return;
     }
 
-    const selection: BookingSelection = { specialtyId, professionalId, date, time };
+    const selection: BookingSelection = {
+      branchId,
+      specialtyId,
+      attentionMotiveLabel: motiveLabel,
+      professionalId: resolvedProfessionalId,
+      serviceId,
+      date,
+      time,
+    };
+
     navigate('/reservar/datos', { state: selection });
   };
 
+  const stepConfig = {
+    1: {
+      canContinue: branchId !== null,
+      onContinue: () => setStep(2),
+    },
+    2: {
+      canContinue: specialtyId !== null,
+      onContinue: () => setStep(3),
+    },
+    3: {
+      canContinue: professionalChoice !== null,
+      onContinue: () => setStep(4),
+    },
+    4: {
+      canContinue: serviceId !== null,
+      onContinue: () => setStep(5),
+    },
+    5: {
+      canContinue: Boolean(date && time && resolvedProfessionalId),
+      onContinue: handleFinish,
+    },
+  } as const;
+
+  const current = stepConfig[step as 1 | 2 | 3 | 4 | 5];
+
   return (
-    <section className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
-      <button
-        type="button"
-        onClick={goBack}
-        className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-ink-tertiary hover:text-brand-700"
-      >
-        <ArrowLeft size={16} />
-        Volver
-      </button>
+    <BookingShell
+      currentStep={step}
+      onBack={handleBack}
+      onContinue={current.onContinue}
+      continueDisabled={!current.canContinue}
+    >
+      {step === 1 && <BranchSelector selectedId={branchId} onSelect={setBranchId} />}
 
-      <SectionTitle title="Reservar una cita" align="left" />
+      {step === 2 && (
+        <AttentionStep
+          specialtyId={specialtyId}
+          motiveLabel={motiveLabel}
+          onChange={handleChangeSpecialty}
+          onContinue={() => setStep(3)}
+        />
+      )}
 
-      <div className="mt-6">
-        <Stepper steps={steps} currentStep={step} />
-      </div>
+      {step === 3 && specialtyId && (
+        <ProfessionalStep
+          specialtyId={specialtyId}
+          professionalId={professionalChoice}
+          onChange={handleChangeProfessional}
+        />
+      )}
 
-      <div className="mt-8">
-        {step === 1 &&
-          (isLoadingSpecialties ? (
-            <Spinner size={28} />
-          ) : (
-            <SpecialtySelector specialties={specialties} selectedId={specialtyId} onSelect={handleSelectSpecialty} />
-          ))}
+      {step === 4 && specialtyId && professionalChoice && (
+        <ServiceStep
+          specialtyId={specialtyId}
+          professionalId={professionalChoice}
+          serviceId={serviceId}
+          onChange={handleChangeService}
+        />
+      )}
 
-        {step === 2 &&
-          (isLoadingProfessionals ? (
-            <Spinner size={28} />
-          ) : (
-            <ProfessionalSelector
-              professionals={availableProfessionals}
-              selectedId={professionalId}
-              onSelect={handleSelectProfessional}
-            />
-          ))}
-
-        {step === 3 && <DateSelector selectedDate={date} onSelect={handleSelectDate} />}
-
-        {step === 4 && (
-          <div className="flex flex-col gap-6">
-            {isLoadingSlots ? (
-              <Spinner size={28} />
-            ) : (
-              <div className="flex flex-wrap gap-3">
-                {slots.map((slot) => (
-                  <TimeSlot
-                    key={slot.time}
-                    time={slot.time}
-                    available={slot.available}
-                    selected={time === slot.time}
-                    onSelect={setTime}
-                  />
-                ))}
-              </div>
-            )}
-
-            <Button onClick={handleContinue} disabled={!time} className="w-fit">
-              Continuar
-            </Button>
-          </div>
-        )}
-      </div>
-    </section>
+      {step === 5 && specialtyId && professionalChoice && branchId && serviceId && (
+        <DateTimeStep
+          specialtyId={specialtyId}
+          branchId={branchId}
+          professionalId={professionalChoice}
+          serviceId={serviceId}
+          date={date}
+          time={time}
+          onSelectDate={(value) => {
+            setDate(value);
+            setTime(null);
+          }}
+          onSelectTime={handleSelectTime}
+        />
+      )}
+    </BookingShell>
   );
 }
 

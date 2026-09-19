@@ -1,10 +1,10 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import { CalendarPlus, Check, Clock, SearchCheck, Sparkle, UserRoundCheck, Zap } from 'lucide-react';
 import Button from '../common/Button';
-import { professionals } from '../../data/mockData';
+import { useProfessionals } from '../../hooks/useProfessionals';
+import { getInitials } from '../../utils/format';
 
 const easing: [number, number, number, number] = [0.22, 0.61, 0.36, 1];
-const previewProfessionals = professionals.slice(0, 4);
 
 const trustItems = [
   { icon: UserRoundCheck, label: 'Atención profesional' },
@@ -14,6 +14,8 @@ const trustItems = [
 
 function HeroSection() {
   const shouldReduceMotion = useReducedMotion();
+  const { professionals } = useProfessionals();
+  const previewProfessionals = professionals.slice(0, 4);
 
   return (
     <section
@@ -167,26 +169,27 @@ function HeroSection() {
             </div>
           </motion.div>
 
-          <div
-            className="absolute -bottom-4 right-2 flex items-center gap-2 rounded-full px-3 py-2"
-            style={{ background: '#12232b' }}
-          >
-            <div className="flex">
-              {previewProfessionals.map((professional, index) => (
-                <span
-                  key={professional.id}
-                  className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-brand-900 bg-brand-600 text-[10px] font-semibold text-white"
-                  style={{ marginLeft: index === 0 ? 0 : -9 }}
-                >
-                  {professional.firstName[0]}
-                  {professional.lastName[0]}
-                </span>
-              ))}
+          {previewProfessionals.length > 0 && (
+            <div
+              className="absolute -bottom-4 right-2 flex items-center gap-2 rounded-full px-3 py-2"
+              style={{ background: '#12232b' }}
+            >
+              <div className="flex">
+                {previewProfessionals.map((professional, index) => (
+                  <span
+                    key={professional.id}
+                    className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-brand-900 bg-brand-600 text-[10px] font-semibold text-white"
+                    style={{ marginLeft: index === 0 ? 0 : -9 }}
+                  >
+                    {getInitials(professional.fullName)}
+                  </span>
+                ))}
+              </div>
+              <span className="whitespace-nowrap text-xs font-medium text-white">
+                {professionals.length} especialistas
+              </span>
             </div>
-            <span className="whitespace-nowrap text-xs font-medium text-white">
-              {professionals.length} especialistas
-            </span>
-          </div>
+          )}
         </motion.div>
       </div>
     </section>

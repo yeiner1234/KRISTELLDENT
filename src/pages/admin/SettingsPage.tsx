@@ -10,10 +10,10 @@ function SettingsPage() {
 
       <form
         onSubmit={(event) => event.preventDefault()}
-        className="flex max-w-md flex-col gap-4 rounded-2xl border border-border bg-white p-6"
+        className="flex max-w-md flex-col gap-4 rounded-[14px] border border-adm-line-card bg-white p-[22px] shadow-soft"
       >
-        <Input label="Nombre de la clínica" defaultValue="Clínica Sonrisa" />
-        <Input label="Correo de contacto" type="email" defaultValue="citas@clinica.com" />
+        <Input label="Nombre de la clínica" defaultValue="KristellDent" variant="admin" />
+        <Input label="Correo de contacto" type="email" defaultValue="citas@clinica.com" variant="admin" />
         <Select
           label="Zona horaria"
           defaultValue="america-lima"
@@ -22,7 +22,7 @@ function SettingsPage() {
             { value: 'europe-madrid', label: 'Europa/Madrid' },
           ]}
         />
-        <Button type="submit" className="w-fit">
+        <Button type="submit" variant="admin-solid" className="w-fit">
           Guardar cambios
         </Button>
       </form>

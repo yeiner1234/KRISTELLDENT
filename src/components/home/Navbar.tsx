@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { Activity, ArrowRight, Menu, X } from 'lucide-react';
+import { LogIn, Menu, X } from 'lucide-react';
 import Button from '../common/Button';
+import logoIcon from '../../../imagenes/kristelldent-icon.png';
+import logoWordmark from '../../../imagenes/kristelldent-wordmark.png';
 
 const institutionalLinks = [
   { label: 'Inicio', href: '#inicio' },
@@ -34,14 +36,9 @@ function Navbar() {
       }}
     >
       <div className="mx-auto flex h-full max-w-[1240px] items-center justify-between px-5">
-        <a href="#inicio" className="flex items-center gap-2.5">
-          <span
-            className="flex h-[34px] w-[34px] items-center justify-center rounded-[11px]"
-            style={{ background: 'linear-gradient(140deg, #0f7b86, #0a656e)' }}
-          >
-            <Activity size={18} className="text-white" strokeWidth={2.4} />
-          </span>
-          <span className="whitespace-nowrap text-[17px] font-semibold text-brand-900">Clínica Sonrisa</span>
+        <a href="#inicio" className="flex items-center gap-2">
+          <img src={logoIcon} alt="" className="h-[42px] w-[42px]" />
+          <img src={logoWordmark} alt="KristellDent" className="h-[20px]" />
         </a>
 
         <nav className="hidden items-center gap-7 min-[1000px]:flex">
@@ -57,8 +54,8 @@ function Navbar() {
         </nav>
 
         <div className="hidden min-[1000px]:block">
-          <Button to="/reservar" size="sm" icon={<ArrowRight size={16} />}>
-            Reservar cita
+          <Button to="/login" size="sm" icon={<LogIn size={16} />}>
+            Acceso interno
           </Button>
         </div>
 
@@ -100,13 +97,13 @@ function Navbar() {
               ))}
               <div className="px-1 pt-2">
                 <Button
-                  to="/reservar"
+                  to="/login"
                   size="sm"
-                  icon={<ArrowRight size={16} />}
+                  icon={<LogIn size={16} />}
                   className="w-full"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Reservar cita
+                  Acceso interno
                 </Button>
               </div>
             </div>

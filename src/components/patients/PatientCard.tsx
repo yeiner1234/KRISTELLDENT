@@ -7,15 +7,15 @@ interface PatientCardProps {
 
 function PatientCard({ patient }: PatientCardProps) {
   return (
-    <div className="flex items-center justify-between rounded-2xl border border-border bg-white p-4">
-      <div>
-        <p className="text-sm font-semibold text-brand-900">
+    <div className="flex items-center justify-between gap-4 rounded-[14px] border border-adm-line-card bg-white p-4 shadow-soft">
+      <div className="flex flex-col gap-0.5">
+        <p className="text-sm font-semibold text-adm-ink-700">
           {formatFullName(patient.firstName, patient.lastName)}
         </p>
-        <p className="text-xs text-ink-tertiary">DNI {patient.dni}</p>
+        <p className="text-xs text-adm-ink-300 [font-variant-numeric:tabular-nums]">DNI {patient.dni}</p>
       </div>
-      <div className="text-right text-xs text-ink-secondary">
-        <p>{patient.phone}</p>
+      <div className="text-right text-xs text-adm-ink-400">
+        <p className="[font-variant-numeric:tabular-nums]">{patient.phone}</p>
         <p>{patient.email}</p>
       </div>
     </div>

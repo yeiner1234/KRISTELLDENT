@@ -10,7 +10,6 @@ import RoleRoute from './RoleRoute';
 import HomePage from '../pages/public/HomePage';
 import BookingPage from '../pages/public/BookingPage';
 import PatientDataPage from '../pages/public/PatientDataPage';
-import VerifyEmailPage from '../pages/public/VerifyEmailPage';
 import ConfirmBookingPage from '../pages/public/ConfirmBookingPage';
 import BookingSuccessPage from '../pages/public/BookingSuccessPage';
 import ConsultAppointmentsPage from '../pages/public/ConsultAppointmentsPage';
@@ -18,8 +17,12 @@ import VerifyAppointmentPage from '../pages/public/VerifyAppointmentPage';
 import MyAppointmentsPage from '../pages/public/MyAppointmentsPage';
 
 import LoginPage from '../pages/auth/LoginPage';
+import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage';
+import UpdatePasswordPage from '../pages/auth/UpdatePasswordPage';
 
 import AdminDashboardPage from '../pages/admin/DashboardPage';
+import AdminBranchesPage from '../pages/admin/BranchesPage';
+import AdminTeamPage from '../pages/admin/TeamPage';
 import AdminAgendaPage from '../pages/admin/AgendaPage';
 import AdminAppointmentsPage from '../pages/admin/AppointmentsPage';
 import AdminPatientsPage from '../pages/admin/PatientsPage';
@@ -42,7 +45,6 @@ function AppRouter() {
 
           <Route path="/reservar" element={<BookingPage />} />
           <Route path="/reservar/datos" element={<PatientDataPage />} />
-          <Route path="/reservar/verificar" element={<VerifyEmailPage />} />
           <Route path="/reservar/confirmar" element={<ConfirmBookingPage />} />
           <Route path="/reservar/exito" element={<BookingSuccessPage />} />
 
@@ -51,12 +53,16 @@ function AppRouter() {
           <Route path="/mis-citas" element={<MyAppointmentsPage />} />
 
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/login/recuperar" element={<ForgotPasswordPage />} />
+          <Route path="/actualizar-contrasena" element={<UpdatePasswordPage />} />
         </Route>
 
         <Route element={<ProtectedRoute />}>
-          <Route element={<RoleRoute allowedRoles={['ADMIN']} />}>
+          <Route element={<RoleRoute allowedRoles={['admin_global', 'admin_sede']} />}>
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboardPage />} />
+              <Route path="sedes" element={<AdminBranchesPage />} />
+              <Route path="equipo" element={<AdminTeamPage />} />
               <Route path="agenda" element={<AdminAgendaPage />} />
               <Route path="citas" element={<AdminAppointmentsPage />} />
               <Route path="pacientes" element={<AdminPatientsPage />} />
@@ -67,7 +73,7 @@ function AppRouter() {
             </Route>
           </Route>
 
-          <Route element={<RoleRoute allowedRoles={['PROFESSIONAL']} />}>
+          <Route element={<RoleRoute allowedRoles={['especialista', 'tecnica']} />}>
             <Route path="/profesional" element={<ProfessionalLayout />}>
               <Route index element={<ProfessionalDashboardPage />} />
               <Route path="agenda" element={<ProfessionalMyAgendaPage />} />

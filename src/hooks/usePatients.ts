@@ -1,18 +1,39 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Patient } from '../types/Patient';
-import { findPatientByDni } from '../services/patientService';
+import { getAllPatients } from '../services/patientService';
 
-export function usePatients() {
-  const [patient, setPatient] = useState<Patient | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+interface UseAllPatientsResult {
+  patients: Patient[];
+  isLoading: boolean;
+  error: string | null;
+}
 
-  const lookupByDni = async (dni: string) => {
-    setIsLoading(true);
-    const result = await findPatientByDni(dni);
-    setPatient(result);
-    setIsLoading(false);
-    return result;
-  };
+export function useAllPatients(): UseAllPatientsResult {
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  return { patient, isLoading, lookupByDni };
+  useEffect(() => {
+    let isMounted = true;
+
+    getAllPatients()
+      .then((data) => {
+        if (isMounted) {
+          setPatients(data);
+          setIsLoading(false);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setError('No se pudieron cargar los pacientes.');
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  return { patients, isLoading, error };
 }

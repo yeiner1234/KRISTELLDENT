@@ -1,35 +1,64 @@
 import { useState } from 'react';
 import { useLocation, useNavigate, Navigate } from 'react-router-dom';
-import SectionTitle from '../../components/common/SectionTitle';
+import { IdCard } from 'lucide-react';
+import BookingShell from '../../components/booking/BookingShell';
+import StepHeader from '../../components/booking/StepHeader';
 import PatientForm, { type PatientFormValues } from '../../components/booking/PatientForm';
-import { requestVerificationCode } from '../../services/patientService';
+import { isValidDni, isValidEmail, isValidPhone } from '../../utils/validation';
 import type { BookingSelection } from './BookingPage';
+
+type PatientDataState = BookingSelection & Partial<PatientFormValues>;
 
 function PatientDataPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const selection = location.state as BookingSelection | null;
-  const [values, setValues] = useState<PatientFormValues>({ dni: '', email: '' });
+  const selection = location.state as PatientDataState | null;
+
+  const [values, setValues] = useState<PatientFormValues>({
+    firstName: selection?.firstName ?? '',
+    lastName: selection?.lastName ?? '',
+    dni: selection?.dni ?? '',
+    phone: selection?.phone ?? '',
+    email: selection?.email ?? '',
+  });
 
   if (!selection) {
     return <Navigate to="/reservar" replace />;
   }
 
-  const handleSubmit = async () => {
-    await requestVerificationCode(values.dni, values.email);
-    navigate('/reservar/verificar', {
-      state: { ...selection, dni: values.dni, email: values.email },
-    });
+  const canContinue =
+    values.firstName.trim().length > 1 &&
+    values.lastName.trim().length > 1 &&
+    isValidDni(values.dni) &&
+    isValidPhone(values.phone) &&
+    isValidEmail(values.email);
+
+  const handleBack = () => {
+    navigate('/reservar', { state: { ...selection, ...values, resumeStep: 5 } });
+  };
+
+  const handleContinue = () => {
+    if (!canContinue) {
+      return;
+    }
+
+    navigate('/reservar/confirmar', { state: { ...selection, ...values } });
   };
 
   return (
-    <section className="mx-auto max-w-lg px-4 py-12 sm:px-6">
-      <SectionTitle title="Tus datos" subtitle="Ingresa tu DNI y correo electrónico" align="left" />
-
-      <div className="mt-8">
-        <PatientForm values={values} onChange={setValues} onSubmit={handleSubmit} />
-      </div>
-    </section>
+    <BookingShell
+      currentStep={6}
+      onBack={handleBack}
+      onContinue={handleContinue}
+      continueDisabled={!canContinue}
+    >
+      <StepHeader
+        icon={IdCard}
+        title="Tus datos"
+        subtitle="Necesitamos algunos datos para registrar tu reserva."
+      />
+      <PatientForm values={values} onChange={setValues} />
+    </BookingShell>
   );
 }
 

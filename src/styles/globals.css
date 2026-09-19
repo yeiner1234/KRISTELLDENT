@@ -73,6 +73,75 @@
   }
 }
 
+/*
+ * Admin / Login / Profesional design tokens — "adm-" namespace.
+ * Scoped on purpose: only Admin, Login and Professional screens reference
+ * these utilities. Public/Reservar/Mis Citas keep using the tokens above
+ * (brand-*, surface, surface-alt, tint, ink-secondary/tertiary, border)
+ * completely untouched.
+ *
+ * Deliberate design decision: the admin accent hue is the SAME brand hue as
+ * the public site (adm-accent-deep literally references --color-brand-700,
+ * not a hardcoded near-duplicate), so the two areas never visually drift
+ * apart. The differentiation for admin comes from a cooler, quieter,
+ * more neutral grayscale (adm-ink-*, adm-line-*) suited to dense data
+ * screens (tables, sidebars, forms) — not from a different color family.
+ */
+@theme {
+  --color-adm-ink-100: #c2ccd1;
+  --color-adm-ink-200: #8b9ca3;
+  --color-adm-ink-300: #7b8f97;
+  --color-adm-ink-400: #5d7078;
+  --color-adm-ink-500: #4a6875;
+  --color-adm-ink-700: #2c3f47;
+
+  --color-adm-line-card: #e6ebef;
+  --color-adm-line-control: #e1e8ec;
+  --color-adm-line-field: #dce4e8;
+  --color-adm-line-div: #edf1f4;
+  --color-adm-line-faint: #f2f5f7;
+  --color-adm-line-off: #f0f3f5;
+
+  --color-adm-surface-input: #fcfdfd;
+  --color-adm-surface-hover: #fafcfc;
+  --color-adm-surface-sel: #f5fafb;
+  --color-adm-surface-app: #f6f8f9;
+
+  --color-adm-accent-deep: var(--color-brand-700);
+  --color-adm-accent-ink: var(--color-brand-700);
+  --color-adm-accent-soft: #e6f2f4;
+  --color-adm-accent-ring: #e2f1f3;
+  --color-adm-accent-line: #bcdbde;
+  --color-adm-accent-sel-ring: #e6f3f5;
+
+  --color-adm-danger-text: #b3372f;
+  --color-adm-danger-border: #f4dcd9;
+
+  --color-adm-status-confirmed-text: #12714b;
+  --color-adm-status-confirmed-bg: #e8f6ee;
+  --color-adm-status-confirmed-border: #c6e7d5;
+  --color-adm-status-confirmed-solid: #1c8c5a;
+
+  --color-adm-status-pending-text: #87590a;
+  --color-adm-status-pending-bg: #fdf3dc;
+  --color-adm-status-pending-border: #f0ddb4;
+  --color-adm-status-pending-solid: #c8901a;
+
+  --color-adm-status-cancelled-text: #a3312a;
+  --color-adm-status-cancelled-bg: #fce9e7;
+  --color-adm-status-cancelled-border: #f4cfca;
+  --color-adm-status-cancelled-solid: #c25248;
+
+  --color-adm-status-completed-text: #3f5560;
+  --color-adm-status-completed-bg: #eef2f4;
+  --color-adm-status-completed-border: #dde5e9;
+  --color-adm-status-completed-solid: #64798a;
+
+  --shadow-adm-elev-1: 0 6px 18px rgba(18, 35, 43, 0.07);
+  --shadow-adm-elev-2: 0 12px 28px rgba(13, 43, 58, 0.09);
+  --shadow-adm-modal: 0 24px 48px rgba(18, 35, 43, 0.22);
+}
+
 :root {
   color-scheme: light;
   font-synthesis: none;

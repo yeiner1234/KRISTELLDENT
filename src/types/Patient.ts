@@ -3,6 +3,6 @@ export interface Patient {
   dni: string;
   firstName: string;
   lastName: string;
-  phone: string;
-  email: string;
+  phone: string | null;
+  email: string | null;
 }

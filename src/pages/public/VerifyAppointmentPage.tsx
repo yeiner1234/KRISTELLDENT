@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useLocation, useNavigate, Navigate } from 'react-router-dom';
-import SectionTitle from '../../components/common/SectionTitle';
 import VerificationCode from '../../components/booking/VerificationCode';
 import { verifyCode } from '../../services/patientService';
 import { isValidVerificationCode } from '../../utils/validation';
@@ -44,23 +43,16 @@ function VerifyAppointmentPage() {
 
   return (
     <section className="mx-auto max-w-lg px-4 py-12 sm:px-6">
-      <SectionTitle
-        eyebrow="Verificación"
+      <VerificationCode
         title="Ingresa el código recibido"
-        subtitle="Enviamos un código de verificación al correo registrado con tu DNI"
-        align="left"
+        subtitle="Enviamos un código de verificación a"
+        email="tu correo registrado"
+        code={code}
+        onChangeCode={setCode}
+        onSubmit={handleSubmit}
+        onResend={handleResend}
+        error={error}
       />
-
-      <div className="mt-8">
-        <VerificationCode
-          email="tu correo registrado"
-          code={code}
-          onChangeCode={setCode}
-          onSubmit={handleSubmit}
-          onResend={handleResend}
-          error={error}
-        />
-      </div>
     </section>
   );
 }

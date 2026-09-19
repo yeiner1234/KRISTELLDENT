@@ -3,10 +3,12 @@ import { Users } from 'lucide-react';
 import SectionTitle from '../../components/common/SectionTitle';
 import SearchInput from '../../components/common/SearchInput';
 import EmptyState from '../../components/common/EmptyState';
+import Spinner from '../../components/common/Spinner';
 import PatientCard from '../../components/patients/PatientCard';
-import { patients } from '../../data/mockData';
+import { useAllPatients } from '../../hooks/usePatients';
 
 function MyPatientsPage() {
+  const { patients, isLoading } = useAllPatients();
   const [query, setQuery] = useState('');
 
   const filteredPatients = useMemo(() => {
@@ -16,11 +18,14 @@ function MyPatientsPage() {
     return patients.filter((patient) =>
       `${patient.firstName} ${patient.lastName} ${patient.dni}`.toLowerCase().includes(term),
     );
-  }, [query]);
+  }, [query, patients]);
 
   return (
     <div className="flex flex-col gap-6">
-      <SectionTitle title="Mis pacientes" align="left" />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <SectionTitle title="Mis pacientes" align="left" />
+        <span className="text-[13px] text-adm-ink-300">{filteredPatients.length} pacientes</span>
+      </div>
 
       <SearchInput
         value={query}
@@ -29,7 +34,11 @@ function MyPatientsPage() {
         wrapperClassName="max-w-sm"
       />
 
-      {filteredPatients.length === 0 ? (
+      {isLoading ? (
+        <div className="flex justify-center py-10">
+          <Spinner size={28} />
+        </div>
+      ) : filteredPatients.length === 0 ? (
         <EmptyState
           icon={Users}
           title="Sin pacientes asignados"

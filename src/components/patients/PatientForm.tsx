@@ -3,7 +3,7 @@ import Input from '../common/Input';
 import Button from '../common/Button';
 import type { Patient } from '../../types/Patient';
 
-export type PatientFormValues = Omit<Patient, 'id'>;
+export type PatientFormValues = Omit<Patient, 'id' | 'phone' | 'email'> & { phone: string; email: string };
 
 interface PatientFormProps {
   initialValues?: PatientFormValues;

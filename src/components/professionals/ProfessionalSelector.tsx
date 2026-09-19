@@ -1,25 +1,37 @@
 import Select from '../common/Select';
 import type { Professional } from '../../types/Professional';
-import { formatFullName } from '../../utils/format';
 
 interface ProfessionalSelectorProps {
   professionals: Professional[];
   value: string;
   onChange: (professionalId: string) => void;
   label?: string;
+  hideLabel?: boolean;
 }
 
-function ProfessionalSelector({ professionals, value, onChange, label = 'Profesional' }: ProfessionalSelectorProps) {
+function ProfessionalSelector({
+  professionals,
+  value,
+  onChange,
+  label = 'Profesional',
+  hideLabel = false,
+}: ProfessionalSelectorProps) {
   const options = [
     { value: '', label: 'Todos los profesionales' },
     ...professionals.map((professional) => ({
       value: professional.id,
-      label: formatFullName(professional.firstName, professional.lastName),
+      label: professional.fullName,
     })),
   ];
 
   return (
-    <Select label={label} options={options} value={value} onChange={(event) => onChange(event.target.value)} />
+    <Select
+      label={label}
+      hideLabel={hideLabel}
+      options={options}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    />
   );
 }
 

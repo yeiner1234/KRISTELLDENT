@@ -1,31 +1,34 @@
-interface BookingSummaryProps {
-  patientName: string;
-  professionalName: string;
-  specialtyName: string;
-  date: string;
-  time: string;
-  reason: string;
+export interface BookingSummaryRow {
+  label: string;
+  value: string;
 }
 
-function BookingSummary({ patientName, professionalName, specialtyName, date, time, reason }: BookingSummaryProps) {
-  const rows: Array<[string, string]> = [
-    ['Paciente', patientName],
-    ['Profesional', professionalName],
-    ['Especialidad', specialtyName],
-    ['Fecha', date],
-    ['Hora', time],
-    ['Motivo', reason],
-  ];
+interface BookingSummaryProps {
+  title?: string;
+  rows: BookingSummaryRow[];
+}
 
+function BookingSummary({ title, rows }: BookingSummaryProps) {
   return (
-    <dl className="divide-y divide-border rounded-2xl border border-border">
-      {rows.map(([label, value]) => (
-        <div key={label} className="flex items-center justify-between px-5 py-3">
-          <dt className="text-sm text-ink-tertiary">{label}</dt>
-          <dd className="text-sm font-semibold text-brand-900">{value || '—'}</dd>
-        </div>
-      ))}
-    </dl>
+    <div className="rounded-2xl border" style={{ borderColor: '#edf1f4' }}>
+      {title && (
+        <p className="border-b px-5 py-3 text-sm font-semibold text-brand-900" style={{ borderColor: '#edf1f4' }}>
+          {title}
+        </p>
+      )}
+      <dl>
+        {rows.map((row) => (
+          <div
+            key={row.label}
+            className="flex items-center justify-between gap-4 border-b px-5 py-3 last:border-b-0"
+            style={{ borderColor: '#edf1f4' }}
+          >
+            <dt className="text-[13px] text-ink-tertiary">{row.label}</dt>
+            <dd className="text-right text-sm font-medium text-brand-900">{row.value || '—'}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
   );
 }
 

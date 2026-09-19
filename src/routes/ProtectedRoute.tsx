@@ -1,14 +1,20 @@
-import { Outlet } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
+import Spinner from '../components/common/Spinner';
 
-// TODO: connect real authentication once the REST API exists.
-// Replace this with `const { isAuthenticated } = useAuth();` and redirect
-// unauthenticated staff (ADMIN / PROFESSIONAL) to /login with <Navigate />.
-// For now, access is always allowed since there is no backend yet.
 function ProtectedRoute() {
-  const isAuthenticated = true;
+  const { user, isLoading } = useAuth();
 
-  if (!isAuthenticated) {
-    return null;
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Spinner size={32} />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
   }
 
   return <Outlet />;
