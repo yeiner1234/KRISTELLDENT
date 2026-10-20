@@ -5,6 +5,14 @@ import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import { requestPasswordReset } from '../../services/authService';
 
+function isRateLimitError(err: unknown): boolean {
+  if (typeof err === 'object' && err !== null && 'status' in err && err.status === 429) {
+    return true;
+  }
+  const message = err instanceof Error ? err.message.toLowerCase() : '';
+  return message.includes('rate limit') || message.includes('security purposes');
+}
+
 function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
@@ -20,7 +28,12 @@ function ForgotPasswordPage() {
       await requestPasswordReset(email);
       setSent(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo enviar el enlace.');
+      // Never surface Supabase's raw message: it must not hint whether the email exists.
+      setError(
+        isRateLimitError(err)
+          ? 'Ya se envió un enlace hace poco. Espera un minuto e inténtalo de nuevo.'
+          : 'No se pudo procesar la solicitud. Inténtalo más tarde.',
+      );
     } finally {
       setIsSubmitting(false);
     }

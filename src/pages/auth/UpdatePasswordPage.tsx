@@ -4,9 +4,31 @@ import { KeyRound } from 'lucide-react';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import Spinner from '../../components/common/Spinner';
-import { supabase } from '../../lib/supabase';
+import {
+  clearPasswordRecoveryFlow,
+  isPasswordRecoveryExpired,
+  isPasswordRecoveryFlow,
+  supabase,
+} from '../../lib/supabase';
 import { getCurrentUser } from '../../services/authService';
+import { isValidPassword } from '../../utils/validation';
 import icon from '../../../imagenes/kristelldent-icon.png';
+
+function describeUpdatePasswordError(message: string): string {
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes('password') && (normalized.includes('weak') || normalized.includes('at least') || normalized.includes('characters') || normalized.includes('short'))) {
+    return 'La contraseña debe tener al menos 8 caracteres.';
+  }
+  if (normalized.includes('different from the old')) {
+    return 'La nueva contraseña debe ser distinta de la anterior.';
+  }
+  if (normalized.includes('session') || normalized.includes('jwt') || normalized.includes('expired')) {
+    return 'El enlace expiró. Solicita uno nuevo.';
+  }
+
+  return 'No se pudo actualizar la contraseña. Inténtalo de nuevo.';
+}
 
 function UpdatePasswordPage() {
   const navigate = useNavigate();
@@ -20,9 +42,18 @@ function UpdatePasswordPage() {
   useEffect(() => {
     let isMounted = true;
 
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
+      const session = data.session;
+      let isValidRecovery = session !== null && isPasswordRecoveryFlow();
+
+      if (isValidRecovery && isPasswordRecoveryExpired(session?.user.recovery_sent_at)) {
+        isValidRecovery = false;
+        clearPasswordRecoveryFlow();
+        await supabase.auth.signOut();
+      }
+
       if (isMounted) {
-        setHasSession(data.session !== null);
+        setHasSession(isValidRecovery);
         setIsCheckingSession(false);
       }
     });
@@ -36,7 +67,7 @@ function UpdatePasswordPage() {
     event.preventDefault();
     setError(null);
 
-    if (password.length < 8) {
+    if (!isValidPassword(password)) {
       setError('La contraseña debe tener al menos 8 caracteres.');
       return;
     }
@@ -49,11 +80,21 @@ function UpdatePasswordPage() {
     setIsSubmitting(true);
 
     try {
+      // The page may have stayed open past the link's lifetime.
+      const { data } = await supabase.auth.getSession();
+      if (!data.session || isPasswordRecoveryExpired(data.session.user.recovery_sent_at)) {
+        clearPasswordRecoveryFlow();
+        await supabase.auth.signOut();
+        throw new Error('El enlace expiró. Solicita uno nuevo.');
+      }
+
       const { error: updateError } = await supabase.auth.updateUser({ password });
 
       if (updateError) {
-        throw new Error(updateError.message);
+        throw new Error(describeUpdatePasswordError(updateError.message));
       }
+
+      clearPasswordRecoveryFlow();
 
       const user = await getCurrentUser();
       const isAdmin = user?.role === 'admin_global' || user?.role === 'admin_sede';
@@ -109,6 +150,7 @@ function UpdatePasswordPage() {
               type="password"
               variant="admin"
               placeholder="Mínimo 8 caracteres"
+              minLength={8}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               required

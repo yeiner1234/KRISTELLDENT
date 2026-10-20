@@ -13,3 +13,7 @@ export function isValidVerificationCode(code: string): boolean {
 export function isValidPhone(phone: string): boolean {
   return /^\d{9}$/.test(phone.trim());
 }
+
+export function isValidPassword(password: string): boolean {
+  return password.length >= 8;
+}
