@@ -7,8 +7,8 @@ import Spinner from '../../components/common/Spinner';
 import {
   clearPasswordRecoveryFlow,
   isPasswordRecoveryExpired,
-  isPasswordRecoveryFlow,
   supabase,
+  waitForPasswordRecoveryFlow,
 } from '../../lib/supabase';
 import { getCurrentUser } from '../../services/authService';
 import { isValidPassword } from '../../utils/validation';
@@ -42,9 +42,11 @@ function UpdatePasswordPage() {
   useEffect(() => {
     let isMounted = true;
 
-    supabase.auth.getSession().then(async ({ data }) => {
+    const checkRecoverySession = async () => {
+      const isRecoveryFlow = await waitForPasswordRecoveryFlow();
+      const { data } = await supabase.auth.getSession();
       const session = data.session;
-      let isValidRecovery = session !== null && isPasswordRecoveryFlow();
+      let isValidRecovery = session !== null && isRecoveryFlow;
 
       if (isValidRecovery && isPasswordRecoveryExpired(session?.user.recovery_sent_at)) {
         isValidRecovery = false;
@@ -56,7 +58,9 @@ function UpdatePasswordPage() {
         setHasSession(isValidRecovery);
         setIsCheckingSession(false);
       }
-    });
+    };
+
+    void checkRecoverySession();
 
     return () => {
       isMounted = false;

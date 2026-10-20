@@ -32,6 +32,36 @@ export function isPasswordRecoveryFlow(): boolean {
   }
 }
 
+// Read before the client cleans the URL: the email link lands with `#...&type=recovery`.
+const urlLooksLikeRecovery =
+  typeof window !== 'undefined' && /(^#|&)type=recovery(&|$)/.test(window.location.hash);
+
+/**
+ * Supabase emits PASSWORD_RECOVERY in a setTimeout after initializing, so
+ * getSession() can resolve before it. When the page was opened from the email
+ * link, wait for that event instead of reading the flag too early.
+ */
+export function waitForPasswordRecoveryFlow(timeoutMs = 5000): Promise<boolean> {
+  if (isPasswordRecoveryFlow() || !urlLooksLikeRecovery) {
+    return Promise.resolve(isPasswordRecoveryFlow());
+  }
+
+  return new Promise((resolve) => {
+    const { data } = supabase.auth.onAuthStateChange(() => {
+      if (isPasswordRecoveryFlow()) {
+        finish();
+      }
+    });
+    const timer = setTimeout(finish, timeoutMs);
+
+    function finish() {
+      clearTimeout(timer);
+      data.subscription.unsubscribe();
+      resolve(isPasswordRecoveryFlow());
+    }
+  });
+}
+
 export function clearPasswordRecoveryFlow(): void {
   try {
     sessionStorage.removeItem(PASSWORD_RECOVERY_KEY);
