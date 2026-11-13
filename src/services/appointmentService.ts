@@ -216,6 +216,10 @@ export async function rescheduleAppointment(id: string, input: RescheduleAppoint
 
   if (error) {
     if (error.code === '23P01') {
+      // Dos restricciones de exclusión: la del profesional y la del paciente.
+      if (error.message.includes('appointments_no_patient_overlap')) {
+        throw new Error('El paciente ya tiene otra cita que se cruza con ese horario.');
+      }
       throw new Error('Ese horario ya no está disponible. Elige otro.');
     }
     throw new Error(error.message);

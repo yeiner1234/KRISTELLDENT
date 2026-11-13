@@ -172,6 +172,10 @@ Deno.serve(async (req) => {
     // 23P01 = exclusion_violation: alguien más reservó este horario justo
     // antes. Esta es la protección real, no la verificación de arriba.
     if (appointmentError.code === '23P01') {
+      // La restricción del paciente: ya tiene otra cita que se cruza.
+      if (appointmentError.message.includes('appointments_no_patient_overlap')) {
+        return jsonResponse({ error: 'Ya tienes otra cita que se cruza con ese horario. Elige otra hora.' }, 409);
+      }
       return jsonResponse({ error: 'Ese horario ya no está disponible. Por favor elige otro.' }, 409);
     }
     return jsonResponse({ error: appointmentError.message }, 400);

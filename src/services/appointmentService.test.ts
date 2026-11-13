@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { supabase } from '../lib/supabase';
 import { findCall, mockQuery } from '../test/mockQuery';
-import { getAllAppointments, getAppointmentsByPatientDni, getAvailableSlots } from './appointmentService';
+import { getAllAppointments, getAppointmentsByPatientDni, getAvailableSlots, rescheduleAppointment } from './appointmentService';
 
 vi.mock('../lib/supabase', () => ({
   supabase: {
@@ -97,5 +97,32 @@ describe('appointmentService', () => {
       'get_available_slots',
       expect.objectContaining({ p_exclude_appointment_id: null }),
     );
+  });
+
+  it('rescheduleAppointment avisa si el paciente ya tiene otra cita a esa hora', async () => {
+    vi.mocked(supabase.from).mockReturnValue(
+      mockQuery({
+        error: {
+          code: '23P01',
+          message: 'conflicting key value violates exclusion constraint "appointments_no_patient_overlap"',
+        },
+      }) as never,
+    );
+
+    await expect(
+      rescheduleAppointment('a1', { date: '2026-11-20', startTime: '09:00', endTime: '09:30' }),
+    ).rejects.toThrow('El paciente ya tiene otra cita que se cruza con ese horario.');
+  });
+
+  it('rescheduleAppointment avisa si el horario del profesional ya está ocupado', async () => {
+    vi.mocked(supabase.from).mockReturnValue(
+      mockQuery({
+        error: { code: '23P01', message: 'conflicting key value violates exclusion constraint "appointments_no_overlap"' },
+      }) as never,
+    );
+
+    await expect(
+      rescheduleAppointment('a1', { date: '2026-11-20', startTime: '09:00', endTime: '09:30' }),
+    ).rejects.toThrow('Ese horario ya no está disponible. Elige otro.');
   });
 });
