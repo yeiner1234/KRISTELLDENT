@@ -5,6 +5,7 @@
 -- 'in_room' del enum appointment_status).
 --
 -- Contenido:
+--   2.0 current_user_role() solo para perfiles activos.
 --   2.1 Código de cita (HU10/HU11).
 --   2.2 Un paciente no puede tener dos citas que se crucen (HU10).
 --   2.3 Reglas de cambio de estado y reprogramación (HU11, HU12).
@@ -16,6 +17,28 @@
 -- Se puede correr dos veces sin error: cada objeto se borra "if exists" antes
 -- de crearse, o se crea con "if not exists" / "create or replace".
 -- =============================================================================
+
+
+-- -----------------------------------------------------------------------------
+-- 2.0 current_user_role() solo para perfiles activos
+-- -----------------------------------------------------------------------------
+-- Todas las políticas de admin_sede y tecnica dependen de esta función. Antes
+-- devolvía el rol aunque el perfil estuviera desactivado, así que un usuario
+-- desactivado con la sesión abierta seguía pudiendo leer y escribir. Ahora
+-- devuelve null para un perfil inactivo (igual que is_admin_global()).
+-- create or replace conserva los grants de la migración inicial.
+create or replace function public.current_user_role()
+returns public.app_role
+language sql
+security definer
+stable
+set search_path = ''
+as $$
+  select role
+  from public.profiles
+  where id = auth.uid()
+    and active = true;
+$$;
 
 
 -- -----------------------------------------------------------------------------
@@ -228,6 +251,9 @@ create policy appointments_insert_admin
 -- así que una tecnica o una especialista también podían escribir.
 
 -- --- Con branch_id ------------------------------------------------------------
+-- professional_branches y professional_schedules piden además que el
+-- profesional comparta sede con el admin: sin eso, un admin_sede podría
+-- asignar a su sede (y ofrecer al público) a un profesional de otra sede.
 drop policy if exists branch_schedules_write_admin on public.branch_schedules;
 create policy branch_schedules_write_admin
   on public.branch_schedules for insert
@@ -251,32 +277,32 @@ drop policy if exists professional_branches_write_admin on public.professional_b
 create policy professional_branches_write_admin
   on public.professional_branches for insert
   to authenticated
-  with check (public.is_admin_global() or (public.current_user_role() = 'admin_sede' and public.has_branch_access(branch_id)));
+  with check (public.is_admin_global() or (public.current_user_role() = 'admin_sede' and public.has_branch_access(branch_id) and public.shares_branch_with(professional_id)));
 
 drop policy if exists professional_branches_delete_admin on public.professional_branches;
 create policy professional_branches_delete_admin
   on public.professional_branches for delete
   to authenticated
-  using (public.is_admin_global() or (public.current_user_role() = 'admin_sede' and public.has_branch_access(branch_id)));
+  using (public.is_admin_global() or (public.current_user_role() = 'admin_sede' and public.has_branch_access(branch_id) and public.shares_branch_with(professional_id)));
 
 drop policy if exists professional_schedules_write_admin on public.professional_schedules;
 create policy professional_schedules_write_admin
   on public.professional_schedules for insert
   to authenticated
-  with check (public.is_admin_global() or (public.current_user_role() = 'admin_sede' and public.has_branch_access(branch_id)));
+  with check (public.is_admin_global() or (public.current_user_role() = 'admin_sede' and public.has_branch_access(branch_id) and public.shares_branch_with(professional_id)));
 
 drop policy if exists professional_schedules_update_admin on public.professional_schedules;
 create policy professional_schedules_update_admin
   on public.professional_schedules for update
   to authenticated
-  using (public.is_admin_global() or (public.current_user_role() = 'admin_sede' and public.has_branch_access(branch_id)))
-  with check (public.is_admin_global() or (public.current_user_role() = 'admin_sede' and public.has_branch_access(branch_id)));
+  using (public.is_admin_global() or (public.current_user_role() = 'admin_sede' and public.has_branch_access(branch_id) and public.shares_branch_with(professional_id)))
+  with check (public.is_admin_global() or (public.current_user_role() = 'admin_sede' and public.has_branch_access(branch_id) and public.shares_branch_with(professional_id)));
 
 drop policy if exists professional_schedules_delete_admin on public.professional_schedules;
 create policy professional_schedules_delete_admin
   on public.professional_schedules for delete
   to authenticated
-  using (public.is_admin_global() or (public.current_user_role() = 'admin_sede' and public.has_branch_access(branch_id)));
+  using (public.is_admin_global() or (public.current_user_role() = 'admin_sede' and public.has_branch_access(branch_id) and public.shares_branch_with(professional_id)));
 
 -- --- Sin branch_id (se mira si el profesional comparte sede con el admin) -----
 drop policy if exists professionals_insert_admin on public.professionals;

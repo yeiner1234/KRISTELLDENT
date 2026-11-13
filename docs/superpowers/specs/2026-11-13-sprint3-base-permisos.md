@@ -9,6 +9,7 @@ Va sola: Postgres no deja usar un valor de enum en la misma transacción en que 
 - `alter type public.appointment_status add value if not exists 'in_room' after 'confirmed';`
 
 ### Migración B — `20261113100100_sprint3_base_permisos.sql`
+0. **Perfil desactivado sin permisos.** `current_user_role()` devuelve el rol solo si `profiles.active = true` (si no, `null`). Agregado tras la revisión; la migración aún no se había aplicado en ninguna base.
 1. **Código de cita (HU10/HU11).** `public.generate_appointment_code()` (plpgsql, volatile, `search_path = ''`): `'KD-'` + 6 caracteres al azar de `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`, repite si ya existe. Columna `appointments.appointment_code` rellenada para las citas existentes, con default, `not null` y `unique` (`appointments_code_unique`).
 2. **Sin cruces por paciente (HU10 CL2).** Restricción de exclusión `appointments_no_patient_overlap` (patient_id, tsrange) sobre citas no canceladas. El comentario de la migración incluye la consulta previa que detecta cruces.
 3. **Reglas de estado (HU11 CL1, HU12).** Trigger BEFORE UPDATE `guard_appointment_changes()` (errcode `P0001`, mensaje en español):
@@ -34,6 +35,7 @@ Va sola: Postgres no deja usar un valor de enum en la misma transacción en que 
 - `getProfessionals()` omite a los profesionales sin nombre público (perfil inactivo); `role` queda `null` en lecturas públicas, como ya documenta el tipo.
 - La Edge Function `lookup-appointments-by-dni` devuelve también `appointment_code`, para que `Appointment.code` llegue en "mis citas".
 - `getAvailableSlots()` acepta `excludeAppointmentId` opcional (solo el servicio; las pantallas no cambian).
+- En `professional_branches` y `professional_schedules` el admin_sede necesita `has_branch_access(branch_id)` **y** `shares_branch_with(professional_id)`. Solo con lo primero (como decía el prompt) podía asignar a su sede a un profesional de otra sede; lo detectó security-review.
 - Migración idempotente: `add column if not exists`, `drop constraint/policy/trigger/function if exists` antes de crear.
 
 ## Fuera de alcance

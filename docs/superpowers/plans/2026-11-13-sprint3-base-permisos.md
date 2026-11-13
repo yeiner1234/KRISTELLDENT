@@ -42,12 +42,14 @@
 | Regla | Consulta o paso | Esperado |
 |---|---|---|
 | A | `select enum_range(null::appointment_status);` | `{pending,confirmed,in_room,completed,cancelled}` |
+| 2.0 | En una transacción con `rollback`: `update profiles set active = false where id = '<admin_sede>'; set local role authenticated; set local request.jwt.claims = '{"sub":"<admin_sede>"}'; select public.current_user_role(); select count(*) from appointments; insert into branch_schedules (branch_id, day_of_week, open_time, close_time) values ('<su sede>', <día sin horario>, '09:00', '13:00');` | `null`, `0` y el insert falla por RLS. Sin el `update` (perfil activo): `admin_sede`, citas de su sede y el insert pasa |
 | 2.1 | `select count(*) filter (where appointment_code is null), count(*) - count(distinct appointment_code) from appointments;` y `select appointment_code from appointments limit 5;` | `0, 0`; códigos `KD-XXXXXX` sin I, O, 0 ni 1 |
 | 2.2 | Insertar para un mismo paciente dos citas solapadas con profesionales distintos | la segunda falla con `23P01` |
 | 2.3 | En una transacción con `rollback`: `update appointments set status='pending'` sobre una `completed`; `pending→completed`; cambiar `appointment_date` de una `in_room` | las tres fallan con el mensaje en español (P0001); `pending→in_room` pasa |
 | 2.4 | `set role anon; select * from get_public_professionals(); reset role;` | lista id y nombre de profesionales activos |
 | 2.5 | Con el JWT de una especialista (o `set local role authenticated; set local request.jwt.claims = '{"sub":"<uuid>"}'`): `select count(*) from appointments where professional_id <> '<uuid>'` | `0`. Con una técnica: solo citas de sus sedes |
 | 2.6 | Como técnica: `insert into branch_schedules ...` de su sede | falla por RLS. Como admin_sede de esa sede: pasa |
+| 2.6 (sedes cruzadas) | Como admin_sede de la sede A: `insert into professional_branches (professional_id, branch_id) values ('<profesional solo de la sede B>', '<A>');` y lo mismo en `professional_schedules` | falla por RLS. Con un profesional que comparte sede con ese admin: pasa |
 | 2.7 | `select * from get_available_slots(<prof>, <sede>, <servicio>, current_date);` | sin horas anteriores a la hora de Lima; vacío con profesional inactivo, sede que no atiende o servicio que no ofrece; con `p_exclude_appointment_id` de una cita reaparece su franja |
 
 ### Task 2: Tipos, utilidades y badges ("En sala", `code`, hoy en Lima)
