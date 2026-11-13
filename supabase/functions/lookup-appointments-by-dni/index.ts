@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
 
   const { data: appointments, error: appointmentsError } = await adminClient
     .from('appointments')
-    .select('id, professional_id, branch_id, service_id, appointment_date, start_time, end_time, status, reason')
+    .select('id, appointment_code, professional_id, branch_id, service_id, appointment_date, start_time, end_time, status, reason')
     .eq('patient_id', patient.id)
     .order('appointment_date', { ascending: false });
 
@@ -87,6 +87,7 @@ Deno.serve(async (req) => {
       },
       appointments: (appointments ?? []).map((row) => ({
         id: row.id,
+        code: row.appointment_code,
         professionalId: row.professional_id,
         branchId: row.branch_id,
         serviceId: row.service_id,
