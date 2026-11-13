@@ -96,7 +96,27 @@ export async function getCurrentUser(): Promise<User | null> {
   return mapProfileToUser(profile);
 }
 
+export class EmailNotRegisteredError extends Error {
+  constructor() {
+    super('Este correo no pertenece a ningún usuario registrado.');
+    this.name = 'EmailNotRegisteredError';
+  }
+}
+
 export async function requestPasswordReset(email: string): Promise<void> {
+  // Supabase responde "éxito" aunque el correo no exista; esta consulta previa
+  // permite avisar al usuario y evita enviar el enlace a cuentas desactivadas.
+  const { data: isRegistered, error: checkError } = await supabase.rpc('can_request_password_reset', {
+    p_email: email,
+  });
+
+  if (checkError) {
+    throw new Error(checkError.message);
+  }
+  if (!isRegistered) {
+    throw new EmailNotRegisteredError();
+  }
+
   const redirectTo = `${window.location.origin}/actualizar-contrasena`;
   const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
 

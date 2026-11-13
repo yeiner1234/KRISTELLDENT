@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, MailCheck } from 'lucide-react';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
-import { requestPasswordReset } from '../../services/authService';
+import { EmailNotRegisteredError, requestPasswordReset } from '../../services/authService';
 
 function isRateLimitError(err: unknown): boolean {
   if (typeof err === 'object' && err !== null && 'status' in err && err.status === 429) {
@@ -28,12 +28,15 @@ function ForgotPasswordPage() {
       await requestPasswordReset(email);
       setSent(true);
     } catch (err) {
-      // Never surface Supabase's raw message: it must not hint whether the email exists.
-      setError(
-        isRateLimitError(err)
-          ? 'Ya se envió un enlace hace poco. Espera un minuto e inténtalo de nuevo.'
-          : 'No se pudo procesar la solicitud. Inténtalo más tarde.',
-      );
+      if (err instanceof EmailNotRegisteredError) {
+        setError('Este correo no está registrado en el sistema. Verifica que sea tu correo de trabajo.');
+      } else {
+        setError(
+          isRateLimitError(err)
+            ? 'Ya se envió un enlace hace poco. Espera un minuto e inténtalo de nuevo.'
+            : 'No se pudo procesar la solicitud. Inténtalo más tarde.',
+        );
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -54,7 +57,7 @@ function ForgotPasswordPage() {
             </span>
             <h1 className="text-[22px] font-semibold text-adm-ink-700">Revisa tu correo</h1>
             <p className="text-sm text-adm-ink-400">
-              Si <strong>{email}</strong> está registrado, te enviamos un enlace para restablecer tu contraseña.
+              Te enviamos un enlace a <strong>{email}</strong> para restablecer tu contraseña.
             </p>
           </div>
         ) : (
