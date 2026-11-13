@@ -12,9 +12,18 @@ interface ProfessionalCardProps {
   variant?: 'public' | 'admin';
   agendaHref?: string;
   onEdit?: () => void;
+  onSchedule?: () => void;
 }
 
-function ProfessionalCard({ professional, specialtyName, meta, variant = 'public', agendaHref, onEdit }: ProfessionalCardProps) {
+function ProfessionalCard({
+  professional,
+  specialtyName,
+  meta,
+  variant = 'public',
+  agendaHref,
+  onEdit,
+  onSchedule,
+}: ProfessionalCardProps) {
   const fullName = professional.fullName;
   const initials = getInitials(professional.fullName);
 
@@ -60,6 +69,11 @@ function ProfessionalCard({ professional, specialtyName, meta, variant = 'public
             </Link>
           ) : (
             <span className="flex-1" />
+          )}
+          {onSchedule && (
+            <Button type="button" variant="admin-outline" size="xs" className="h-9" icon={<Clock size={14} />} onClick={onSchedule}>
+              Horario
+            </Button>
           )}
           <Button type="button" variant="admin-outline" size="xs" className="h-9" onClick={onEdit}>
             Editar

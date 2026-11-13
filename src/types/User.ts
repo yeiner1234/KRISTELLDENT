@@ -1,4 +1,4 @@
-export type AppRole = 'admin_global' | 'admin_sede' | 'especialista' | 'tecnica';
+export type AppRole = 'admin_global' | 'admin_sede' | 'especialista' | 'odontologa_general' | 'tecnica';
 
 export interface User {
   id: string;

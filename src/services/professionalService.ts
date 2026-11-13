@@ -1,8 +1,10 @@
 import { supabase } from '../lib/supabase';
 import type { Professional } from '../types/Professional';
+import type { AppRole } from '../types/User';
 
 interface ProfileNameRow {
   full_name: string;
+  role: AppRole;
 }
 
 interface ProfessionalRow {
@@ -17,21 +19,22 @@ interface ProfessionalRow {
 
 const SELECT_COLUMNS = `
   id, bio, active,
-  profiles ( full_name ),
+  profiles ( full_name, role ),
   professional_specialties ( specialty_id ),
   professional_branches ( branch_id ),
   professional_services ( service_id )
 `;
 
-function extractFullName(profiles: ProfessionalRow['profiles']): string {
-  if (!profiles) return '';
-  return Array.isArray(profiles) ? (profiles[0]?.full_name ?? '') : profiles.full_name;
+function extractProfile(profiles: ProfessionalRow['profiles']): ProfileNameRow | null {
+  if (!profiles) return null;
+  return Array.isArray(profiles) ? (profiles[0] ?? null) : profiles;
 }
 
 function mapRow(row: ProfessionalRow): Professional {
   return {
     id: row.id,
-    fullName: extractFullName(row.profiles),
+    fullName: extractProfile(row.profiles)?.full_name ?? '',
+    role: extractProfile(row.profiles)?.role ?? null,
     bio: row.bio,
     active: row.active,
     specialtyIds: row.professional_specialties.map((item) => item.specialty_id),
@@ -65,16 +68,21 @@ export async function getAllProfessionalsForAdmin(): Promise<Professional[]> {
   return ((data ?? []) as unknown as ProfessionalRow[]).map(mapRow);
 }
 
+// Roles clínicos que atienden citas y por eso llevan ficha en professionals.
+export const PROFESSIONAL_ROLES: AppRole[] = ['especialista', 'odontologa_general'];
+
 export interface EligibleProfile {
   id: string;
   fullName: string;
   email: string;
+  role: AppRole;
 }
 
-// Cuentas con role = especialista que todavía no tienen ficha profesional.
+// Cuentas con rol clínico (especialista u odontóloga general) que todavía no
+// tienen ficha profesional.
 export async function getEligibleProfilesForProfessional(): Promise<EligibleProfile[]> {
   const [{ data: profiles, error: profilesError }, { data: existing, error: existingError }] = await Promise.all([
-    supabase.from('profiles').select('id, full_name, email').eq('role', 'especialista').eq('active', true),
+    supabase.from('profiles').select('id, full_name, email, role').in('role', PROFESSIONAL_ROLES).eq('active', true),
     supabase.from('professionals').select('id'),
   ]);
 
@@ -89,7 +97,7 @@ export async function getEligibleProfilesForProfessional(): Promise<EligibleProf
 
   return (profiles ?? [])
     .filter((profile) => !takenIds.has(profile.id))
-    .map((profile) => ({ id: profile.id, fullName: profile.full_name, email: profile.email }));
+    .map((profile) => ({ id: profile.id, fullName: profile.full_name, email: profile.email, role: profile.role }));
 }
 
 export interface ProfessionalRelationsInput {

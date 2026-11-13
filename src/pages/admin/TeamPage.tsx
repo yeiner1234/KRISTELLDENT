@@ -18,11 +18,12 @@ const roleLabels: Record<AppRole, string> = {
   admin_global: 'Administrador global',
   admin_sede: 'Administrador de sede',
   especialista: 'Especialista',
+  odontologa_general: 'Odontóloga general',
   tecnica: 'Técnica',
 };
 
-const rolesAdminGlobalCanCreate: AppRole[] = ['admin_global', 'admin_sede', 'especialista', 'tecnica'];
-const rolesAdminSedeCanCreate: AppRole[] = ['especialista', 'tecnica'];
+const rolesAdminGlobalCanCreate: AppRole[] = ['admin_global', 'admin_sede', 'especialista', 'odontologa_general', 'tecnica'];
+const rolesAdminSedeCanCreate: AppRole[] = ['especialista', 'odontologa_general', 'tecnica'];
 
 interface FormState {
   fullName: string;
@@ -127,7 +128,7 @@ function TeamPage() {
         <EmptyState
           icon={UsersRound}
           title="No hay usuarios internos registrados"
-          description="Invita a la primera cuenta de administrador de sede, especialista o técnica."
+          description="Invita a la primera cuenta de administrador de sede, especialista, odontóloga general o técnica."
         />
       ) : (
         <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>

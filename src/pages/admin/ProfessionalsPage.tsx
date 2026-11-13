@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { Plus, UserRound } from 'lucide-react';
+import { Plus, Trash2, UserRound } from 'lucide-react';
 import SectionTitle from '../../components/common/SectionTitle';
 import SearchInput from '../../components/common/SearchInput';
 import Select from '../../components/common/Select';
@@ -19,6 +19,11 @@ import {
   updateProfessional,
   type EligibleProfile,
 } from '../../services/professionalService';
+import {
+  getProfessionalScheduleForAdmin,
+  setProfessionalSchedule,
+  type ProfessionalScheduleEntry,
+} from '../../services/professionalScheduleService';
 import type { Professional } from '../../types/Professional';
 
 interface FormState {
@@ -30,6 +35,22 @@ interface FormState {
 }
 
 const emptyForm: FormState = { profileId: '', bio: '', specialtyIds: [], branchIds: [], serviceIds: [] };
+
+const DAY_LABELS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+interface TimeBlock {
+  start: string;
+  end: string;
+}
+
+interface DayBlocksState {
+  open: boolean;
+  blocks: TimeBlock[];
+}
+
+function emptyScheduleForm(): DayBlocksState[] {
+  return DAY_LABELS.map(() => ({ open: false, blocks: [] }));
+}
 
 function toggleInList(list: string[], id: string): string[] {
   return list.includes(id) ? list.filter((item) => item !== id) : [...list, id];
@@ -57,6 +78,13 @@ function ProfessionalsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
+  const [scheduleProfessional, setScheduleProfessional] = useState<Professional | null>(null);
+  const [scheduleBranchId, setScheduleBranchId] = useState('');
+  const [scheduleForm, setScheduleForm] = useState<DayBlocksState[]>(emptyScheduleForm());
+  const [isLoadingSchedule, setIsLoadingSchedule] = useState(false);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
+  const [isSavingSchedule, setIsSavingSchedule] = useState(false);
+
   const openCreateModal = () => {
     setEditing(null);
     setForm(emptyForm);
@@ -81,16 +109,24 @@ function ProfessionalsPage() {
     setIsModalOpen(true);
   };
 
-  const toggleSpecialty = (specialtyId: string) => {
-    setForm((current) => {
-      const nextSpecialtyIds = toggleInList(current.specialtyIds, specialtyId);
-      // Al desmarcar una especialidad, se sueltan los servicios que ya no aplican.
-      const nextServiceIds = current.serviceIds.filter((serviceId) => {
-        const service = services.find((item) => item.id === serviceId);
-        return service ? nextSpecialtyIds.includes(service.specialtyId) : false;
-      });
-      return { ...current, specialtyIds: nextSpecialtyIds, serviceIds: nextServiceIds };
-    });
+  // El rol decide cómo se arman especialidades y servicios: el especialista
+  // elige una sola especialidad y servicios de ella; la odontóloga general
+  // elige servicios de cualquier especialidad y sus especialidades se derivan
+  // de esos servicios al guardar.
+  const selectedRole = editing
+    ? editing.role
+    : (eligibleProfiles.find((profile) => profile.id === form.profileId)?.role ?? null);
+  const isGeneralDentist = selectedRole === 'odontologa_general';
+
+  const selectSpecialty = (specialtyId: string) => {
+    setForm((current) => ({
+      ...current,
+      specialtyIds: [specialtyId],
+      // Al cambiar de especialidad, se sueltan los servicios que ya no aplican.
+      serviceIds: current.serviceIds.filter(
+        (serviceId) => services.find((item) => item.id === serviceId)?.specialtyId === specialtyId,
+      ),
+    }));
   };
 
   const availableServicesForForm = useMemo(
@@ -98,18 +134,46 @@ function ProfessionalsPage() {
     [activeServices, form.specialtyIds],
   );
 
+  const servicesBySpecialty = useMemo(
+    () =>
+      activeSpecialties
+        .map((specialty) => ({
+          specialty,
+          services: activeServices.filter((service) => service.specialtyId === specialty.id),
+        }))
+        .filter((group) => group.services.length > 0),
+    [activeSpecialties, activeServices],
+  );
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setFormError(null);
 
     if (!editing && !form.profileId) {
-      setFormError('Selecciona la cuenta de especialista.');
+      setFormError('Selecciona la cuenta del profesional.');
+      return;
+    }
+    if (!isGeneralDentist && form.specialtyIds.length > 1) {
+      setFormError('Un especialista solo puede tener una especialidad. Elige una.');
+      return;
+    }
+    if (isGeneralDentist && form.serviceIds.length === 0) {
+      setFormError('Elige al menos un servicio.');
       return;
     }
 
     setIsSubmitting(true);
 
-    const relations = { specialtyIds: form.specialtyIds, branchIds: form.branchIds, serviceIds: form.serviceIds };
+    const specialtyIds = isGeneralDentist
+      ? [
+          ...new Set(
+            form.serviceIds
+              .map((serviceId) => services.find((service) => service.id === serviceId)?.specialtyId)
+              .filter((specialtyId): specialtyId is string => Boolean(specialtyId)),
+          ),
+        ]
+      : form.specialtyIds;
+    const relations = { specialtyIds, branchIds: form.branchIds, serviceIds: form.serviceIds };
     const bio = form.bio.trim() ? form.bio.trim() : null;
 
     try {
@@ -134,6 +198,101 @@ function ProfessionalsPage() {
       refetch();
     } finally {
       setTogglingId(null);
+    }
+  };
+
+  const loadSchedule = (professionalId: string, branchId: string) => {
+    if (!branchId) {
+      setScheduleForm(emptyScheduleForm());
+      return;
+    }
+    setIsLoadingSchedule(true);
+    setScheduleError(null);
+    getProfessionalScheduleForAdmin(professionalId, branchId)
+      .then((entries) => {
+        const next = emptyScheduleForm();
+        for (const entry of entries) {
+          next[entry.dayOfWeek] = {
+            open: true,
+            blocks: [...next[entry.dayOfWeek].blocks, { start: entry.startTime, end: entry.endTime }],
+          };
+        }
+        setScheduleForm(next);
+      })
+      .catch((err) => setScheduleError(err instanceof Error ? err.message : 'No se pudo cargar el horario.'))
+      .finally(() => setIsLoadingSchedule(false));
+  };
+
+  const openScheduleModal = (professional: Professional) => {
+    const firstBranch = professional.branchIds[0] ?? '';
+    setScheduleProfessional(professional);
+    setScheduleBranchId(firstBranch);
+    setScheduleForm(emptyScheduleForm());
+    if (firstBranch) {
+      loadSchedule(professional.id, firstBranch);
+    }
+  };
+
+  const handleScheduleBranchChange = (branchId: string) => {
+    setScheduleBranchId(branchId);
+    if (scheduleProfessional) {
+      loadSchedule(scheduleProfessional.id, branchId);
+    }
+  };
+
+  const toggleScheduleDay = (dayIndex: number) => {
+    setScheduleForm((current) =>
+      current.map((day, index) =>
+        index === dayIndex
+          ? { open: !day.open, blocks: day.blocks.length > 0 ? day.blocks : [{ start: '09:00', end: '13:00' }] }
+          : day,
+      ),
+    );
+  };
+
+  const addScheduleBlock = (dayIndex: number) => {
+    setScheduleForm((current) =>
+      current.map((day, index) =>
+        index === dayIndex ? { ...day, blocks: [...day.blocks, { start: '14:00', end: '17:00' }] } : day,
+      ),
+    );
+  };
+
+  const removeScheduleBlock = (dayIndex: number, blockIndex: number) => {
+    setScheduleForm((current) =>
+      current.map((day, index) =>
+        index === dayIndex ? { ...day, blocks: day.blocks.filter((_, i) => i !== blockIndex) } : day,
+      ),
+    );
+  };
+
+  const updateScheduleBlock = (dayIndex: number, blockIndex: number, field: 'start' | 'end', value: string) => {
+    setScheduleForm((current) =>
+      current.map((day, index) =>
+        index === dayIndex
+          ? { ...day, blocks: day.blocks.map((block, i) => (i === blockIndex ? { ...block, [field]: value } : block)) }
+          : day,
+      ),
+    );
+  };
+
+  const handleSaveSchedule = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!scheduleProfessional || !scheduleBranchId) return;
+    setScheduleError(null);
+    setIsSavingSchedule(true);
+
+    const entries: ProfessionalScheduleEntry[] = scheduleForm.flatMap((day, dayOfWeek) =>
+      day.open ? day.blocks.map((block) => ({ dayOfWeek, startTime: block.start, endTime: block.end })) : [],
+    );
+
+    try {
+      await setProfessionalSchedule(scheduleProfessional.id, scheduleBranchId, entries);
+      setScheduleProfessional(null);
+    } catch (err) {
+      setScheduleError(err instanceof Error ? err.message : 'No se pudo guardar el horario.');
+    } finally {
+      setIsSavingSchedule(false);
     }
   };
 
@@ -182,10 +341,13 @@ function ProfessionalsPage() {
       ) : (
         <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
           {filtered.map((professional) => {
-            const specialtyName = specialties
-              .filter((specialty) => professional.specialtyIds.includes(specialty.id))
-              .map((specialty) => specialty.name)
-              .join(', ');
+            const specialtyName =
+              professional.role === 'odontologa_general'
+                ? 'Odontóloga general'
+                : specialties
+                    .filter((specialty) => professional.specialtyIds.includes(specialty.id))
+                    .map((specialty) => specialty.name)
+                    .join(', ');
 
             return (
               <div key={professional.id} className="flex flex-col gap-2">
@@ -195,6 +357,7 @@ function ProfessionalsPage() {
                   variant="admin"
                   agendaHref="/admin/agenda"
                   onEdit={() => openEditModal(professional)}
+                  onSchedule={professional.branchIds.length > 0 ? () => openScheduleModal(professional) : undefined}
                 />
                 <Button
                   type="button"
@@ -232,16 +395,24 @@ function ProfessionalsPage() {
             <Spinner size={20} />
           ) : eligibleProfiles.length === 0 ? (
             <p className="text-sm text-adm-ink-400">
-              No hay cuentas de especialista disponibles. Invita una desde "Equipo" primero.
+              No hay cuentas de especialista u odontóloga general disponibles. Invita una desde "Equipo" primero.
             </p>
           ) : (
             <Select
-              label="Cuenta de especialista"
+              label="Cuenta del profesional"
               value={form.profileId}
-              onChange={(event) => setForm((current) => ({ ...current, profileId: event.target.value }))}
+              // Cambiar de cuenta puede cambiar el rol: se limpian especialidades y servicios.
+              onChange={(event) =>
+                setForm((current) => ({ ...current, profileId: event.target.value, specialtyIds: [], serviceIds: [] }))
+              }
               options={[
                 { value: '', label: 'Selecciona una cuenta' },
-                ...eligibleProfiles.map((profile) => ({ value: profile.id, label: `${profile.fullName} (${profile.email})` })),
+                ...eligibleProfiles.map((profile) => ({
+                  value: profile.id,
+                  label: `${profile.fullName} (${profile.email}) · ${
+                    profile.role === 'odontologa_general' ? 'Odontóloga general' : 'Especialista'
+                  }`,
+                })),
               ]}
             />
           )}
@@ -258,26 +429,34 @@ function ProfessionalsPage() {
             />
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-adm-ink-700">Especialidades</span>
-            {activeSpecialties.length === 0 ? (
-              <p className="text-sm text-adm-ink-400">No hay especialidades activas.</p>
-            ) : (
-              <div className="flex flex-col gap-1.5 rounded-[10px] border border-adm-line-field p-3">
-                {activeSpecialties.map((specialty) => (
-                  <label key={specialty.id} className="flex items-center gap-2 text-sm text-adm-ink-700">
-                    <input
-                      type="checkbox"
-                      className="h-[15px] w-[15px] accent-brand-600"
-                      checked={form.specialtyIds.includes(specialty.id)}
-                      onChange={() => toggleSpecialty(specialty.id)}
-                    />
-                    {specialty.name}
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
+          {!isGeneralDentist && (
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium text-adm-ink-700">Especialidad</span>
+              {form.specialtyIds.length > 1 && (
+                <p className="text-sm text-adm-danger-text">
+                  Este especialista tiene varias especialidades. Elige solo una para poder guardar.
+                </p>
+              )}
+              {activeSpecialties.length === 0 ? (
+                <p className="text-sm text-adm-ink-400">No hay especialidades activas.</p>
+              ) : (
+                <div className="flex flex-col gap-1.5 rounded-[10px] border border-adm-line-field p-3">
+                  {activeSpecialties.map((specialty) => (
+                    <label key={specialty.id} className="flex items-center gap-2 text-sm text-adm-ink-700">
+                      <input
+                        type="radio"
+                        name="specialty"
+                        className="h-[15px] w-[15px] accent-brand-600"
+                        checked={form.specialtyIds.length === 1 && form.specialtyIds[0] === specialty.id}
+                        onChange={() => selectSpecialty(specialty.id)}
+                      />
+                      {specialty.name}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-adm-ink-700">Sedes</span>
@@ -302,8 +481,35 @@ function ProfessionalsPage() {
 
           <div className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-adm-ink-700">Servicios</span>
-            {form.specialtyIds.length === 0 ? (
-              <p className="text-sm text-adm-ink-400">Elige al menos una especialidad para ver sus servicios.</p>
+            {isGeneralDentist ? (
+              servicesBySpecialty.length === 0 ? (
+                <p className="text-sm text-adm-ink-400">No hay servicios activos.</p>
+              ) : (
+                <div className="flex flex-col gap-3 rounded-[10px] border border-adm-line-field p-3">
+                  {servicesBySpecialty.map(({ specialty, services: groupServices }) => (
+                    <div key={specialty.id} className="flex flex-col gap-1.5">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-adm-ink-400">
+                        {specialty.name}
+                      </span>
+                      {groupServices.map((service) => (
+                        <label key={service.id} className="flex items-center gap-2 text-sm text-adm-ink-700">
+                          <input
+                            type="checkbox"
+                            className="h-[15px] w-[15px] accent-brand-600"
+                            checked={form.serviceIds.includes(service.id)}
+                            onChange={() =>
+                              setForm((current) => ({ ...current, serviceIds: toggleInList(current.serviceIds, service.id) }))
+                            }
+                          />
+                          {service.name}
+                        </label>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )
+            ) : form.specialtyIds.length === 0 ? (
+              <p className="text-sm text-adm-ink-400">Elige una especialidad para ver sus servicios.</p>
             ) : availableServicesForForm.length === 0 ? (
               <p className="text-sm text-adm-ink-400">No hay servicios activos para las especialidades elegidas.</p>
             ) : (
@@ -332,6 +538,104 @@ function ProfessionalsPage() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        isOpen={scheduleProfessional !== null}
+        onClose={() => setScheduleProfessional(null)}
+        title={scheduleProfessional ? `Horario — ${scheduleProfessional.fullName}` : 'Horario'}
+        maxWidth="max-w-[560px]"
+      >
+        {scheduleProfessional && (
+          <form onSubmit={handleSaveSchedule} className="flex flex-col gap-4 py-2">
+            {scheduleError && (
+              <p className="rounded-[10px] border border-adm-status-cancelled-border bg-adm-status-cancelled-bg px-3.5 py-2.5 text-sm font-medium text-adm-danger-text">
+                {scheduleError}
+              </p>
+            )}
+
+            <Select
+              label="Sede"
+              value={scheduleBranchId}
+              onChange={(event) => handleScheduleBranchChange(event.target.value)}
+              options={branches
+                .filter((branch) => scheduleProfessional.branchIds.includes(branch.id))
+                .map((branch) => ({ value: branch.id, label: branch.name }))}
+            />
+
+            {isLoadingSchedule ? (
+              <div className="flex justify-center py-8">
+                <Spinner size={26} />
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2.5">
+                {DAY_LABELS.map((label, dayIndex) => {
+                  const day = scheduleForm[dayIndex];
+                  return (
+                    <div key={label} className="flex flex-col gap-2 rounded-[10px] border border-adm-line-field p-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <label className="flex items-center gap-2 text-sm font-medium text-adm-ink-700">
+                          <input
+                            type="checkbox"
+                            className="h-[15px] w-[15px] accent-brand-600"
+                            checked={day.open}
+                            onChange={() => toggleScheduleDay(dayIndex)}
+                          />
+                          {label}
+                        </label>
+                        {day.open && (
+                          <button
+                            type="button"
+                            onClick={() => addScheduleBlock(dayIndex)}
+                            className="text-[13px] font-medium text-adm-accent-deep hover:underline"
+                          >
+                            + Agregar bloque
+                          </button>
+                        )}
+                      </div>
+
+                      {day.open &&
+                        day.blocks.map((block, blockIndex) => (
+                          <div key={blockIndex} className="flex items-center gap-2 pl-[26px]">
+                            <input
+                              type="time"
+                              value={block.start}
+                              onChange={(event) => updateScheduleBlock(dayIndex, blockIndex, 'start', event.target.value)}
+                              className="h-9 rounded-[8px] border border-adm-line-field bg-adm-surface-input px-2 text-sm text-adm-ink-700 outline-none focus:border-brand-600"
+                            />
+                            <span className="text-sm text-adm-ink-400">a</span>
+                            <input
+                              type="time"
+                              value={block.end}
+                              onChange={(event) => updateScheduleBlock(dayIndex, blockIndex, 'end', event.target.value)}
+                              className="h-9 rounded-[8px] border border-adm-line-field bg-adm-surface-input px-2 text-sm text-adm-ink-700 outline-none focus:border-brand-600"
+                            />
+                            <button
+                              type="button"
+                              aria-label="Quitar bloque"
+                              onClick={() => removeScheduleBlock(dayIndex, blockIndex)}
+                              className="flex h-9 w-9 items-center justify-center rounded-[8px] text-adm-ink-300 transition-colors hover:bg-adm-status-cancelled-bg hover:text-adm-danger-text"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        ))}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="admin-outline" onClick={() => setScheduleProfessional(null)}>
+                Cancelar
+              </Button>
+              <Button type="submit" variant="admin-solid" disabled={isSavingSchedule || !scheduleBranchId}>
+                {isSavingSchedule ? 'Guardando…' : 'Guardar horario'}
+              </Button>
+            </div>
+          </form>
+        )}
       </Modal>
     </div>
   );

@@ -15,6 +15,7 @@ const roleLabels: Record<AppRole, string> = {
   admin_global: 'Administrador global',
   admin_sede: 'Administrador de sede',
   especialista: 'Especialista',
+  odontologa_general: 'Odontóloga general',
   tecnica: 'Técnica',
 };
 

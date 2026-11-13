@@ -73,7 +73,7 @@ function AppRouter() {
             </Route>
           </Route>
 
-          <Route element={<RoleRoute allowedRoles={['especialista', 'tecnica']} />}>
+          <Route element={<RoleRoute allowedRoles={['especialista', 'odontologa_general', 'tecnica']} />}>
             <Route path="/profesional" element={<ProfessionalLayout />}>
               <Route index element={<ProfessionalDashboardPage />} />
               <Route path="agenda" element={<ProfessionalMyAgendaPage />} />
