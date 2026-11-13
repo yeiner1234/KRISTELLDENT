@@ -22,6 +22,7 @@ function formatHours(totalMinutes: number): string {
 const statusBarClasses: Record<string, string> = {
   confirmed: 'bg-adm-status-confirmed-solid',
   pending: 'bg-adm-status-pending-solid',
+  in_room: 'bg-adm-status-in-room-solid',
   cancelled: 'bg-adm-status-cancelled-solid',
   completed: 'bg-adm-status-completed-solid',
 };

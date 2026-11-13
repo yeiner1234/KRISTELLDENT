@@ -1,5 +1,5 @@
 type StatusTone = 'success' | 'warning' | 'danger' | 'neutral' | 'brand';
-type AdminStatusTone = 'adm-confirmed' | 'adm-pending' | 'adm-cancelled' | 'adm-completed' | 'adm-active' | 'adm-inactive';
+type AdminStatusTone = 'adm-confirmed' | 'adm-pending' | 'adm-in-room' | 'adm-cancelled' | 'adm-completed' | 'adm-active' | 'adm-inactive';
 
 interface StatusBadgeProps {
   label: string;
@@ -24,6 +24,11 @@ const adminToneClasses: Record<AdminStatusTone, { bg: string; text: string; dot:
     bg: 'bg-adm-status-pending-bg',
     text: 'text-adm-status-pending-text',
     dot: 'bg-adm-status-pending-solid',
+  },
+  'adm-in-room': {
+    bg: 'bg-adm-status-in-room-bg',
+    text: 'text-adm-status-in-room-text',
+    dot: 'bg-adm-status-in-room-solid',
   },
   'adm-cancelled': {
     bg: 'bg-adm-status-cancelled-bg',

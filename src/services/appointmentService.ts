@@ -7,6 +7,8 @@ export interface AvailableSlotsQuery {
   branchId: string;
   serviceId: string | null;
   date: string;
+  // Al reprogramar: la cita que se mueve no debe chocar consigo misma.
+  excludeAppointmentId?: string | null;
 }
 
 interface AvailableSlotRow {
@@ -23,6 +25,7 @@ export async function getAvailableSlots(query: AvailableSlotsQuery): Promise<Tim
     p_branch_id: query.branchId,
     p_service_id: query.serviceId,
     p_date: query.date,
+    p_exclude_appointment_id: query.excludeAppointmentId ?? null,
   });
 
   if (error) {
@@ -95,6 +98,7 @@ export async function createPublicAppointment(
 
 interface LookupAppointmentRow {
   id: string;
+  code: string | null;
   professionalId: string;
   branchId: string;
   serviceId: string | null;
@@ -132,6 +136,7 @@ export async function getAppointmentsByPatientDni(dni: string): Promise<Appointm
 
   return data.appointments.map((row) => ({
     id: row.id,
+    code: row.code ?? '',
     patientId,
     professionalId: row.professionalId,
     branchId: row.branchId,
@@ -146,6 +151,7 @@ export async function getAppointmentsByPatientDni(dni: string): Promise<Appointm
 
 interface AppointmentRow {
   id: string;
+  appointment_code: string;
   patient_id: string;
   professional_id: string;
   branch_id: string;
@@ -160,6 +166,7 @@ interface AppointmentRow {
 function mapRow(row: AppointmentRow): Appointment {
   return {
     id: row.id,
+    code: row.appointment_code,
     patientId: row.patient_id,
     professionalId: row.professional_id,
     branchId: row.branch_id,
@@ -175,7 +182,7 @@ function mapRow(row: AppointmentRow): Appointment {
 export async function getAllAppointments(): Promise<Appointment[]> {
   const { data, error } = await supabase
     .from('appointments')
-    .select('id, patient_id, professional_id, branch_id, service_id, appointment_date, start_time, end_time, status, reason')
+    .select('id, appointment_code, patient_id, professional_id, branch_id, service_id, appointment_date, start_time, end_time, status, reason')
     .order('appointment_date', { ascending: false });
 
   if (error) {

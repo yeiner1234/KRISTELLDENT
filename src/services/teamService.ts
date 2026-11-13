@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { AppRole } from '../types/User';
+import { PROFESSIONAL_ROLES } from './professionalService';
 
 export interface TeamMember {
   id: string;
@@ -70,11 +71,21 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
   }));
 }
 
+// Un perfil profesional desactivado tampoco debe ofrecerse en la reserva: su
+// ficha en professionals sigue el mismo estado.
 export async function setProfileActive(id: string, active: boolean): Promise<void> {
-  const { error } = await supabase.from('profiles').update({ active }).eq('id', id);
+  const { data, error } = await supabase.from('profiles').update({ active }).eq('id', id).select('role').single();
 
   if (error) {
     throw new Error(error.message);
+  }
+
+  if (PROFESSIONAL_ROLES.includes((data as { role: AppRole }).role)) {
+    const { error: professionalError } = await supabase.from('professionals').update({ active }).eq('id', id);
+
+    if (professionalError) {
+      throw new Error(professionalError.message);
+    }
   }
 }
 

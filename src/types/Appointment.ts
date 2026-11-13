@@ -1,7 +1,8 @@
-export type AppointmentStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled';
+export type AppointmentStatus = 'pending' | 'confirmed' | 'in_room' | 'completed' | 'cancelled';
 
 export interface Appointment {
   id: string;
+  code: string;
   patientId: string;
   professionalId: string;
   branchId: string;

@@ -16,6 +16,7 @@ export function formatCurrency(amount: number): string {
 const statusLabels: Record<AppointmentStatus, string> = {
   pending: 'Pendiente',
   confirmed: 'Confirmada',
+  in_room: 'En sala',
   completed: 'Completada',
   cancelled: 'Cancelada',
 };

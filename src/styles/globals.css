@@ -127,6 +127,11 @@
   --color-adm-status-pending-border: #f0ddb4;
   --color-adm-status-pending-solid: #c8901a;
 
+  --color-adm-status-in-room-text: #1f4f8f;
+  --color-adm-status-in-room-bg: #e8f0fb;
+  --color-adm-status-in-room-border: #c9dbf3;
+  --color-adm-status-in-room-solid: #2f6fc4;
+
   --color-adm-status-cancelled-text: #a3312a;
   --color-adm-status-cancelled-bg: #fce9e7;
   --color-adm-status-cancelled-border: #f4cfca;

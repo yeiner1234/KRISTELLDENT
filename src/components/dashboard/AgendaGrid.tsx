@@ -17,6 +17,7 @@ const HOUR_END = 19;
 const statusStyles: Record<Appointment['status'], { bg: string; text: string; solid: string }> = {
   confirmed: { bg: 'bg-adm-status-confirmed-bg', text: 'text-adm-status-confirmed-text', solid: 'border-adm-status-confirmed-solid' },
   pending: { bg: 'bg-adm-status-pending-bg', text: 'text-adm-status-pending-text', solid: 'border-adm-status-pending-solid' },
+  in_room: { bg: 'bg-adm-status-in-room-bg', text: 'text-adm-status-in-room-text', solid: 'border-adm-status-in-room-solid' },
   cancelled: { bg: 'bg-adm-status-cancelled-bg', text: 'text-adm-status-cancelled-text', solid: 'border-adm-status-cancelled-solid' },
   completed: { bg: 'bg-adm-status-completed-bg', text: 'text-adm-status-completed-text', solid: 'border-adm-status-completed-solid' },
 };

@@ -1,5 +1,14 @@
+// El negocio opera en hora de Lima: "hoy" no puede salir de la fecha UTC, que
+// a partir de las 19:00 de Lima ya es el día siguiente.
+const limaDateFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/Lima',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
 export function getTodayIsoDate(): string {
-  return new Date().toISOString().split('T')[0];
+  return limaDateFormatter.format(new Date());
 }
 
 export function formatDateLong(isoDate: string): string {

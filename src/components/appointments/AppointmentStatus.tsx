@@ -7,16 +7,18 @@ interface AppointmentStatusProps {
   theme?: 'public' | 'admin';
 }
 
-const toneByStatus: Record<AppointmentStatusType, 'success' | 'warning' | 'neutral' | 'danger'> = {
+const toneByStatus: Record<AppointmentStatusType, 'success' | 'warning' | 'neutral' | 'danger' | 'brand'> = {
   pending: 'warning',
   confirmed: 'success',
+  in_room: 'brand',
   completed: 'neutral',
   cancelled: 'danger',
 };
 
-const adminToneByStatus: Record<AppointmentStatusType, 'adm-confirmed' | 'adm-pending' | 'adm-cancelled' | 'adm-completed'> = {
+const adminToneByStatus: Record<AppointmentStatusType, 'adm-confirmed' | 'adm-pending' | 'adm-in-room' | 'adm-cancelled' | 'adm-completed'> = {
   pending: 'adm-pending',
   confirmed: 'adm-confirmed',
+  in_room: 'adm-in-room',
   completed: 'adm-completed',
   cancelled: 'adm-cancelled',
 };
