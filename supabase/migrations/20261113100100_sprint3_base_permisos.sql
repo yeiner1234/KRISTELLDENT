@@ -40,10 +40,22 @@ as $$
     and active = true;
 $$;
 
+-- guard_appointment_changes (2.3) la llama con los permisos de quien actualiza.
+-- Las Edge Functions actualizan como service_role: sin este grant el trigger
+-- fallaría con "permission denied". Para service_role auth.uid() es null, así
+-- que la función devuelve null.
+grant execute on function public.current_user_role() to service_role;
+
 
 -- -----------------------------------------------------------------------------
 -- 2.1 Código de cita
 -- -----------------------------------------------------------------------------
+-- El código sirve como contraseña (el paciente reprograma y cancela con DNI +
+-- código), así que no usa random(): toma 6 bytes de gen_random_uuid(), que sale
+-- del generador criptográfico de Postgres. Son los bytes 0 a 5 del UUID v4, los
+-- 48 bits sin los bits fijos de versión y variante. 256 es múltiplo de 32, así
+-- que byte % 32 elige cada letra sin sesgo. No necesita pgcrypto.
+--
 -- SECURITY DEFINER para que la comprobación de "ya existe" vea todas las citas
 -- (como función de invocador, RLS le ocultaría las de otras sedes). La
 -- restricción unique es la garantía final ante una carrera.
@@ -56,12 +68,14 @@ set search_path = ''
 as $$
 declare
   v_alphabet constant text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  v_bytes bytea;
   v_code text;
 begin
   loop
+    v_bytes := decode(replace(gen_random_uuid()::text, '-', ''), 'hex');
     v_code := 'KD-';
-    for i in 1..6 loop
-      v_code := v_code || substr(v_alphabet, 1 + floor(random() * length(v_alphabet))::int, 1);
+    for i in 0..5 loop
+      v_code := v_code || substr(v_alphabet, 1 + get_byte(v_bytes, i) % 32, 1);
     end loop;
 
     exit when not exists (select 1 from public.appointments where appointment_code = v_code);
@@ -164,6 +178,16 @@ begin
       using errcode = 'P0001';
   end if;
 
+  -- Paciente, servicio y motivo solo los cambian los admins. Las Edge
+  -- Functions (service_role) no tienen rol: current_user_role() da null.
+  if public.current_user_role() in ('tecnica', 'especialista', 'odontologa_general')
+     and (new.patient_id, new.service_id, new.reason)
+           is distinct from
+         (old.patient_id, old.service_id, old.reason) then
+    raise exception 'No tienes permiso para cambiar el paciente, el servicio ni el motivo de una cita.'
+      using errcode = 'P0001';
+  end if;
+
   return new;
 end;
 $$;
@@ -225,12 +249,12 @@ create policy appointments_update_staff
   using (
     public.is_admin_global()
     or (public.current_user_role() in ('admin_sede', 'tecnica') and public.has_branch_access(branch_id))
-    or professional_id = auth.uid()
+    or (professional_id = auth.uid() and public.current_user_role() is not null)
   )
   with check (
     public.is_admin_global()
     or (public.current_user_role() in ('admin_sede', 'tecnica') and public.has_branch_access(branch_id))
-    or professional_id = auth.uid()
+    or (professional_id = auth.uid() and public.current_user_role() is not null)
   );
 
 drop policy if exists appointments_insert_admin on public.appointments;

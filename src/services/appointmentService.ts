@@ -98,7 +98,6 @@ export async function createPublicAppointment(
 
 interface LookupAppointmentRow {
   id: string;
-  code: string | null;
   professionalId: string;
   branchId: string;
   serviceId: string | null;
@@ -136,7 +135,8 @@ export async function getAppointmentsByPatientDni(dni: string): Promise<Appointm
 
   return data.appointments.map((row) => ({
     id: row.id,
-    code: row.code ?? '',
+    // El código sirve como contraseña: nunca se entrega a quien solo sabe un DNI.
+    code: '',
     patientId,
     professionalId: row.professionalId,
     branchId: row.branchId,

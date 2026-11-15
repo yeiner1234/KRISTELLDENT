@@ -36,6 +36,11 @@ Va sola: Postgres no deja usar un valor de enum en la misma transacción en que 
 - La Edge Function `lookup-appointments-by-dni` devuelve también `appointment_code`, para que `Appointment.code` llegue en "mis citas".
 - `getAvailableSlots()` acepta `excludeAppointmentId` opcional (solo el servicio; las pantallas no cambian).
 - En `professional_branches` y `professional_schedules` el admin_sede necesita `has_branch_access(branch_id)` **y** `shares_branch_with(professional_id)`. Solo con lo primero (como decía el prompt) podía asignar a su sede a un profesional de otra sede; lo detectó security-review.
+- Ajustes antes de subir la rama (la migración B aún no se aplicó en ninguna base):
+  - `generate_appointment_code()` usa los bytes 0 a 5 de `gen_random_uuid()` (`get_byte(...) % 32`) en vez de `random()`, porque en el Prompt 4 el código actúa como contraseña.
+  - `lookup-appointments-by-dni` vuelve a no devolver el código; `getAppointmentsByPatientDni` entrega `code: ''`.
+  - `appointments_update_staff`: la condición de la profesional dueña exige `current_user_role() is not null`.
+  - `guard_appointment_changes`: técnica, especialista y odontóloga general no pueden cambiar `patient_id`, `service_id` ni `reason`. Por eso `current_user_role()` también se otorga a `service_role`: el trigger la llama con los permisos de quien actualiza.
 - Migración idempotente: `add column if not exists`, `drop constraint/policy/trigger/function if exists` antes de crear.
 
 ## Fuera de alcance

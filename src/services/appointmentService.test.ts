@@ -40,14 +40,13 @@ describe('appointmentService', () => {
     expect(appointment).toMatchObject({ id: 'a1', code: 'KD-ABC234', status: 'in_room', startTime: '09:00' });
   });
 
-  it('getAppointmentsByPatientDni mapea el código que devuelve la Edge Function', async () => {
+  it('getAppointmentsByPatientDni devuelve las citas sin código (quien solo sabe un DNI no lo recibe)', async () => {
     vi.mocked(supabase.functions.invoke).mockResolvedValue({
       data: {
         patient: { id: 'pt1' },
         appointments: [
           {
             id: 'a1',
-            code: 'KD-ABC234',
             professionalId: 'p1',
             branchId: 'b1',
             serviceId: null,
@@ -64,7 +63,7 @@ describe('appointmentService', () => {
 
     const [appointment] = await getAppointmentsByPatientDni('12345678');
 
-    expect(appointment).toMatchObject({ id: 'a1', code: 'KD-ABC234', patientId: 'pt1' });
+    expect(appointment).toMatchObject({ id: 'a1', code: '', patientId: 'pt1' });
   });
 
   it('getAvailableSlots envía la cita a excluir al reprogramar', async () => {
