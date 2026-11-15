@@ -41,6 +41,8 @@
 
 | Regla | Consulta o paso | Esperado |
 |---|---|---|
+| A (antes de aplicar) | `select p.oid::regprocedure from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.prosrc ilike '%estado_cita%';` | 0 filas: ninguna función depende del nombre `estado_cita` (en producción el enum se había renombrado a mano) |
+| A (nombre del tipo) | `select udt_name from information_schema.columns where table_schema = 'public' and table_name = 'appointments' and column_name = 'status';` | `appointment_status` |
 | A | `select enum_range(null::appointment_status);` | `{pending,confirmed,in_room,completed,cancelled}` |
 | 2.0 | En una transacción con `rollback`: `update profiles set active = false where id = '<admin_sede>'; set local role authenticated; set local request.jwt.claims = '{"sub":"<admin_sede>"}'; select public.current_user_role(); select count(*) from appointments; insert into branch_schedules (branch_id, day_of_week, open_time, close_time) values ('<su sede>', <día sin horario>, '09:00', '13:00');` | `null`, `0` y el insert falla por RLS. Sin el `update` (perfil activo): `admin_sede`, citas de su sede y el insert pasa |
 | 2.1 | `select count(*) filter (where appointment_code is null), count(*) - count(distinct appointment_code) from appointments;` y `select appointment_code from appointments limit 5;` | `0, 0`; códigos `KD-XXXXXX` sin I, O, 0 ni 1 |
