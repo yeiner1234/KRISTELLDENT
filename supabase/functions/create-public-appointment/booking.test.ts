@@ -13,9 +13,9 @@ const valid = {
   lastName: ' Ríos ',
   email: ' ana@correo.pe ',
   phone: ' 987654321 ',
-  professionalId: 'pro-1',
-  branchId: 'branch-1',
-  serviceId: 'service-1',
+  professionalId: '11111111-1111-4111-8111-111111111111',
+  branchId: '22222222-2222-4222-8222-222222222222',
+  serviceId: '33333333-3333-4333-8333-333333333333',
   date: '2026-11-20',
   startTime: '09:30',
   endTime: '23:59',
@@ -33,9 +33,9 @@ describe('validateBookingPayload', () => {
         lastName: 'Ríos',
         email: 'ana@correo.pe',
         phone: '987654321',
-        professionalId: 'pro-1',
-        branchId: 'branch-1',
-        serviceId: 'service-1',
+        professionalId: '11111111-1111-4111-8111-111111111111',
+        branchId: '22222222-2222-4222-8222-222222222222',
+        serviceId: '33333333-3333-4333-8333-333333333333',
         date: '2026-11-20',
         startTime: '09:30',
         reason: 'Dolor',
@@ -91,6 +91,20 @@ describe('validateBookingPayload', () => {
       error: 'No se puede reservar una fecha pasada.',
     });
     expect(validateBookingPayload({ ...valid, date: '2026-11-15' }, '2026-11-15').ok).toBe(true);
+  });
+
+  it('rechaza una fecha u hora imposible', () => {
+    const error = { ok: false, error: 'La fecha u hora de la cita no es válida.' };
+    expect(validateBookingPayload({ ...valid, date: '2026-13-45' }, '2026-11-15')).toEqual(error);
+    expect(validateBookingPayload({ ...valid, date: '2026-02-30' }, '2026-11-15')).toEqual(error);
+    expect(validateBookingPayload({ ...valid, startTime: '25:00' }, '2026-11-15')).toEqual(error);
+  });
+
+  it('rechaza identificadores que no son UUID', () => {
+    expect(validateBookingPayload({ ...valid, serviceId: 'service-1' }, '2026-11-15')).toEqual({
+      ok: false,
+      error: 'La sede, profesional o servicio elegido no es válido.',
+    });
   });
 
   it('el motivo es opcional', () => {

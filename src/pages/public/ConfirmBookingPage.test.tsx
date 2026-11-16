@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import ConfirmBookingPage from './ConfirmBookingPage';
@@ -85,6 +85,17 @@ describe('ConfirmBookingPage', () => {
     });
 
     expect(await screen.findByText('Código: KD-ABC234')).toBeInTheDocument();
+  });
+
+  it('dos clics seguidos envían una sola reserva', () => {
+    vi.mocked(createPublicAppointment).mockReturnValue(new Promise(() => {}));
+    renderPage();
+
+    const button = screen.getByRole('button', { name: /confirmar cita/i });
+    fireEvent.click(button);
+    fireEvent.click(button);
+
+    expect(createPublicAppointment).toHaveBeenCalledTimes(1);
   });
 
   it('muestra el mensaje del servidor tal cual', async () => {

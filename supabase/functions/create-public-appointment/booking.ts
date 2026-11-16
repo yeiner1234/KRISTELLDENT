@@ -39,6 +39,16 @@ function text(value: unknown): string {
 }
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// AAAA-MM-DD que exista en el calendario (rechaza 2026-02-30).
+function isRealDate(date: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return false;
+  }
+  const parsed = new Date(`${date}T00:00:00Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === date;
+}
 
 export function validateBookingPayload(payload: CreateAppointmentPayload, todayLima: string): ValidationResult {
   const value: ValidBooking = {
@@ -82,7 +92,10 @@ export function validateBookingPayload(payload: CreateAppointmentPayload, todayL
   if (!/^\d{9}$/.test(value.phone)) {
     return { ok: false, error: 'El teléfono debe tener 9 dígitos.' };
   }
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value.date) || !/^\d{2}:\d{2}(:\d{2})?$/.test(value.startTime)) {
+  if (![value.professionalId, value.branchId, value.serviceId].every((id) => UUID_PATTERN.test(id))) {
+    return { ok: false, error: 'La sede, profesional o servicio elegido no es válido.' };
+  }
+  if (!isRealDate(value.date) || !/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(value.startTime)) {
     return { ok: false, error: 'La fecha u hora de la cita no es válida.' };
   }
   if (value.date < todayLima) {

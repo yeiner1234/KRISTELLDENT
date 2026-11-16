@@ -72,7 +72,12 @@ Deno.serve(async (req) => {
   // Las tres lecturas son independientes: van en paralelo para que la
   // reserva se confirme en menos de 3 s.
   const [serviceResult, slotsResult, patientResult] = await Promise.all([
-    adminClient.from('services').select('duration_minutes').eq('id', booking.serviceId).maybeSingle(),
+    adminClient
+      .from('services')
+      .select('duration_minutes')
+      .eq('id', booking.serviceId)
+      .eq('active', true)
+      .maybeSingle(),
     // get_available_slots ya comprueba que la profesional esté activa,
     // atienda en esa sede y ofrezca ese servicio.
     adminClient.rpc('get_available_slots', {
@@ -88,7 +93,7 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'No se pudo verificar la disponibilidad. Inténtalo de nuevo.' }, 500);
   }
   if (!serviceResult.data) {
-    return jsonResponse({ error: 'El servicio elegido no existe.' }, 400);
+    return jsonResponse({ error: 'El servicio elegido ya no está disponible.' }, 400);
   }
 
   const startTime = booking.startTime.slice(0, 5);
