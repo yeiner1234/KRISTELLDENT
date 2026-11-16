@@ -109,18 +109,28 @@ const BLOCKED_STATUS_ERRORS: Record<string, string> = {
 };
 
 // El trigger guard_appointment_changes es la garantía final; esto da un
-// mensaje claro antes de intentar el UPDATE y cubre la fecha pasada.
+// mensaje claro antes de intentar el UPDATE y cubre la fecha u hora pasada
+// (nowLima en hora de Lima).
 export function modificationError(
-  appointment: { status: string; appointment_date: string },
-  todayLima: string,
+  appointment: { status: string; appointment_date: string; start_time: string },
+  nowLima: { date: string; time: string },
 ): string | null {
   if (appointment.status !== 'pending' && appointment.status !== 'confirmed') {
     return BLOCKED_STATUS_ERRORS[appointment.status] ?? 'Esta cita no se puede modificar.';
   }
-  if (appointment.appointment_date < todayLima) {
+  if (appointment.appointment_date < nowLima.date) {
     return 'La cita es de una fecha pasada: no se puede modificar.';
   }
+  if (appointment.appointment_date === nowLima.date && appointment.start_time.slice(0, 5) <= nowLima.time) {
+    return 'La hora de la cita ya pasó: no se puede modificar.';
+  }
   return null;
+}
+
+// Un código limitado (cita reservada con un DNI existente y otros datos) solo
+// abre su propia cita; uno completo abre todas las del paciente.
+export function canAccessAppointment(access: { limitedToAppointmentId: string | null }, appointmentId: string): boolean {
+  return access.limitedToAppointmentId === null || access.limitedToAppointmentId === appointmentId;
 }
 
 // P0001 = raise exception del trigger: su mensaje ya está en español.

@@ -2,7 +2,10 @@
 //
 // Única vía pública para que un paciente (sin cuenta) vea, cancele o
 // reprograme SUS citas. Se identifica con DNI + código de una de sus citas:
-// el código hace de contraseña, así que saber solo un DNI no da acceso a nada.
+// el código hace de contraseña. Como cualquiera puede reservar con un DNI
+// ajeno, el código de una cita marcada code_limited solo abre esa cita (ver
+// create-public-appointment); el paciente ve todas con el código de una cita
+// que reservó con sus datos registrados.
 // patients/appointments no tienen policies de lectura ni escritura para
 // `anon`; esta función lee y escribe con service_role, pero siempre limitada
 // al paciente que se identificó.
@@ -13,10 +16,11 @@
 //
 // La validación vive en patientAppointments.ts (probada con Vitest).
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
-import { addMinutes, limaToday, overlapErrorMessage } from '../create-public-appointment/booking.ts';
+import { addMinutes, limaNow, limaToday, overlapErrorMessage } from '../create-public-appointment/booking.ts';
 import { sendEmail } from '../_shared/email.ts';
 import { appointmentCodesEmail } from '../_shared/emailTemplates.ts';
 import {
+  canAccessAppointment,
   MISMATCH_ERROR,
   RESEND_CODE_LIMIT_PER_HOUR,
   RESEND_CODE_MESSAGE,
@@ -32,6 +36,12 @@ const corsHeaders = {
 };
 
 const SLOT_TAKEN = 'Ese horario ya no está disponible. Elige otro.';
+// La cita cambió de estado entre la lectura y el UPDATE (p. ej. recepción la pasó a "en sala").
+const STATE_CHANGED = 'La cita cambió de estado y ya no se puede modificar. Vuelve a cargar tus citas.';
+const ACTIVE_STATUSES = ['pending', 'confirmed'];
+
+// Supabase Edge Runtime: termina el trabajo después de responder.
+declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void } | undefined;
 // Igual que get_available_slots cuando la cita no tiene servicio.
 const DEFAULT_DURATION_MINUTES = 30;
 
@@ -57,11 +67,18 @@ interface AppointmentRow {
 const APPOINTMENT_COLUMNS =
   'id, appointment_code, professional_id, branch_id, service_id, appointment_date, start_time, end_time, status';
 
-// Devuelve el paciente dueño de la cita `code` solo si su DNI es `dni`.
-async function findPatient(client: SupabaseClient, dni: string, code: string) {
+interface PatientAccess {
+  patient: { id: string; first_name: string; last_name: string };
+  // Código limitado: solo da acceso a esta cita.
+  limitedToAppointmentId: string | null;
+}
+
+// Devuelve el paciente dueño de la cita `code` solo si su DNI es `dni`, y
+// hasta dónde llega el acceso de ese código.
+async function findPatient(client: SupabaseClient, dni: string, code: string): Promise<PatientAccess | null> {
   const { data: appointment, error } = await client
     .from('appointments')
-    .select('patient_id')
+    .select('id, patient_id, code_limited')
     .eq('appointment_code', code)
     .maybeSingle();
   if (error) throw error;
@@ -74,14 +91,17 @@ async function findPatient(client: SupabaseClient, dni: string, code: string) {
     .eq('dni', dni)
     .maybeSingle();
   if (patientError) throw patientError;
-  return patient;
+  if (!patient) return null;
+
+  return { patient, limitedToAppointmentId: appointment.code_limited ? appointment.id : null };
 }
 
-async function listAppointments(client: SupabaseClient, patientId: string) {
-  const { data, error } = await client
-    .from('appointments')
-    .select(APPOINTMENT_COLUMNS)
-    .eq('patient_id', patientId)
+async function listAppointments(client: SupabaseClient, access: PatientAccess) {
+  let query = client.from('appointments').select(APPOINTMENT_COLUMNS).eq('patient_id', access.patient.id);
+  if (access.limitedToAppointmentId) {
+    query = query.eq('id', access.limitedToAppointmentId);
+  }
+  const { data, error } = await query
     .order('appointment_date', { ascending: false })
     .order('start_time', { ascending: false });
   if (error) throw error;
@@ -131,6 +151,11 @@ async function withNames(client: SupabaseClient, rows: AppointmentRow[]) {
 // respuesta es siempre la misma (RESEND_CODE_MESSAGE): quien llama no sabe si
 // el DNI existe, si tiene citas ni a qué correo se envió.
 async function resendCodes(client: SupabaseClient, dni: string): Promise<void> {
+  // Primero se registra y después se cuenta (incluido este pedido): dos
+  // pedidos simultáneos no pueden ver los dos "todavía hay cupo".
+  const { error: logError } = await client.from('patient_code_email_log').insert({ dni });
+  if (logError) throw logError;
+
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
   const { count, error: countError } = await client
     .from('patient_code_email_log')
@@ -138,15 +163,14 @@ async function resendCodes(client: SupabaseClient, dni: string): Promise<void> {
     .eq('dni', dni)
     .gte('requested_at', oneHourAgo);
   if (countError) throw countError;
-  if ((count ?? 0) >= RESEND_CODE_LIMIT_PER_HOUR) {
+
+  // Limpieza de todos los DNIs: lo de más de un día ya no cuenta para el límite.
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  await client.from('patient_code_email_log').delete().lt('requested_at', oneDayAgo);
+
+  if ((count ?? 0) > RESEND_CODE_LIMIT_PER_HOUR) {
     return;
   }
-
-  const { error: logError } = await client.from('patient_code_email_log').insert({ dni });
-  if (logError) throw logError;
-  // Limpieza: lo de más de un día ya no cuenta para el límite.
-  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  await client.from('patient_code_email_log').delete().eq('dni', dni).lt('requested_at', oneDayAgo);
 
   const { data: patient, error: patientError } = await client
     .from('patients')
@@ -162,7 +186,7 @@ async function resendCodes(client: SupabaseClient, dni: string): Promise<void> {
     .from('appointments')
     .select(APPOINTMENT_COLUMNS)
     .eq('patient_id', patient.id)
-    .in('status', ['pending', 'confirmed'])
+    .in('status', ACTIVE_STATUSES)
     .gte('appointment_date', limaToday())
     .order('appointment_date', { ascending: true })
     .order('start_time', { ascending: true });
@@ -213,24 +237,42 @@ Deno.serve(async (req) => {
 
   try {
     if (request.action === 'resend-code') {
-      await resendCodes(adminClient, request.dni);
+      // Se responde sin esperar: el tiempo de respuesta no debe revelar si el
+      // DNI tiene citas (con citas se consulta más y se espera a Resend).
+      const work = resendCodes(adminClient, request.dni).catch((error) => {
+        console.error('resend-code falló:', error);
+      });
+      if (typeof EdgeRuntime !== 'undefined') {
+        EdgeRuntime.waitUntil(work);
+      } else {
+        await work;
+      }
       return jsonResponse({ message: RESEND_CODE_MESSAGE });
     }
 
-    const patient = await findPatient(adminClient, request.dni, request.code);
-    if (!patient) {
+    const access = await findPatient(adminClient, request.dni, request.code);
+    if (!access) {
       return jsonResponse({ error: MISMATCH_ERROR }, 404);
     }
+    const { patient } = access;
 
     if (request.action === 'list') {
-      const appointments = await listAppointments(adminClient, patient.id);
+      const appointments = await listAppointments(adminClient, access);
+      // Con un código limitado no se entrega el nombre registrado: quien
+      // reservó quizá solo conocía el DNI.
       return jsonResponse({
-        patient: { firstName: patient.first_name, lastName: patient.last_name },
+        patient: access.limitedToAppointmentId
+          ? { firstName: '', lastName: '' }
+          : { firstName: patient.first_name, lastName: patient.last_name },
         appointments,
       });
     }
 
-    // La cita a modificar tiene que ser de este paciente: si no, mismo 404.
+    // La cita a modificar tiene que ser de este paciente y estar al alcance
+    // del código: si no, mismo 404.
+    if (!canAccessAppointment(access, request.appointmentId)) {
+      return jsonResponse({ error: MISMATCH_ERROR }, 404);
+    }
     const { data: target, error: targetError } = await adminClient
       .from('appointments')
       .select(APPOINTMENT_COLUMNS)
@@ -242,23 +284,35 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: MISMATCH_ERROR }, 404);
     }
 
-    const today = limaToday();
-    const blocked = modificationError(target, today);
+    const now = limaNow();
+    const blocked = modificationError(target, now);
     if (blocked) {
       return jsonResponse({ error: blocked }, 409);
     }
 
+    // El UPDATE repite la condición de estado: si recepción la pasó a "en
+    // sala" después de la lectura, no se toca (el trigger sí permitiría
+    // in_room → cancelled).
     if (request.action === 'cancel') {
-      const { error } = await adminClient.from('appointments').update({ status: 'cancelled' }).eq('id', target.id);
+      const { data: cancelled, error } = await adminClient
+        .from('appointments')
+        .update({ status: 'cancelled' })
+        .eq('id', target.id)
+        .in('status', ACTIVE_STATUSES)
+        .select('id')
+        .maybeSingle();
       if (error) {
         const message = triggerErrorMessage(error);
         if (message) return jsonResponse({ error: message }, 409);
         throw error;
       }
+      if (!cancelled) {
+        return jsonResponse({ error: STATE_CHANGED }, 409);
+      }
       return jsonResponse({ id: target.id, status: 'cancelled' });
     }
 
-    if (request.date < today) {
+    if (request.date < now.date) {
       return jsonResponse({ error: 'No se puede reprogramar a una fecha pasada.' }, 400);
     }
 
@@ -291,13 +345,17 @@ Deno.serve(async (req) => {
       .from('appointments')
       .update({ appointment_date: request.date, start_time: request.startTime, end_time: endTime })
       .eq('id', target.id)
+      .in('status', ACTIVE_STATUSES)
       .select('id, appointment_date, start_time, end_time, status')
-      .single();
+      .maybeSingle();
 
-    if (updateError || !updated) {
-      const message = updateError ? (overlapErrorMessage(updateError) ?? triggerErrorMessage(updateError)) : null;
+    if (updateError) {
+      const message = overlapErrorMessage(updateError) ?? triggerErrorMessage(updateError);
       if (message) return jsonResponse({ error: message }, 409);
       return jsonResponse({ error: 'No se pudo reprogramar la cita. Inténtalo de nuevo.' }, 500);
+    }
+    if (!updated) {
+      return jsonResponse({ error: STATE_CHANGED }, 409);
     }
 
     return jsonResponse({

@@ -43,3 +43,10 @@ En `appointmentService.ts`: `getPatientAppointments(dni, code)`, `cancelPatientA
 - index.ts `resend-code`: cuenta pedidos de la última hora; si < 3 registra y, si el paciente existe con citas futuras pending/confirmed y correo, envía. Siempre 200 con el mensaje fijo.
 - create-public-appointment: lee nombre de sede, profesional y servicio; envía con el correo registrado; responde `emailSent`.
 - Frontend: `requestAppointmentCodes(dni)`; enlace en /consultar-citas; ConfirmBookingPage pasa `emailSent`; BookingSuccessPage muestra el aviso solo si `emailSent`. Pruebas RTL.
+
+## Arreglos de la revisión de código
+- "Ya pasó" se decide con fecha **y hora** de Lima (`canPatientModify`, `modificationError`, `getLimaNowTime`, `limaNow`): una cita de hoy cuya hora ya empezó no muestra botones y el servidor la rechaza.
+- Cancel/reschedule repiten `status in (pending, confirmed)` en el UPDATE; si la cita cambió de estado entre lectura y escritura → 409 "La cita cambió de estado…".
+- Una reserva pública nunca registra el correo de un paciente existente (`missingPatientFields`), y el correo de la reserva va solo al correo registrado.
+- Migración `20261115400000_hu11_codigo_limitado.sql`: columna `appointments.code_limited`. create-public-appointment la marca si el DNI existía y nombres/correo no coinciden (`bookingMatchesPatient`); ese código solo abre su propia cita y `list` no devuelve el nombre registrado (`canAccessAppointment`). Comprobación manual: reservar con un DNI existente y otro correo → con ese código `/mis-citas` muestra solo esa cita; un POST `cancel` sobre otra cita del paciente con ese código → 404 "El DNI y el código no coinciden.". Correr la migración dos veces sin error.
+- resend-code: registra el pedido y luego cuenta (sin carrera; el 4.º en una hora no envía), limpia registros de más de un día y responde sin esperar el envío (`EdgeRuntime.waitUntil`) para no revelar por tiempo si el DNI tiene citas.

@@ -20,6 +20,7 @@ vi.mock('../../services/appointmentService', () => ({
 vi.mock('../../utils/date', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../utils/date')>()),
   getTodayIsoDate: () => '2026-11-15',
+  getLimaNowTime: () => '08:00',
 }));
 
 function appointment(overrides: Partial<PatientAppointment>): PatientAppointment {

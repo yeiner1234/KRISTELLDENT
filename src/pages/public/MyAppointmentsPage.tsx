@@ -12,7 +12,7 @@ import PatientRescheduleModal from '../../components/appointments/PatientResched
 import { usePatientAppointments } from '../../hooks/usePatientAppointments';
 import { cancelPatientAppointment } from '../../services/appointmentService';
 import { canPatientModify } from '../../utils/patientAppointments';
-import { formatDateLong, getTodayIsoDate } from '../../utils/date';
+import { formatDateLong, getLimaNowTime, getTodayIsoDate } from '../../utils/date';
 import type { PatientAppointment } from '../../types/Appointment';
 
 interface MyAppointmentsLocationState {
@@ -124,7 +124,7 @@ function MyAppointmentsPage() {
               <PatientAppointmentCard
                 key={appointment.id}
                 appointment={appointment}
-                canModify={canPatientModify(appointment, today)}
+                canModify={canPatientModify(appointment, { date: today, time: getLimaNowTime() })}
                 onReschedule={() => {
                   setNotice(null);
                   setToReschedule(appointment);

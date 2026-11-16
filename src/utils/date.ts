@@ -11,6 +11,19 @@ export function getTodayIsoDate(): string {
   return limaDateFormatter.format(new Date());
 }
 
+// h23: algunos motores dan "24:05" a medianoche con hour12: false.
+const limaTimeFormatter = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'America/Lima',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
+
+// Hora actual de Lima en HH:MM.
+export function getLimaNowTime(): string {
+  return limaTimeFormatter.format(new Date());
+}
+
 export function formatDateLong(isoDate: string): string {
   const date = new Date(`${isoDate}T00:00:00`);
   return date.toLocaleDateString('es-PE', {

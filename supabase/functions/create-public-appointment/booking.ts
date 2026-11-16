@@ -117,6 +117,18 @@ export function limaToday(now: Date = new Date()): string {
   return limaDateFormatter.format(now);
 }
 
+const limaTimeFormatter = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'America/Lima',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
+
+// Fecha y hora (HH:MM) actuales en Lima.
+export function limaNow(now: Date = new Date()): { date: string; time: string } {
+  return { date: limaDateFormatter.format(now), time: limaTimeFormatter.format(now) };
+}
+
 export function addMinutes(time: string, minutes: number): string {
   const [hours, mins] = time.split(':').map(Number);
   const total = hours * 60 + mins + minutes;
@@ -132,7 +144,9 @@ export interface PatientRow {
 
 // Un DNI ya registrado conserva sus datos: quien solo conoce un DNI no puede
 // cambiar el nombre, correo o teléfono de otra persona. Solo se completan
-// los campos vacíos.
+// los campos vacíos, salvo el correo: a él llegan los códigos de todas las
+// citas (resend-code), así que nunca se registra desde una reserva pública.
+// Si falta, lo registra la clínica.
 export function missingPatientFields(
   existing: PatientRow,
   incoming: Pick<ValidBooking, 'firstName' | 'lastName' | 'email' | 'phone'>,
@@ -141,9 +155,34 @@ export function missingPatientFields(
   const isEmpty = (value: string | null) => !value?.trim();
   if (isEmpty(existing.first_name)) patch.first_name = incoming.firstName;
   if (isEmpty(existing.last_name)) patch.last_name = incoming.lastName;
-  if (isEmpty(existing.email)) patch.email = incoming.email;
   if (isEmpty(existing.phone)) patch.phone = incoming.phone;
   return patch;
+}
+
+// Mayúsculas, tildes y espacios no cuentan como "datos distintos".
+function normalizeForMatch(value: string | null): string {
+  return (value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+// ¿La reserva trae los mismos nombres, apellidos y correo que el paciente
+// registrado? Si no, quien reserva quizá solo conoce el DNI: el código de su
+// cita solo le dará acceso a esa cita (appointments.code_limited).
+export function bookingMatchesPatient(
+  existing: PatientRow,
+  incoming: Pick<ValidBooking, 'firstName' | 'lastName' | 'email'>,
+): boolean {
+  const registeredEmail = normalizeForMatch(existing.email);
+  return (
+    registeredEmail !== '' &&
+    registeredEmail === normalizeForMatch(incoming.email) &&
+    normalizeForMatch(existing.first_name) === normalizeForMatch(incoming.firstName) &&
+    normalizeForMatch(existing.last_name) === normalizeForMatch(incoming.lastName)
+  );
 }
 
 interface DbError {

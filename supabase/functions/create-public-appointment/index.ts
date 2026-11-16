@@ -22,6 +22,7 @@ import { sendEmail } from '../_shared/email.ts';
 import { bookingEmail } from '../_shared/emailTemplates.ts';
 import {
   addMinutes,
+  bookingMatchesPatient,
   limaToday,
   missingPatientFields,
   overlapErrorMessage,
@@ -152,6 +153,10 @@ Deno.serve(async (req) => {
     patientId = existingPatient.id;
   }
 
+  // Con un DNI ya registrado y otros datos, quien reserva quizá solo conoce
+  // el DNI: el código de esta cita no le abrirá las demás del paciente.
+  const codeLimited = existingPatient !== null && !bookingMatchesPatient(existingPatient, booking);
+
   if (existingPatient) {
     const patch = missingPatientFields(existingPatient, booking);
     if (Object.keys(patch).length > 0) {
@@ -174,6 +179,7 @@ Deno.serve(async (req) => {
       end_time: endTime,
       reason: booking.reason,
       status: 'pending',
+      code_limited: codeLimited,
     })
     .select('id, appointment_code, appointment_date, start_time, end_time, status')
     .single();
@@ -186,7 +192,10 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'No se pudo registrar la cita. Inténtalo de nuevo.' }, 400);
   }
 
-  // Al correo registrado: una reserva con un DNI existente no cambia su correo.
+  // Paciente existente: solo a su correo registrado (si no tiene, no se envía),
+  // así también se entera de una reserva hecha con su DNI. Paciente nuevo: al
+  // correo que acaba de dar.
+  const recipient = existingPatient ? (existingPatient.email?.trim() ?? '') : booking.email;
   const email = bookingEmail({
     patientName: existingPatient?.first_name?.trim() || booking.firstName,
     appointment: {
@@ -199,7 +208,7 @@ Deno.serve(async (req) => {
     },
     siteUrl: Deno.env.get('SITE_URL') ?? null,
   });
-  const emailSent = await sendEmail({ to: existingPatient?.email?.trim() || booking.email, ...email });
+  const emailSent = recipient ? await sendEmail({ to: recipient, ...email }) : false;
 
   return jsonResponse(
     {

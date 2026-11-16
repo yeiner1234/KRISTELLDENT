@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  canAccessAppointment,
   MISMATCH_ERROR,
   RESEND_CODE_MESSAGE,
   modificationError,
@@ -97,27 +98,33 @@ describe('parseRequest', () => {
 });
 
 describe('modificationError', () => {
-  const today = '2026-11-15';
+  const today = { date: '2026-11-15', time: '08:00' };
 
-  it('permite pending y confirmed de hoy en adelante', () => {
-    expect(modificationError({ status: 'pending', appointment_date: '2026-11-15' }, today)).toBeNull();
-    expect(modificationError({ status: 'confirmed', appointment_date: '2026-12-01' }, today)).toBeNull();
+  it('permite pending y confirmed que todavía no empiezan', () => {
+    expect(modificationError({ status: 'pending', appointment_date: '2026-11-15', start_time: '09:00:00' }, today)).toBeNull();
+    expect(modificationError({ status: 'confirmed', appointment_date: '2026-12-01', start_time: '07:00:00' }, today)).toBeNull();
+  });
+
+  it('rechaza una cita de hoy cuya hora ya pasó', () => {
+    expect(
+      modificationError({ status: 'pending', appointment_date: '2026-11-15', start_time: '08:00:00' }, today),
+    ).toBe('La hora de la cita ya pasó: no se puede modificar.');
   });
 
   it('rechaza citas ya atendidas, en sala o canceladas', () => {
-    expect(modificationError({ status: 'completed', appointment_date: '2026-11-20' }, today)).toBe(
+    expect(modificationError({ status: 'completed', appointment_date: '2026-11-20', start_time: '09:00' }, today)).toBe(
       'La cita ya fue atendida: no se puede modificar.',
     );
-    expect(modificationError({ status: 'in_room', appointment_date: '2026-11-15' }, today)).toBe(
+    expect(modificationError({ status: 'in_room', appointment_date: '2026-11-15', start_time: '09:00' }, today)).toBe(
       'La cita ya está en atención: no se puede modificar.',
     );
-    expect(modificationError({ status: 'cancelled', appointment_date: '2026-11-20' }, today)).toBe(
+    expect(modificationError({ status: 'cancelled', appointment_date: '2026-11-20', start_time: '09:00' }, today)).toBe(
       'La cita ya está cancelada: no se puede modificar.',
     );
   });
 
   it('rechaza citas de una fecha pasada', () => {
-    expect(modificationError({ status: 'pending', appointment_date: '2026-11-14' }, today)).toBe(
+    expect(modificationError({ status: 'pending', appointment_date: '2026-11-14', start_time: '09:00' }, today)).toBe(
       'La cita es de una fecha pasada: no se puede modificar.',
     );
   });
@@ -129,5 +136,16 @@ describe('triggerErrorMessage', () => {
       'La cita ya está completada: no se puede modificar.',
     );
     expect(triggerErrorMessage({ code: '23P01', message: 'conflicting key' })).toBeNull();
+  });
+});
+
+describe('canAccessAppointment', () => {
+  it('un código completo da acceso a todas las citas del paciente', () => {
+    expect(canAccessAppointment({ limitedToAppointmentId: null }, 'a2')).toBe(true);
+  });
+
+  it('un código limitado solo da acceso a su propia cita', () => {
+    expect(canAccessAppointment({ limitedToAppointmentId: 'a1' }, 'a1')).toBe(true);
+    expect(canAccessAppointment({ limitedToAppointmentId: 'a1' }, 'a2')).toBe(false);
   });
 });
