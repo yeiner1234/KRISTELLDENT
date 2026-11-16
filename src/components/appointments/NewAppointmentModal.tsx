@@ -66,6 +66,16 @@ function NewAppointmentModal({
     [services, professional],
   );
 
+  // El servidor no sobrescribe los datos de un DNI ya registrado (solo
+  // completa los vacíos): esos campos se muestran bloqueados.
+  const lockedFields = {
+    firstName: (matchedPatient?.firstName.trim().length ?? 0) >= 2,
+    lastName: (matchedPatient?.lastName.trim().length ?? 0) >= 2,
+    phone: matchedPatient ? isValidPhone(matchedPatient.phone ?? '') : false,
+    email: matchedPatient ? isValidEmail(matchedPatient.email ?? '') : false,
+  };
+  const hasLockedFields = Object.values(lockedFields).some(Boolean);
+
   const reset = () => {
     setBranchId('');
     setProfessionalId('');
@@ -185,6 +195,7 @@ function NewAppointmentModal({
           <p className="text-sm font-medium text-adm-ink-700">Cita creada. Entrega este código al paciente:</p>
           <AppointmentCodeBox
             code={createdCode}
+            label="Código de la cita"
             variant="admin"
             hint="Con su DNI y este código puede reprogramar o cancelar su cita."
           />
@@ -253,6 +264,7 @@ function NewAppointmentModal({
                 onChange={(event) => {
                   setDni(event.target.value);
                   setSearchAttempted(false);
+                  setMatchedPatient(null);
                 }}
                 className="flex-1"
               />
@@ -265,6 +277,11 @@ function NewAppointmentModal({
                 {matchedPatient ? 'Paciente encontrado — datos precargados.' : 'No existe ese paciente aún, se registrará como nuevo.'}
               </p>
             )}
+            {hasLockedFields && (
+              <p className="text-xs text-adm-ink-400">
+                Los datos ya registrados del paciente no se cambian al crear una cita; solo se completan los vacíos.
+              </p>
+            )}
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -273,6 +290,7 @@ function NewAppointmentModal({
               name="firstName"
               variant="admin"
               value={patientFields.firstName}
+              readOnly={lockedFields.firstName}
               onChange={(event) => setPatientFields((current) => ({ ...current, firstName: event.target.value }))}
               required
             />
@@ -281,6 +299,7 @@ function NewAppointmentModal({
               name="lastName"
               variant="admin"
               value={patientFields.lastName}
+              readOnly={lockedFields.lastName}
               onChange={(event) => setPatientFields((current) => ({ ...current, lastName: event.target.value }))}
               required
             />
@@ -291,6 +310,7 @@ function NewAppointmentModal({
               inputMode="numeric"
               maxLength={9}
               value={patientFields.phone}
+              readOnly={lockedFields.phone}
               onChange={(event) => setPatientFields((current) => ({ ...current, phone: event.target.value }))}
               required
             />
@@ -300,6 +320,7 @@ function NewAppointmentModal({
               type="email"
               variant="admin"
               value={patientFields.email}
+              readOnly={lockedFields.email}
               onChange={(event) => setPatientFields((current) => ({ ...current, email: event.target.value }))}
               required
             />

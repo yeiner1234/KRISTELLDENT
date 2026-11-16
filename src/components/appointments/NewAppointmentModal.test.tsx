@@ -28,7 +28,16 @@ const professionals = [
 ] as unknown as Professional[];
 const services = [{ id: 's1', name: 'Limpieza', duration: 30, active: true }] as Service[];
 
-function renderModal(onCreated = vi.fn()) {
+const existingPatient = {
+  id: 'pt1',
+  dni: '87654321',
+  firstName: 'Rosa',
+  lastName: 'Lima',
+  phone: '912345678',
+  email: null,
+};
+
+function renderModal(onCreated = vi.fn(), patients: unknown[] = []) {
   render(
     <NewAppointmentModal
       isOpen
@@ -37,7 +46,7 @@ function renderModal(onCreated = vi.fn()) {
       branches={branches}
       professionals={professionals}
       services={services}
-      patients={[]}
+      patients={patients as never}
     />,
   );
   return { onCreated };
@@ -101,5 +110,22 @@ describe('NewAppointmentModal', () => {
     expect(await screen.findByText('KD-ABC234')).toBeInTheDocument();
     expect(vi.mocked(createPublicAppointment).mock.calls[0][0]).not.toHaveProperty('endTime');
     expect(onCreated).toHaveBeenCalled();
+  });
+
+  it('con un paciente existente bloquea los datos ya registrados y deja completar los vacíos', async () => {
+    const user = userEvent.setup();
+    renderModal(vi.fn(), [existingPatient]);
+
+    await user.type(screen.getByLabelText('DNI'), '87654321');
+    await user.click(screen.getByRole('button', { name: 'Buscar' }));
+
+    expect(screen.getByLabelText('Nombre')).toHaveAttribute('readonly');
+    expect(screen.getByLabelText('Teléfono')).toHaveAttribute('readonly');
+    expect(screen.getByLabelText('Correo')).not.toHaveAttribute('readonly');
+    expect(screen.getByText(/los datos ya registrados del paciente no se cambian/i)).toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText('DNI'));
+    await user.type(screen.getByLabelText('DNI'), '11111111');
+    expect(screen.getByLabelText('Teléfono')).not.toHaveAttribute('readonly');
   });
 });
