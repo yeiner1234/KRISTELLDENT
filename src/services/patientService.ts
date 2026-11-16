@@ -33,15 +33,3 @@ export async function getAllPatients(): Promise<Patient[]> {
 
   return (data ?? []).map(mapRow);
 }
-
-export async function requestVerificationCode(dni: string, email: string): Promise<void> {
-  void dni;
-  void email;
-  return Promise.resolve();
-}
-
-export async function verifyCode(dni: string, code: string): Promise<boolean> {
-  void dni;
-  void code;
-  return Promise.resolve(true);
-}

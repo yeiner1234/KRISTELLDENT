@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import CalendarPicker from '../common/CalendarPicker';
 import Spinner from '../common/Spinner';
 import EmptyState from '../common/EmptyState';
-import { CalendarX2 } from 'lucide-react';
+import Button from '../common/Button';
+import { CalendarX2, RefreshCw } from 'lucide-react';
 import { getAvailableSlots } from '../../services/appointmentService';
 import { getTodayIsoDate } from '../../utils/date';
 import type { TimeSlotOption } from '../../types/Schedule';
@@ -11,15 +12,28 @@ interface AdminSlotPickerProps {
   professionalId: string;
   branchId: string;
   serviceId: string | null;
+  // Al reprogramar: la cita que se mueve no ocupa su propio horario.
+  excludeAppointmentId?: string | null;
   date: string | null;
   time: string | null;
   onSelectDate: (date: string) => void;
   onSelectTime: (time: string) => void;
 }
 
-function AdminSlotPicker({ professionalId, branchId, serviceId, date, time, onSelectDate, onSelectTime }: AdminSlotPickerProps) {
+function AdminSlotPicker({
+  professionalId,
+  branchId,
+  serviceId,
+  excludeAppointmentId = null,
+  date,
+  time,
+  onSelectDate,
+  onSelectTime,
+}: AdminSlotPickerProps) {
   const [slots, setSlots] = useState<TimeSlotOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasFailed, setHasFailed] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     if (!date) {
@@ -29,8 +43,9 @@ function AdminSlotPicker({ professionalId, branchId, serviceId, date, time, onSe
 
     let isCancelled = false;
     setIsLoading(true);
+    setHasFailed(false);
 
-    getAvailableSlots({ professionalId, branchId, serviceId, date })
+    getAvailableSlots({ professionalId, branchId, serviceId, date, excludeAppointmentId })
       .then((data) => {
         if (!isCancelled) {
           setSlots(data);
@@ -40,6 +55,7 @@ function AdminSlotPicker({ professionalId, branchId, serviceId, date, time, onSe
       .catch(() => {
         if (!isCancelled) {
           setSlots([]);
+          setHasFailed(true);
           setIsLoading(false);
         }
       });
@@ -47,7 +63,7 @@ function AdminSlotPicker({ professionalId, branchId, serviceId, date, time, onSe
     return () => {
       isCancelled = true;
     };
-  }, [date, professionalId, branchId, serviceId]);
+  }, [date, professionalId, branchId, serviceId, excludeAppointmentId, retryCount]);
 
   return (
     <div className="grid gap-4 sm:grid-cols-[auto_1fr]">
@@ -60,6 +76,21 @@ function AdminSlotPicker({ professionalId, branchId, serviceId, date, time, onSe
         ) : isLoading ? (
           <div className="mt-2 flex justify-center py-4">
             <Spinner size={22} />
+          </div>
+        ) : hasFailed ? (
+          <div className="mt-2 flex flex-col items-start gap-3">
+            <p role="alert" className="text-sm text-adm-danger-text">
+              No se pudieron cargar los horarios. Intenta de nuevo.
+            </p>
+            <Button
+              type="button"
+              variant="admin-outline"
+              size="sm"
+              icon={<RefreshCw size={14} />}
+              onClick={() => setRetryCount((count) => count + 1)}
+            >
+              Reintentar
+            </Button>
           </div>
         ) : slots.length === 0 ? (
           <div className="mt-2">

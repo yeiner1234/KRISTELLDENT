@@ -13,7 +13,6 @@ import PatientDataPage from '../pages/public/PatientDataPage';
 import ConfirmBookingPage from '../pages/public/ConfirmBookingPage';
 import BookingSuccessPage from '../pages/public/BookingSuccessPage';
 import ConsultAppointmentsPage from '../pages/public/ConsultAppointmentsPage';
-import VerifyAppointmentPage from '../pages/public/VerifyAppointmentPage';
 import MyAppointmentsPage from '../pages/public/MyAppointmentsPage';
 
 import LoginPage from '../pages/auth/LoginPage';
@@ -49,7 +48,6 @@ function AppRouter() {
           <Route path="/reservar/exito" element={<BookingSuccessPage />} />
 
           <Route path="/consultar-citas" element={<ConsultAppointmentsPage />} />
-          <Route path="/consultar-citas/verificar" element={<VerifyAppointmentPage />} />
           <Route path="/mis-citas" element={<MyAppointmentsPage />} />
 
           <Route path="/login" element={<LoginPage />} />
