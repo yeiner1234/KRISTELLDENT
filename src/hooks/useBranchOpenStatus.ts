@@ -3,6 +3,7 @@ import { getBranchOpenStatus, type BranchOpenStatus, type WeeklyHours } from '..
 import { getBranchWeeklyHours } from '../services/branchScheduleService';
 
 const emptyStatus: BranchOpenStatus = { isOpen: false, todayLabel: 'Horario no configurado' };
+const unavailableStatus: BranchOpenStatus = { isOpen: false, todayLabel: 'Horario no disponible' };
 
 export function useBranchOpenStatus(branchId: string): BranchOpenStatus {
   const [hours, setHours] = useState<WeeklyHours | null>(null);
@@ -11,11 +12,17 @@ export function useBranchOpenStatus(branchId: string): BranchOpenStatus {
   useEffect(() => {
     let isMounted = true;
 
-    getBranchWeeklyHours(branchId).then((data) => {
-      if (isMounted) {
-        setHours(data);
-      }
-    });
+    getBranchWeeklyHours(branchId)
+      .then((data) => {
+        if (isMounted) {
+          setHours(data);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setStatus(unavailableStatus);
+        }
+      });
 
     return () => {
       isMounted = false;

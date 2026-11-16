@@ -9,7 +9,7 @@ import icon from '../../../imagenes/kristelldent-icon.png';
 
 function LoginPage() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, sessionError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -67,9 +67,9 @@ function LoginPage() {
               <p className="text-sm text-adm-ink-400">Introduce tus credenciales de trabajador.</p>
             </div>
 
-            {error && (
+            {(error ?? sessionError) && (
               <p className="rounded-[10px] border border-adm-status-cancelled-border bg-adm-status-cancelled-bg px-3.5 py-2.5 text-sm font-medium text-adm-danger-text">
-                {error}
+                {error ?? sessionError}
               </p>
             )}
 
