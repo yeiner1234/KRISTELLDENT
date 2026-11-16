@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { CalendarOff, Trash2 } from 'lucide-react';
 import Button from '../common/Button';
 import Input from '../common/Input';
+import Select from '../common/Select';
 import Spinner from '../common/Spinner';
 import StatusBadge from '../common/StatusBadge';
 import {
@@ -16,8 +17,10 @@ import { formatDateLong, getTodayIsoDate } from '../../utils/date';
 // Un mismo panel para las dos pantallas:
 //  - professional: ausencias (día completo o rango) y turnos extra.
 //  - branch: feriados y cierres de día completo de la sede.
+//    El turno extra vale en UNA sede (se elige entre `branches`, las sedes
+//    de la profesional); la ausencia, sin sede, vale en todas.
 type ScheduleExceptionsPanelProps =
-  | { mode: 'professional'; professionalId: string }
+  | { mode: 'professional'; professionalId: string; branches: { id: string; name: string }[] }
   | { mode: 'branch'; branchId: string };
 
 interface ExceptionFormState {
@@ -26,6 +29,7 @@ interface ExceptionFormState {
   startTime: string;
   endTime: string;
   isAvailable: boolean;
+  extraBranchId: string;
   reason: string;
 }
 
@@ -35,6 +39,7 @@ const emptyForm: ExceptionFormState = {
   startTime: '09:00',
   endTime: '13:00',
   isAvailable: false,
+  extraBranchId: '',
   reason: '',
 };
 
@@ -46,6 +51,8 @@ const timeInputClass =
 function ScheduleExceptionsPanel(props: ScheduleExceptionsPanelProps) {
   const isProfessional = props.mode === 'professional';
   const ownerId = props.mode === 'professional' ? props.professionalId : props.branchId;
+  const professionalBranches = props.mode === 'professional' ? props.branches : [];
+  const branchName = (id: string | null) => professionalBranches.find((branch) => branch.id === id)?.name;
 
   const [exceptions, setExceptions] = useState<ScheduleException[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -84,13 +91,14 @@ function ScheduleExceptionsPanel(props: ScheduleExceptionsPanelProps) {
     setFormError(null);
     setIsSaving(true);
 
-    // La sede siempre cierra el día completo; las del profesional van sin
-    // sede porque get_available_slots las aplica en todas sus sedes.
+    // La sede siempre cierra el día completo. Del profesional: el turno extra
+    // lleva su sede; la ausencia va sin sede y vale en todas.
     const fullDay = !isProfessional || form.fullDay;
+    const exceptionBranchId = !isProfessional ? ownerId : form.isAvailable ? form.extraBranchId || null : null;
     try {
       await createScheduleException({
         professionalId: isProfessional ? ownerId : null,
-        branchId: isProfessional ? null : ownerId,
+        branchId: exceptionBranchId,
         date: form.date,
         isAvailable: isProfessional ? form.isAvailable : false,
         startTime: fullDay ? null : form.startTime,
@@ -146,6 +154,7 @@ function ScheduleExceptionsPanel(props: ScheduleExceptionsPanelProps) {
                   <span className="text-sm font-medium capitalize text-adm-ink-700">{formatDateLong(item.date)}</span>
                   <span className="text-[13px] text-adm-ink-400">
                     {item.startTime && item.endTime ? `${item.startTime} – ${item.endTime}` : 'Todo el día'}
+                    {isProfessional ? ` · ${branchName(item.branchId) ?? 'Todas sus sedes'}` : ''}
                     {item.reason ? ` · ${item.reason}` : ''}
                   </span>
                   {isProfessional && (
@@ -206,11 +215,30 @@ function ScheduleExceptionsPanel(props: ScheduleExceptionsPanelProps) {
                   className="h-[15px] w-[15px] accent-brand-600"
                   checked={form.isAvailable}
                   // Un turno extra siempre tiene horas.
-                  onChange={() => setForm((current) => ({ ...current, isAvailable: true, fullDay: false }))}
+                  onChange={() =>
+                    setForm((current) => ({
+                      ...current,
+                      isAvailable: true,
+                      fullDay: false,
+                      extraBranchId: current.extraBranchId || (professionalBranches[0]?.id ?? ''),
+                    }))
+                  }
                 />
                 Turno extra
               </label>
             </div>
+
+            {form.isAvailable && (
+              <Select
+                label="Sede del turno extra"
+                value={form.extraBranchId}
+                onChange={(event) => setForm((current) => ({ ...current, extraBranchId: event.target.value }))}
+                options={[
+                  { value: '', label: 'Elige una sede' },
+                  ...professionalBranches.map((branch) => ({ value: branch.id, label: branch.name })),
+                ]}
+              />
+            )}
 
             <label className="flex items-center gap-2 text-sm text-adm-ink-700">
               <input
@@ -254,7 +282,7 @@ function ScheduleExceptionsPanel(props: ScheduleExceptionsPanelProps) {
 
         {isProfessional && (
           <p className="text-[12.5px] text-adm-ink-400">
-            Aplica en todas las sedes del profesional. Un turno extra solo se ofrece dentro del horario de cada sede.
+            Una ausencia aplica en todas las sedes del profesional. Un turno extra solo vale en la sede elegida y dentro de su horario.
           </p>
         )}
 

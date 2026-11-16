@@ -63,7 +63,21 @@ describe('validateExceptionInput', () => {
   });
 
   it('exige un rango para el turno extra', () => {
-    expect(validateExceptionInput({ ...absence, isAvailable: true })).toBe('Un turno extra necesita hora de inicio y fin.');
+    expect(validateExceptionInput({ ...absence, isAvailable: true, branchId: 'b1' })).toBe(
+      'Un turno extra necesita hora de inicio y fin.',
+    );
+  });
+
+  it('exige la sede para el turno extra de una profesional', () => {
+    expect(validateExceptionInput({ ...absence, isAvailable: true, startTime: '15:00', endTime: '17:00' })).toBe(
+      'Elige la sede del turno extra.',
+    );
+  });
+
+  it('acepta un turno extra con sede y rango', () => {
+    expect(
+      validateExceptionInput({ ...absence, isAvailable: true, branchId: 'b1', startTime: '15:00', endTime: '17:00' }),
+    ).toBeNull();
   });
 });
 
@@ -123,6 +137,22 @@ describe('scheduleExceptionService', () => {
   it('createScheduleException no escribe si los datos son inválidos', async () => {
     await expect(createScheduleException({ ...absence, date: '2026-11-01' })).rejects.toThrow('La fecha ya pasó.');
     expect(supabase.from).not.toHaveBeenCalled();
+  });
+
+  it('createScheduleException no guarda un turno extra sin sede', async () => {
+    await expect(
+      createScheduleException({ ...absence, isAvailable: true, startTime: '15:00', endTime: '17:00' }),
+    ).rejects.toThrow('Elige la sede del turno extra.');
+    expect(supabase.from).not.toHaveBeenCalled();
+  });
+
+  it('createScheduleException guarda el turno extra con su sede', async () => {
+    const query = mockQuery({});
+    vi.mocked(supabase.from).mockReturnValue(query as never);
+
+    await createScheduleException({ ...absence, isAvailable: true, branchId: 'b1', startTime: '15:00', endTime: '17:00' });
+
+    expect(findCall(query, 'insert')?.args[0]).toMatchObject({ professional_id: 'p1', branch_id: 'b1', is_available: true });
   });
 
   it('createScheduleException inserta en el formato de la tabla', async () => {

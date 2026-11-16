@@ -57,6 +57,11 @@ export function validateExceptionInput(input: ScheduleExceptionInput): string | 
   if (input.startTime === null && input.endTime === null) {
     return input.isAvailable ? 'Un turno extra necesita hora de inicio y fin.' : null;
   }
+  // El turno extra de una profesional vale en UNA sede; get_available_slots
+  // solo lo aplica en esa. Una ausencia sin sede sigue valiendo en todas.
+  if (input.isAvailable && input.professionalId && !input.branchId) {
+    return 'Elige la sede del turno extra.';
+  }
   return validateDayRanges([{ start: input.startTime ?? '', end: input.endTime ?? '' }]);
 }
 

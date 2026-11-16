@@ -602,7 +602,13 @@ function ProfessionalsPage() {
         )}
 
         {scheduleProfessional && scheduleTab === 'exceptions' && (
-          <ScheduleExceptionsPanel mode="professional" professionalId={scheduleProfessional.id} />
+          <ScheduleExceptionsPanel
+            mode="professional"
+            professionalId={scheduleProfessional.id}
+            branches={branches
+              .filter((branch) => scheduleProfessional.branchIds.includes(branch.id))
+              .map((branch) => ({ id: branch.id, name: branch.name }))}
+          />
         )}
 
         {scheduleProfessional && scheduleTab === 'weekly' && (
