@@ -9,6 +9,8 @@ import Input from '../../components/common/Input';
 import StatusBadge from '../../components/common/StatusBadge';
 import ScheduleExceptionsPanel from '../../components/schedule/ScheduleExceptionsPanel';
 import { useAdminBranches } from '../../hooks/useAdminBranches';
+import { useAuth } from '../../hooks/useAuth';
+import { useManageableBranchIds } from '../../hooks/useManageableBranchIds';
 import {
   createBranch,
   setBranchActive,
@@ -45,7 +47,14 @@ function emptyScheduleForm(): DayFormState[] {
 }
 
 function BranchesPage() {
-  const { branches, isLoading, error, refetch } = useAdminBranches();
+  const { user } = useAuth();
+  const isAdminGlobal = user?.role === 'admin_global';
+  const { branches: allBranches, isLoading: isLoadingBranches, error: branchesError, refetch } = useAdminBranches();
+  const { branchIds, isLoading: isLoadingAccess, error: accessError } = useManageableBranchIds();
+  // admin_sede solo ve las sedes que administra (null = admin_global, todas).
+  const branches = branchIds === null ? allBranches : allBranches.filter((branch) => branchIds.includes(branch.id));
+  const isLoading = isLoadingBranches || isLoadingAccess;
+  const error = branchesError ?? accessError;
   const [editing, setEditing] = useState<BranchRecord | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form, setForm] = useState<BranchInput>(emptyForm);
@@ -163,9 +172,11 @@ function BranchesPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <SectionTitle title="Sedes" align="left" />
-        <Button type="button" variant="admin-solid" size="sm" icon={<Plus size={16} />} onClick={openCreateModal}>
-          Nueva sede
-        </Button>
+        {isAdminGlobal && (
+          <Button type="button" variant="admin-solid" size="sm" icon={<Plus size={16} />} onClick={openCreateModal}>
+            Nueva sede
+          </Button>
+        )}
       </div>
 
       {isLoading ? (
@@ -213,16 +224,18 @@ function BranchesPage() {
               </div>
 
               <div className="flex gap-2 border-t border-adm-line-div pt-3.5">
-                <Button
-                  type="button"
-                  variant="admin-outline"
-                  size="xs"
-                  className="flex-1"
-                  icon={<Pencil size={14} />}
-                  onClick={() => openEditModal(branch)}
-                >
-                  Editar
-                </Button>
+                {isAdminGlobal && (
+                  <Button
+                    type="button"
+                    variant="admin-outline"
+                    size="xs"
+                    className="flex-1"
+                    icon={<Pencil size={14} />}
+                    onClick={() => openEditModal(branch)}
+                  >
+                    Editar
+                  </Button>
+                )}
                 <Button
                   type="button"
                   variant="admin-outline"
@@ -243,15 +256,17 @@ function BranchesPage() {
               >
                 Feriados y cierres
               </Button>
-              <Button
-                type="button"
-                variant={branch.active ? 'admin-danger' : 'admin-outline'}
-                size="xs"
-                disabled={togglingId === branch.id}
-                onClick={() => handleToggleActive(branch)}
-              >
-                {togglingId === branch.id ? 'Guardando…' : branch.active ? 'Desactivar' : 'Activar'}
-              </Button>
+              {isAdminGlobal && (
+                <Button
+                  type="button"
+                  variant={branch.active ? 'admin-danger' : 'admin-outline'}
+                  size="xs"
+                  disabled={togglingId === branch.id}
+                  onClick={() => handleToggleActive(branch)}
+                >
+                  {togglingId === branch.id ? 'Guardando…' : branch.active ? 'Desactivar' : 'Activar'}
+                </Button>
+              )}
             </div>
           ))}
         </div>
