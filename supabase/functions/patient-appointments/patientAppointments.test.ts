@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   MISMATCH_ERROR,
+  RESEND_CODE_MESSAGE,
   modificationError,
   normalizeAppointmentCode,
   parseRequest,
@@ -61,6 +62,19 @@ describe('parseRequest', () => {
       ok: true,
       value: { action: 'cancel', dni: '12345678', code: 'KD-ABC234', appointmentId: APPOINTMENT_ID },
     });
+  });
+
+  it('resend-code solo necesita el DNI y valida su formato', () => {
+    expect(parseRequest({ action: 'resend-code', dni: ' 12345678 ' })).toEqual({
+      ok: true,
+      value: { action: 'resend-code', dni: '12345678' },
+    });
+    expect(parseRequest({ action: 'resend-code', dni: '1234' })).toEqual({
+      ok: false,
+      status: 400,
+      error: 'El DNI debe tener 8 dígitos.',
+    });
+    expect(RESEND_CODE_MESSAGE).toBe('Si el DNI tiene citas registradas, te enviamos los códigos a tu correo.');
   });
 
   it('reschedule exige fecha real y hora válida', () => {

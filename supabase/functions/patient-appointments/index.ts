@@ -14,8 +14,12 @@
 // La validación vive en patientAppointments.ts (probada con Vitest).
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 import { addMinutes, limaToday, overlapErrorMessage } from '../create-public-appointment/booking.ts';
+import { sendEmail } from '../_shared/email.ts';
+import { appointmentCodesEmail } from '../_shared/emailTemplates.ts';
 import {
   MISMATCH_ERROR,
+  RESEND_CODE_LIMIT_PER_HOUR,
+  RESEND_CODE_MESSAGE,
   modificationError,
   parseRequest,
   triggerErrorMessage,
@@ -82,7 +86,11 @@ async function listAppointments(client: SupabaseClient, patientId: string) {
     .order('start_time', { ascending: false });
   if (error) throw error;
 
-  const rows = (data ?? []) as AppointmentRow[];
+  return withNames(client, (data ?? []) as AppointmentRow[]);
+}
+
+// Agrega nombre de sede, profesional y servicio a cada cita.
+async function withNames(client: SupabaseClient, rows: AppointmentRow[]) {
   const unique = (ids: (string | null)[]) => [...new Set(ids.filter((id): id is string => Boolean(id)))];
 
   // El nombre del profesional vive en profiles (mismo id que professionals).
@@ -119,6 +127,59 @@ async function listAppointments(client: SupabaseClient, patientId: string) {
   });
 }
 
+// Envía los códigos de las próximas citas al correo registrado del DNI. La
+// respuesta es siempre la misma (RESEND_CODE_MESSAGE): quien llama no sabe si
+// el DNI existe, si tiene citas ni a qué correo se envió.
+async function resendCodes(client: SupabaseClient, dni: string): Promise<void> {
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { count, error: countError } = await client
+    .from('patient_code_email_log')
+    .select('id', { count: 'exact', head: true })
+    .eq('dni', dni)
+    .gte('requested_at', oneHourAgo);
+  if (countError) throw countError;
+  if ((count ?? 0) >= RESEND_CODE_LIMIT_PER_HOUR) {
+    return;
+  }
+
+  const { error: logError } = await client.from('patient_code_email_log').insert({ dni });
+  if (logError) throw logError;
+  // Limpieza: lo de más de un día ya no cuenta para el límite.
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  await client.from('patient_code_email_log').delete().eq('dni', dni).lt('requested_at', oneDayAgo);
+
+  const { data: patient, error: patientError } = await client
+    .from('patients')
+    .select('id, first_name, email')
+    .eq('dni', dni)
+    .maybeSingle();
+  if (patientError) throw patientError;
+  if (!patient?.email) {
+    return;
+  }
+
+  const { data, error } = await client
+    .from('appointments')
+    .select(APPOINTMENT_COLUMNS)
+    .eq('patient_id', patient.id)
+    .in('status', ['pending', 'confirmed'])
+    .gte('appointment_date', limaToday())
+    .order('appointment_date', { ascending: true })
+    .order('start_time', { ascending: true });
+  if (error) throw error;
+  if (!data || data.length === 0) {
+    return;
+  }
+
+  const appointments = await withNames(client, data as AppointmentRow[]);
+  const email = appointmentCodesEmail({
+    patientName: patient.first_name,
+    appointments,
+    siteUrl: Deno.env.get('SITE_URL') ?? null,
+  });
+  await sendEmail({ to: patient.email, ...email });
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -151,6 +212,11 @@ Deno.serve(async (req) => {
   const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
   try {
+    if (request.action === 'resend-code') {
+      await resendCodes(adminClient, request.dni);
+      return jsonResponse({ message: RESEND_CODE_MESSAGE });
+    }
+
     const patient = await findPatient(adminClient, request.dni, request.code);
     if (!patient) {
       return jsonResponse({ error: MISMATCH_ERROR }, 404);

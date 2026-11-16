@@ -5,6 +5,11 @@
 // o códigos no debe poder saber cuál de los dos existe.
 export const MISMATCH_ERROR = 'El DNI y el código no coinciden.';
 
+// Igual exista o no el DNI: nunca revela si alguien tiene citas ni su correo.
+export const RESEND_CODE_MESSAGE = 'Si el DNI tiene citas registradas, te enviamos los códigos a tu correo.';
+// Envíos de códigos por DNI en una hora (tabla patient_code_email_log).
+export const RESEND_CODE_LIMIT_PER_HOUR = 3;
+
 // Mismo alfabeto que generate_appointment_code() (sin O, 0, I ni 1).
 const CODE_BODY_PATTERN = /^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$/;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -49,6 +54,7 @@ interface Identity {
 }
 
 export type PatientRequest =
+  | { action: 'resend-code'; dni: string }
   | (Identity & { action: 'list' })
   | (Identity & { action: 'cancel'; appointmentId: string })
   | (Identity & { action: 'reschedule'; appointmentId: string; date: string; startTime: string });
@@ -57,11 +63,19 @@ export type ParseResult = { ok: true; value: PatientRequest } | { ok: false; sta
 
 export function parseRequest(payload: PatientAppointmentsPayload): ParseResult {
   const action = text(payload.action);
-  if (action !== 'list' && action !== 'cancel' && action !== 'reschedule') {
+  if (action !== 'list' && action !== 'cancel' && action !== 'reschedule' && action !== 'resend-code') {
     return { ok: false, status: 400, error: 'Acción no válida.' };
   }
 
   const dni = text(payload.dni);
+
+  // Sin código: es justo para quien lo perdió.
+  if (action === 'resend-code') {
+    return /^\d{8}$/.test(dni)
+      ? { ok: true, value: { action, dni } }
+      : { ok: false, status: 400, error: 'El DNI debe tener 8 dígitos.' };
+  }
+
   const code = normalizeAppointmentCode(payload.code);
   if (!/^\d{8}$/.test(dni) || !code) {
     return { ok: false, status: 404, error: MISMATCH_ERROR };
