@@ -119,10 +119,15 @@ export async function createScheduleException(input: ScheduleExceptionInput): Pr
   }
 }
 
+// Con RLS, un DELETE que el usuario no tiene permitido no da error: no borra
+// ninguna fila. Se pide la fila borrada para no decir "borrado" cuando no lo fue.
 export async function deleteScheduleException(id: string): Promise<void> {
-  const { error } = await supabase.from('schedule_exceptions').delete().eq('id', id);
+  const { data, error } = await supabase.from('schedule_exceptions').delete().eq('id', id).select('id');
 
   if (error) {
     throw new Error(friendlyWriteError(error.message));
+  }
+  if (!data || data.length === 0) {
+    throw new Error('No tienes permiso para modificar esta sede.');
   }
 }

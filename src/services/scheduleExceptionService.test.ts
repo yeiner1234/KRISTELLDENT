@@ -180,6 +180,23 @@ describe('scheduleExceptionService', () => {
     await expect(createScheduleException(absence)).rejects.toThrow('No tienes permiso para modificar esta sede.');
   });
 
+  it('deleteScheduleException avisa si los permisos no dejaron borrar nada', async () => {
+    // Con RLS, un DELETE bloqueado no da error: simplemente no borra filas.
+    vi.mocked(supabase.from).mockReturnValue(mockQuery({ data: [] }) as never);
+
+    await expect(deleteScheduleException('e1')).rejects.toThrow('No tienes permiso para modificar esta sede.');
+  });
+
+  it('deleteScheduleException termina bien si borró la fila', async () => {
+    const query = mockQuery({ data: [{ id: 'e1' }] });
+    vi.mocked(supabase.from).mockReturnValue(query as never);
+
+    await deleteScheduleException('e1');
+
+    expect(findCall(query, 'eq')?.args).toEqual(['id', 'e1']);
+    expect(findCall(query, 'select')).toBeDefined();
+  });
+
   it('propaga el error de Supabase', async () => {
     vi.mocked(supabase.from).mockReturnValue(mockQuery({ error: { message: 'sin permiso' } }) as never);
     await expect(deleteScheduleException('e1')).rejects.toThrow('sin permiso');
