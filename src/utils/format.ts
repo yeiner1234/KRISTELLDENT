@@ -24,9 +24,3 @@ const statusLabels: Record<AppointmentStatus, string> = {
 export function formatAppointmentStatus(status: AppointmentStatus): string {
   return statusLabels[status];
 }
-
-export function formatAppointmentCode(date: string, id: string): string {
-  const compact = date.replace(/-/g, '').slice(2);
-  const suffix = id.replace(/\D/g, '').slice(-2).padStart(2, '0');
-  return `KD-${compact}${suffix}`;
-}

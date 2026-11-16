@@ -3,6 +3,7 @@ import { useLocation, Navigate } from 'react-router-dom';
 import BookingShell from '../../components/booking/BookingShell';
 import BookingSummary, { type BookingSummaryRow } from '../../components/booking/BookingSummary';
 import Button from '../../components/common/Button';
+import AppointmentCodeBox from '../../components/common/AppointmentCodeBox';
 import { formatDateLong } from '../../utils/date';
 
 interface SuccessState {
@@ -15,7 +16,6 @@ interface SuccessState {
   time: string;
   appointmentCode: string;
   patientName: string;
-  email: string;
 }
 
 function BookingSuccessPage() {
@@ -34,7 +34,6 @@ function BookingSuccessPage() {
     { label: 'Fecha', value: formatDateLong(state.date) },
     { label: 'Hora', value: state.time },
     { label: 'Sede', value: state.branchRegion },
-    { label: 'Número de cita', value: `#${state.appointmentCode}` },
   ];
 
   const whatsAppMessage = [
@@ -46,7 +45,8 @@ function BookingSuccessPage() {
     `Servicio: ${state.serviceName}`,
     `Fecha: ${formatDateLong(state.date)}`,
     `Hora: ${state.time}`,
-    `N° de cita: #${state.appointmentCode}`,
+    `Código de cita: ${state.appointmentCode}`,
+    'Con mi DNI y este código puedo reprogramar o cancelar la cita.',
   ].join('\n');
 
   const whatsAppUrl = `https://wa.me/?text=${encodeURIComponent(whatsAppMessage)}`;
@@ -63,10 +63,17 @@ function BookingSuccessPage() {
 
         <h2 className="mt-4 text-[22px] font-semibold text-brand-900">Cita confirmada</h2>
         <p className="mt-1 max-w-sm text-sm leading-relaxed text-ink-tertiary">
-          Tu cita ha sido registrada correctamente. También enviamos los detalles a {state.email}.
+          Tu cita ha sido registrada correctamente.
         </p>
 
         <div className="mt-6 w-full max-w-[600px]">
+          <AppointmentCodeBox
+            code={state.appointmentCode}
+            hint="Guárdalo: con tu DNI y este código puedes reprogramar o cancelar tu cita"
+          />
+        </div>
+
+        <div className="mt-4 w-full max-w-[600px]">
           <BookingSummary title="Detalles de la cita" rows={rows} />
         </div>
 

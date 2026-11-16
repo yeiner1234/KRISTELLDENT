@@ -1,7 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { supabase } from '../lib/supabase';
 import { findCall, mockQuery } from '../test/mockQuery';
-import { getAllAppointments, getAppointmentsByPatientDni, getAvailableSlots, rescheduleAppointment } from './appointmentService';
+import {
+  createPublicAppointment,
+  getAllAppointments,
+  getAppointmentsByPatientDni,
+  getAvailableSlots,
+  rescheduleAppointment,
+} from './appointmentService';
 
 vi.mock('../lib/supabase', () => ({
   supabase: {
@@ -123,5 +129,43 @@ describe('appointmentService', () => {
     await expect(
       rescheduleAppointment('a1', { date: '2026-11-20', startTime: '09:00', endTime: '09:30' }),
     ).rejects.toThrow('Ese horario ya no está disponible. Elige otro.');
+  });
+
+  describe('createPublicAppointment', () => {
+    const input = {
+      dni: '12345678',
+      firstName: 'Ana',
+      lastName: 'Ríos',
+      email: 'ana@correo.pe',
+      phone: '987654321',
+      professionalId: 'p1',
+      branchId: 'b1',
+      serviceId: 's1',
+      date: '2026-11-20',
+      startTime: '09:00',
+      reason: 'Dolor',
+    };
+
+    it('no envía endTime y devuelve el código de la cita', async () => {
+      vi.mocked(supabase.functions.invoke).mockResolvedValue({
+        data: { id: 'a1', code: 'KD-ABC234', patientId: 'pt1', date: '2026-11-20', startTime: '09:00:00', endTime: '09:45:00', status: 'pending' },
+        error: null,
+      } as never);
+
+      const result = await createPublicAppointment(input);
+
+      const body = vi.mocked(supabase.functions.invoke).mock.calls[0][1]?.body as Record<string, unknown>;
+      expect(body).not.toHaveProperty('endTime');
+      expect(result.code).toBe('KD-ABC234');
+    });
+
+    it('propaga tal cual el mensaje de error del servidor', async () => {
+      vi.mocked(supabase.functions.invoke).mockResolvedValue({
+        data: null,
+        error: { context: new Response(JSON.stringify({ error: 'Ya tienes una cita que se cruza con ese horario.' })) },
+      } as never);
+
+      await expect(createPublicAppointment(input)).rejects.toThrow('Ya tienes una cita que se cruza con ese horario.');
+    });
   });
 });

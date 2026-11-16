@@ -49,12 +49,14 @@ export interface CreatePublicAppointmentInput {
   serviceId: string | null;
   date: string;
   startTime: string;
-  endTime: string;
+  // Sin endTime: el servidor lo calcula con la duración del servicio.
   reason: string;
 }
 
 export interface CreatePublicAppointmentResult {
   id: string;
+  // Código KD-XXXXXX: con el DNI permite reprogramar o cancelar.
+  code: string;
   patientId: string;
   date: string;
   startTime: string;

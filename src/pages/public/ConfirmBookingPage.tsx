@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { CalendarCheck, ClipboardList } from 'lucide-react';
 import BookingShell from '../../components/booking/BookingShell';
@@ -8,8 +8,8 @@ import { useProfessionals, useSpecialties } from '../../hooks/useProfessionals';
 import { useBranches } from '../../hooks/useBranches';
 import { useServices } from '../../hooks/useServices';
 import { createPublicAppointment } from '../../services/appointmentService';
-import { formatFullName, formatAppointmentCode } from '../../utils/format';
-import { addMinutesToTime, formatDateLong } from '../../utils/date';
+import { formatFullName } from '../../utils/format';
+import { formatDateLong } from '../../utils/date';
 import type { BookingSelection } from './BookingPage';
 import type { PatientFormValues } from '../../components/booking/PatientForm';
 
@@ -22,8 +22,10 @@ function ConfirmBookingPage() {
   const { professionals } = useProfessionals();
   const { specialties } = useSpecialties();
   const { branches } = useBranches();
-  const { services } = useServices();
+  const { services, isLoading: isLoadingServices } = useServices();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Bloquea el doble clic aunque React aún no haya vuelto a pintar el botón.
+  const submittingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
   if (!state) {
@@ -36,13 +38,16 @@ function ConfirmBookingPage() {
   const service = services.find((item) => item.id === state.serviceId);
   const patientName = formatFullName(state.firstName, state.lastName);
   const reason = state.attentionMotiveLabel ?? specialty?.name ?? '';
-  const duration = service?.duration ?? 30;
 
   const handleBack = () => {
     navigate('/reservar/datos', { state });
   };
 
   const handleConfirm = async () => {
+    if (submittingRef.current || isLoadingServices) {
+      return;
+    }
+    submittingRef.current = true;
     setError(null);
     setIsSubmitting(true);
 
@@ -58,7 +63,6 @@ function ConfirmBookingPage() {
         serviceId: state.serviceId,
         date: state.date,
         startTime: state.time,
-        endTime: addMinutesToTime(state.time, duration),
         reason,
       });
 
@@ -71,13 +75,13 @@ function ConfirmBookingPage() {
           serviceName: service ? `${service.name} (${service.duration} min)` : '—',
           date: state.date,
           time: state.time,
-          appointmentCode: formatAppointmentCode(appointment.date, appointment.id),
+          appointmentCode: appointment.code,
           patientName,
-          email: state.email,
         },
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo confirmar la cita.');
+      submittingRef.current = false;
       setIsSubmitting(false);
     }
   };
@@ -102,7 +106,7 @@ function ConfirmBookingPage() {
       currentStep={7}
       onBack={handleBack}
       onContinue={handleConfirm}
-      continueDisabled={isSubmitting}
+      continueDisabled={isSubmitting || isLoadingServices}
       continueLabel={isSubmitting ? 'Confirmando…' : 'Confirmar cita'}
       continueIcon={<CalendarCheck size={16} />}
     >
