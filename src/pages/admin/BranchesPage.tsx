@@ -5,6 +5,7 @@ import Button from '../../components/common/Button';
 import EmptyState from '../../components/common/EmptyState';
 import Spinner from '../../components/common/Spinner';
 import Modal from '../../components/common/Modal';
+import FormError from '../../components/common/FormError';
 import Input from '../../components/common/Input';
 import StatusBadge from '../../components/common/StatusBadge';
 import ScheduleExceptionsPanel from '../../components/schedule/ScheduleExceptionsPanel';
@@ -61,6 +62,7 @@ function BranchesPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [toggleError, setToggleError] = useState<string | null>(null);
 
   const [scheduleBranch, setScheduleBranch] = useState<BranchRecord | null>(null);
   const [scheduleForm, setScheduleForm] = useState<DayFormState[]>(emptyScheduleForm());
@@ -123,9 +125,12 @@ function BranchesPage() {
 
   const handleToggleActive = async (branch: BranchRecord) => {
     setTogglingId(branch.id);
+    setToggleError(null);
     try {
       await setBranchActive(branch.id, !branch.active);
       refetch();
+    } catch (err) {
+      setToggleError(err instanceof Error ? err.message : 'No se pudo actualizar la sede.');
     } finally {
       setTogglingId(null);
     }
@@ -178,6 +183,8 @@ function BranchesPage() {
           </Button>
         )}
       </div>
+
+      <FormError message={toggleError} />
 
       {isLoading ? (
         <div className="flex justify-center py-10">

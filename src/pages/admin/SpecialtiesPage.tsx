@@ -8,6 +8,7 @@ import Spinner from '../../components/common/Spinner';
 import SearchInput from '../../components/common/SearchInput';
 import Button from '../../components/common/Button';
 import Modal from '../../components/common/Modal';
+import FormError from '../../components/common/FormError';
 import Input from '../../components/common/Input';
 import StatusBadge from '../../components/common/StatusBadge';
 import { useProfessionals } from '../../hooks/useProfessionals';
@@ -38,6 +39,7 @@ function SpecialtiesPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [toggleError, setToggleError] = useState<string | null>(null);
 
   const openCreateModal = () => {
     setEditing(null);
@@ -80,9 +82,12 @@ function SpecialtiesPage() {
 
   const handleToggleActive = async (specialty: Specialty) => {
     setTogglingId(specialty.id);
+    setToggleError(null);
     try {
       await setSpecialtyActive(specialty.id, !specialty.active);
       refetch();
+    } catch (err) {
+      setToggleError(err instanceof Error ? err.message : 'No se pudo actualizar la especialidad.');
     } finally {
       setTogglingId(null);
     }
@@ -153,6 +158,8 @@ function SpecialtiesPage() {
           wrapperClassName="min-w-[180px] flex-1"
         />
       </div>
+
+      <FormError message={toggleError} />
 
       {isLoading ? (
         <div className="flex justify-center py-10">

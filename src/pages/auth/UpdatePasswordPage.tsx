@@ -61,7 +61,12 @@ function UpdatePasswordPage() {
       }
     };
 
-    void checkRecoverySession();
+    checkRecoverySession().catch(() => {
+      if (isMounted) {
+        setError('No se pudo comprobar el enlace. Revisa tu conexión y vuelve a abrirlo.');
+        setIsCheckingSession(false);
+      }
+    });
 
     return () => {
       isMounted = false;
@@ -127,8 +132,9 @@ function UpdatePasswordPage() {
         ) : !hasSession ? (
           <div className="flex flex-col items-center gap-2 py-6 text-center">
             <KeyRound size={22} className="text-adm-ink-300" />
+            {error && <p className="text-sm font-medium text-adm-danger-text">{error}</p>}
             <p className="text-sm text-adm-ink-400">
-              Este enlace ya expiró o no es válido. Solicita uno nuevo desde{' '}
+              {error ? 'Si el problema sigue, solicita un enlace nuevo desde' : 'Este enlace ya expiró o no es válido. Solicita uno nuevo desde'}{' '}
               <a href="/login/recuperar" className="font-medium text-adm-accent-deep hover:underline">
                 recuperar contraseña
               </a>

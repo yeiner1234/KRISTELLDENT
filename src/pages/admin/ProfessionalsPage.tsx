@@ -84,6 +84,7 @@ function ProfessionalsPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [toggleError, setToggleError] = useState<string | null>(null);
 
   const [scheduleProfessional, setScheduleProfessional] = useState<Professional | null>(null);
   const [scheduleBranchId, setScheduleBranchId] = useState('');
@@ -102,6 +103,7 @@ function ProfessionalsPage() {
     setIsLoadingEligible(true);
     getEligibleProfilesForProfessional()
       .then(setEligibleProfiles)
+      .catch((err) => setFormError(err instanceof Error ? err.message : 'No se pudieron cargar las cuentas disponibles.'))
       .finally(() => setIsLoadingEligible(false));
   };
 
@@ -202,9 +204,12 @@ function ProfessionalsPage() {
 
   const handleToggleActive = async (professional: Professional) => {
     setTogglingId(professional.id);
+    setToggleError(null);
     try {
       await setProfessionalActive(professional.id, !professional.active);
       refetch();
+    } catch (err) {
+      setToggleError(err instanceof Error ? err.message : 'No se pudo actualizar el profesional.');
     } finally {
       setTogglingId(null);
     }
@@ -367,6 +372,8 @@ function ProfessionalsPage() {
           />
         </div>
       </div>
+
+      <FormError message={toggleError} />
 
       {isLoading ? (
         <div className="flex justify-center py-10">
