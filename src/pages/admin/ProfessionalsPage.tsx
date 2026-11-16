@@ -7,6 +7,7 @@ import Button from '../../components/common/Button';
 import EmptyState from '../../components/common/EmptyState';
 import Spinner from '../../components/common/Spinner';
 import Modal from '../../components/common/Modal';
+import FormError from '../../components/common/FormError';
 import ProfessionalCard from '../../components/professionals/ProfessionalCard';
 import ScheduleExceptionsPanel from '../../components/schedule/ScheduleExceptionsPanel';
 import { useAdminProfessionals } from '../../hooks/useAdminProfessionals';
@@ -255,7 +256,9 @@ function ProfessionalsPage() {
     }
   };
 
+  // Cualquier cambio en el horario deja atrás el error del intento anterior.
   const toggleScheduleDay = (dayIndex: number) => {
+    setScheduleError(null);
     setScheduleForm((current) =>
       current.map((day, index) =>
         index === dayIndex
@@ -266,6 +269,7 @@ function ProfessionalsPage() {
   };
 
   const addScheduleBlock = (dayIndex: number) => {
+    setScheduleError(null);
     setScheduleForm((current) =>
       current.map((day, index) =>
         index === dayIndex ? { ...day, blocks: [...day.blocks, { start: '14:00', end: '17:00' }] } : day,
@@ -274,6 +278,7 @@ function ProfessionalsPage() {
   };
 
   const removeScheduleBlock = (dayIndex: number, blockIndex: number) => {
+    setScheduleError(null);
     setScheduleForm((current) =>
       current.map((day, index) =>
         index === dayIndex ? { ...day, blocks: day.blocks.filter((_, i) => i !== blockIndex) } : day,
@@ -282,6 +287,7 @@ function ProfessionalsPage() {
   };
 
   const updateScheduleBlock = (dayIndex: number, blockIndex: number, field: 'start' | 'end', value: string) => {
+    setScheduleError(null);
     setScheduleForm((current) =>
       current.map((day, index) =>
         index === dayIndex
@@ -630,11 +636,7 @@ function ProfessionalsPage() {
 
         {scheduleProfessional && scheduleTab === 'weekly' && (
           <form id="horario-profesional-form" onSubmit={handleSaveSchedule} className="flex flex-col gap-4 py-2">
-            {scheduleError && (
-              <p className="rounded-[10px] border border-adm-status-cancelled-border bg-adm-status-cancelled-bg px-3.5 py-2.5 text-sm font-medium text-adm-danger-text">
-                {scheduleError}
-              </p>
-            )}
+            <FormError message={scheduleError} />
 
             <Select
               label="Sede"
