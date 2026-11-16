@@ -175,8 +175,22 @@ function TeamPage() {
         </div>
       )}
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Invitar usuario interno">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 py-2">
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Invitar usuario interno"
+        footer={
+          <>
+            <Button type="button" variant="admin-outline" onClick={() => setIsModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" form="equipo-form" variant="admin-solid" disabled={isSubmitting}>
+              {isSubmitting ? 'Enviando…' : 'Enviar invitación'}
+            </Button>
+          </>
+        }
+      >
+        <form id="equipo-form" onSubmit={handleSubmit} className="flex flex-col gap-4 py-2">
           {formError && (
             <p className="rounded-[10px] border border-adm-status-cancelled-border bg-adm-status-cancelled-bg px-3.5 py-2.5 text-sm font-medium text-adm-danger-text">
               {formError}
@@ -236,15 +250,6 @@ function TeamPage() {
             Se le enviará un correo de invitación para que defina su propia contraseña. No se comparte ninguna
             contraseña desde este panel.
           </p>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="admin-outline" onClick={() => setIsModalOpen(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" variant="admin-solid" disabled={isSubmitting}>
-              {isSubmitting ? 'Enviando…' : 'Enviar invitación'}
-            </Button>
-          </div>
         </form>
       </Modal>
     </div>

@@ -52,9 +52,26 @@ function RescheduleAppointmentModal({ appointment, service, onClose, onReschedul
   };
 
   return (
-    <Modal isOpen={appointment !== null} onClose={handleClose} title="Reprogramar cita" maxWidth="max-w-[560px]">
+    <Modal
+      isOpen={appointment !== null}
+      onClose={handleClose}
+      title="Reprogramar cita"
+      maxWidth="max-w-[560px]"
+      footer={
+        appointment ? (
+          <>
+            <Button type="button" variant="admin-outline" onClick={handleClose}>
+              Cancelar
+            </Button>
+            <Button type="submit" form="reprogramar-cita-form" variant="admin-solid" disabled={!date || !time || isSubmitting}>
+              {isSubmitting ? 'Guardando…' : 'Reprogramar'}
+            </Button>
+          </>
+        ) : undefined
+      }
+    >
       {appointment && (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 py-2">
+        <form id="reprogramar-cita-form" onSubmit={handleSubmit} className="flex flex-col gap-4 py-2">
           <p className="text-sm text-adm-ink-400">
             Cita actual: <span className="font-medium text-adm-ink-700">{appointment.date}</span> a las{' '}
             <span className="font-medium text-adm-ink-700">{appointment.startTime}</span>
@@ -78,15 +95,6 @@ function RescheduleAppointmentModal({ appointment, service, onClose, onReschedul
             }}
             onSelectTime={setTime}
           />
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="admin-outline" onClick={handleClose}>
-              Cancelar
-            </Button>
-            <Button type="submit" variant="admin-solid" disabled={!date || !time || isSubmitting}>
-              {isSubmitting ? 'Guardando…' : 'Reprogramar'}
-            </Button>
-          </div>
         </form>
       )}
     </Modal>

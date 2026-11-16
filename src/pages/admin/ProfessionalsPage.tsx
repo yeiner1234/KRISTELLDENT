@@ -408,8 +408,18 @@ function ProfessionalsPage() {
         onClose={() => setIsModalOpen(false)}
         title={editing ? 'Editar profesional' : 'Nuevo profesional'}
         maxWidth="max-w-[520px]"
+        footer={
+          <>
+            <Button type="button" variant="admin-outline" onClick={() => setIsModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" form="profesional-form" variant="admin-solid" disabled={isSubmitting}>
+              {isSubmitting ? 'Guardando…' : 'Guardar'}
+            </Button>
+          </>
+        }
       >
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 py-2">
+        <form id="profesional-form" onSubmit={handleSubmit} className="flex flex-col gap-4 py-2">
           {formError && (
             <p className="rounded-[10px] border border-adm-status-cancelled-border bg-adm-status-cancelled-bg px-3.5 py-2.5 text-sm font-medium text-adm-danger-text">
               {formError}
@@ -557,15 +567,6 @@ function ProfessionalsPage() {
               </div>
             )}
           </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="admin-outline" onClick={() => setIsModalOpen(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" variant="admin-solid" disabled={isSubmitting}>
-              {isSubmitting ? 'Guardando…' : 'Guardar'}
-            </Button>
-          </div>
         </form>
       </Modal>
 
@@ -574,6 +575,18 @@ function ProfessionalsPage() {
         onClose={() => setScheduleProfessional(null)}
         title={scheduleProfessional ? `Horario — ${scheduleProfessional.fullName}` : 'Horario'}
         maxWidth="max-w-[560px]"
+        footer={
+          scheduleProfessional && scheduleTab === 'weekly' ? (
+            <>
+              <Button type="button" variant="admin-outline" onClick={() => setScheduleProfessional(null)}>
+                Cancelar
+              </Button>
+              <Button type="submit" form="horario-profesional-form" variant="admin-solid" disabled={isSavingSchedule || !scheduleBranchId}>
+                {isSavingSchedule ? 'Guardando…' : 'Guardar horario'}
+              </Button>
+            </>
+          ) : undefined
+        }
       >
         {scheduleProfessional && (
           <div role="tablist" className="flex gap-1 border-b border-adm-line-div">
@@ -612,7 +625,7 @@ function ProfessionalsPage() {
         )}
 
         {scheduleProfessional && scheduleTab === 'weekly' && (
-          <form onSubmit={handleSaveSchedule} className="flex flex-col gap-4 py-2">
+          <form id="horario-profesional-form" onSubmit={handleSaveSchedule} className="flex flex-col gap-4 py-2">
             {scheduleError && (
               <p className="rounded-[10px] border border-adm-status-cancelled-border bg-adm-status-cancelled-bg px-3.5 py-2.5 text-sm font-medium text-adm-danger-text">
                 {scheduleError}
@@ -633,66 +646,76 @@ function ProfessionalsPage() {
                 <Spinner size={26} />
               </div>
             ) : (
-              <div className="flex flex-col gap-2.5">
+              <div className="flex flex-col divide-y divide-adm-line-div rounded-[10px] border border-adm-line-field">
                 {DAY_ORDER.map((dayIndex) => {
                   const label = DAY_LABELS[dayIndex];
                   const day = scheduleForm[dayIndex];
                   const branchDay = branchHours.find((item) => item.dayOfWeek === dayIndex);
+                  const timeClass =
+                    'h-8 rounded-[8px] border border-adm-line-field bg-adm-surface-input px-1.5 text-sm text-adm-ink-700 outline-none focus:border-brand-600';
+                  // Una fila por día: nombre, bloques y "+ Bloque"; pasa a otra
+                  // línea solo si no cabe. Un día sin marcar es solo su nombre.
                   return (
-                    <div key={label} className="flex flex-col gap-2 rounded-[10px] border border-adm-line-field p-2.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <label className="flex items-center gap-2 text-sm font-medium text-adm-ink-700">
-                          <input
-                            type="checkbox"
-                            className="h-[15px] w-[15px] accent-brand-600"
-                            checked={day.open}
-                            onChange={() => toggleScheduleDay(dayIndex)}
-                          />
+                    <div
+                      key={label}
+                      className={`flex flex-wrap items-center gap-x-3 gap-y-1.5 px-2.5 ${day.open ? 'py-2' : 'py-1.5'}`}
+                    >
+                      <label className="flex w-[124px] shrink-0 items-center gap-2 text-sm font-medium text-adm-ink-700">
+                        <input
+                          type="checkbox"
+                          className="h-[15px] w-[15px] accent-brand-600"
+                          checked={day.open}
+                          onChange={() => toggleScheduleDay(dayIndex)}
+                        />
+                        <span className="flex flex-col leading-tight">
                           {label}
-                          <span className="text-xs font-normal text-adm-ink-400">
-                            {branchDay ? `Sede: ${branchDay.openTime}–${branchDay.closeTime}` : 'Sede cerrada'}
+                          <span className="text-[11px] font-normal text-adm-ink-400">
+                            {branchDay ? `Sede ${branchDay.openTime}–${branchDay.closeTime}` : 'Sede cerrada'}
                           </span>
-                        </label>
-                        {day.open && (
-                          <button
-                            type="button"
-                            onClick={() => addScheduleBlock(dayIndex)}
-                            className="text-[13px] font-medium text-adm-accent-deep hover:underline"
-                          >
-                            + Agregar bloque
-                          </button>
-                        )}
-                      </div>
+                        </span>
+                      </label>
 
                       {day.open &&
                         day.blocks.map((block, blockIndex) => (
-                          <div key={blockIndex} className="flex items-center gap-2 pl-[26px]">
+                          <div key={blockIndex} className="flex items-center gap-1">
                             <input
                               type="time"
+                              aria-label={`${label}, inicio del bloque ${blockIndex + 1}`}
                               value={block.start}
                               onChange={(event) => updateScheduleBlock(dayIndex, blockIndex, 'start', event.target.value)}
-                              className="h-9 rounded-[8px] border border-adm-line-field bg-adm-surface-input px-2 text-sm text-adm-ink-700 outline-none focus:border-brand-600"
+                              className={timeClass}
                             />
-                            <span className="text-sm text-adm-ink-400">a</span>
+                            <span className="text-sm text-adm-ink-400">–</span>
                             <input
                               type="time"
+                              aria-label={`${label}, fin del bloque ${blockIndex + 1}`}
                               value={block.end}
                               onChange={(event) => updateScheduleBlock(dayIndex, blockIndex, 'end', event.target.value)}
-                              className="h-9 rounded-[8px] border border-adm-line-field bg-adm-surface-input px-2 text-sm text-adm-ink-700 outline-none focus:border-brand-600"
+                              className={timeClass}
                             />
                             <button
                               type="button"
                               aria-label="Quitar bloque"
                               onClick={() => removeScheduleBlock(dayIndex, blockIndex)}
-                              className="flex h-9 w-9 items-center justify-center rounded-[8px] text-adm-ink-300 transition-colors hover:bg-adm-status-cancelled-bg hover:text-adm-danger-text"
+                              className="flex h-8 w-7 items-center justify-center rounded-[8px] text-adm-ink-300 transition-colors hover:bg-adm-status-cancelled-bg hover:text-adm-danger-text"
                             >
-                              <Trash2 size={15} />
+                              <Trash2 size={14} />
                             </button>
                           </div>
                         ))}
 
+                      {day.open && (
+                        <button
+                          type="button"
+                          onClick={() => addScheduleBlock(dayIndex)}
+                          className="text-[13px] font-medium text-adm-accent-deep hover:underline"
+                        >
+                          + Bloque
+                        </button>
+                      )}
+
                       {day.open && daysOutsideBranchHours.includes(dayIndex) && (
-                        <p className="pl-[26px] text-[12.5px] text-amber-700">
+                        <p className="basis-full pl-[23px] text-[12.5px] text-amber-700">
                           Fuera del horario de la sede: esas horas no se ofrecerán a los pacientes.
                         </p>
                       )}
@@ -701,15 +724,6 @@ function ProfessionalsPage() {
                 })}
               </div>
             )}
-
-            <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="admin-outline" onClick={() => setScheduleProfessional(null)}>
-                Cancelar
-              </Button>
-              <Button type="submit" variant="admin-solid" disabled={isSavingSchedule || !scheduleBranchId}>
-                {isSavingSchedule ? 'Guardando…' : 'Guardar horario'}
-              </Button>
-            </div>
           </form>
         )}
       </Modal>

@@ -154,8 +154,22 @@ function SpecialtiesPage() {
         <DataTable columns={columns} rows={filtered} getRowId={(row) => row.id} />
       )}
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editing ? 'Editar especialidad' : 'Nueva especialidad'}>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 py-2">
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editing ? 'Editar especialidad' : 'Nueva especialidad'}
+        footer={
+          <>
+            <Button type="button" variant="admin-outline" onClick={() => setIsModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" form="especialidad-form" variant="admin-solid" disabled={isSubmitting}>
+              {isSubmitting ? 'Guardando…' : 'Guardar'}
+            </Button>
+          </>
+        }
+      >
+        <form id="especialidad-form" onSubmit={handleSubmit} className="flex flex-col gap-4 py-2">
           {formError && (
             <p className="rounded-[10px] border border-adm-status-cancelled-border bg-adm-status-cancelled-bg px-3.5 py-2.5 text-sm font-medium text-adm-danger-text">
               {formError}
@@ -177,15 +191,6 @@ function SpecialtiesPage() {
             value={form.description ?? ''}
             onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
           />
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="admin-outline" onClick={() => setIsModalOpen(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" variant="admin-solid" disabled={isSubmitting}>
-              {isSubmitting ? 'Guardando…' : 'Guardar'}
-            </Button>
-          </div>
         </form>
       </Modal>
     </div>

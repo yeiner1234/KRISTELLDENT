@@ -257,8 +257,22 @@ function BranchesPage() {
         </div>
       )}
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editing ? 'Editar sede' : 'Nueva sede'}>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 py-2">
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editing ? 'Editar sede' : 'Nueva sede'}
+        footer={
+          <>
+            <Button type="button" variant="admin-outline" onClick={() => setIsModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" form="sede-form" variant="admin-solid" disabled={isSubmitting}>
+              {isSubmitting ? 'Guardando…' : 'Guardar'}
+            </Button>
+          </>
+        }
+      >
+        <form id="sede-form" onSubmit={handleSubmit} className="flex flex-col gap-4 py-2">
           {formError && (
             <p className="rounded-[10px] border border-adm-status-cancelled-border bg-adm-status-cancelled-bg px-3.5 py-2.5 text-sm font-medium text-adm-danger-text">
               {formError}
@@ -326,15 +340,6 @@ function BranchesPage() {
               }
             />
           </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="admin-outline" onClick={() => setIsModalOpen(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" variant="admin-solid" disabled={isSubmitting}>
-              {isSubmitting ? 'Guardando…' : 'Guardar'}
-            </Button>
-          </div>
         </form>
       </Modal>
 
@@ -342,13 +347,23 @@ function BranchesPage() {
         isOpen={scheduleBranch !== null}
         onClose={() => setScheduleBranch(null)}
         title={scheduleBranch ? `Horario — ${scheduleBranch.name}` : 'Horario'}
+        footer={
+          <>
+            <Button type="button" variant="admin-outline" onClick={() => setScheduleBranch(null)}>
+              Cancelar
+            </Button>
+            <Button type="submit" form="horario-sede-form" variant="admin-solid" disabled={isSavingSchedule || isLoadingSchedule}>
+              {isSavingSchedule ? 'Guardando…' : 'Guardar horario'}
+            </Button>
+          </>
+        }
       >
         {isLoadingSchedule ? (
           <div className="flex justify-center py-8">
             <Spinner size={26} />
           </div>
         ) : (
-          <form onSubmit={handleSaveSchedule} className="flex flex-col gap-4 py-2">
+          <form id="horario-sede-form" onSubmit={handleSaveSchedule} className="flex flex-col gap-4 py-2">
             {scheduleError && (
               <p className="rounded-[10px] border border-adm-status-cancelled-border bg-adm-status-cancelled-bg px-3.5 py-2.5 text-sm font-medium text-adm-danger-text">
                 {scheduleError}
@@ -401,15 +416,6 @@ function BranchesPage() {
                   </div>
                 );
               })}
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="admin-outline" onClick={() => setScheduleBranch(null)}>
-                Cancelar
-              </Button>
-              <Button type="submit" variant="admin-solid" disabled={isSavingSchedule}>
-                {isSavingSchedule ? 'Guardando…' : 'Guardar horario'}
-              </Button>
             </div>
           </form>
         )}

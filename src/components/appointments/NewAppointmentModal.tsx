@@ -150,8 +150,23 @@ function NewAppointmentModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Nueva cita" maxWidth="max-w-[640px]">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4 py-2">
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title="Nueva cita"
+      maxWidth="max-w-[640px]"
+      footer={
+        <>
+          <Button type="button" variant="admin-outline" onClick={handleClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" form="nueva-cita-form" variant="admin-solid" disabled={isSubmitting}>
+            {isSubmitting ? 'Guardando…' : 'Crear cita'}
+          </Button>
+        </>
+      }
+    >
+      <form id="nueva-cita-form" onSubmit={handleSubmit} className="flex flex-col gap-4 py-2">
         {error && (
           <p className="rounded-[10px] border border-adm-status-cancelled-border bg-adm-status-cancelled-bg px-3.5 py-2.5 text-sm font-medium text-adm-danger-text">
             {error}
@@ -284,15 +299,6 @@ function NewAppointmentModal({
           value={reason}
           onChange={(event) => setReason(event.target.value)}
         />
-
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="admin-outline" onClick={handleClose}>
-            Cancelar
-          </Button>
-          <Button type="submit" variant="admin-solid" disabled={isSubmitting}>
-            {isSubmitting ? 'Guardando…' : 'Crear cita'}
-          </Button>
-        </div>
       </form>
     </Modal>
   );
