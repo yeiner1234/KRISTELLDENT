@@ -1,16 +1,23 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Appointment } from '../../types/Appointment';
+import { mondayOf, toLocalIsoDate as toIsoDate } from '../../utils/date';
+import { segmentInHour, type AvailabilityBlock, type AvailabilityKind } from '../../utils/agendaAvailability';
 
 interface AgendaGridProps {
   appointments: Appointment[];
+  // Horario del profesional elegido; sin él la agenda solo muestra citas.
+  availability?: (isoDate: string) => AvailabilityBlock[];
+  // Semana visible controlada desde la página (para cargar sus datos).
+  weekStart?: Date;
+  onWeekStartChange?: (weekStart: Date) => void;
   resolveTitle?: (appointment: Appointment) => string;
   resolveSubtitle?: (appointment: Appointment) => string;
   headerRight?: ReactNode;
   onSelect?: (appointment: Appointment) => void;
 }
 
-const dayLabels = ['L', 'M', 'X', 'J', 'V', 'S'];
+const dayLabels = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 const HOUR_START = 8;
 const HOUR_END = 19;
 
@@ -22,25 +29,36 @@ const statusStyles: Record<Appointment['status'], { bg: string; text: string; so
   completed: { bg: 'bg-adm-status-completed-bg', text: 'text-adm-status-completed-text', solid: 'border-adm-status-completed-solid' },
 };
 
-function toIsoDate(date: Date): string {
-  return date.toISOString().split('T')[0];
-}
+const availabilityStyles: Record<AvailabilityKind, { label: string; className: string }> = {
+  work: { label: 'Horario de trabajo', className: 'bg-adm-accent-soft' },
+  absence: {
+    label: 'Ausencia',
+    className: 'bg-[repeating-linear-gradient(135deg,#eef1f3_0_6px,#e2e7ea_6px_12px)]',
+  },
+  extra: { label: 'Turno extra', className: 'bg-adm-status-confirmed-bg' },
+};
 
-function mondayOf(date: Date): Date {
-  const day = date.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  const monday = new Date(date);
-  monday.setDate(date.getDate() + diff);
-  monday.setHours(0, 0, 0, 0);
-  return monday;
-}
-
-function AgendaGrid({ appointments, resolveTitle, resolveSubtitle, headerRight, onSelect }: AgendaGridProps) {
-  const [weekStart, setWeekStart] = useState(() => mondayOf(new Date()));
+function AgendaGrid({
+  appointments,
+  availability,
+  weekStart: controlledWeekStart,
+  onWeekStartChange,
+  resolveTitle,
+  resolveSubtitle,
+  headerRight,
+  onSelect,
+}: AgendaGridProps) {
+  const [ownWeekStart, setOwnWeekStart] = useState(() => mondayOf(new Date()));
+  const weekStart = controlledWeekStart ?? ownWeekStart;
+  const moveWeek = (offsetDays: number) => {
+    const next = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + offsetDays);
+    setOwnWeekStart(next);
+    onWeekStartChange?.(next);
+  };
 
   const days = useMemo(
     () =>
-      Array.from({ length: 6 }, (_, index) => {
+      Array.from({ length: 7 }, (_, index) => {
         const date = new Date(weekStart);
         date.setDate(weekStart.getDate() + index);
         return date;
@@ -50,7 +68,7 @@ function AgendaGrid({ appointments, resolveTitle, resolveSubtitle, headerRight, 
 
   const hours = useMemo(() => Array.from({ length: HOUR_END - HOUR_START }, (_, index) => HOUR_START + index), []);
 
-  const weekLabel = `${days[0].toLocaleDateString('es-PE', { day: 'numeric', month: 'short' })} – ${days[5].toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+  const weekLabel = `${days[0].toLocaleDateString('es-PE', { day: 'numeric', month: 'short' })} – ${days[6].toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' })}`;
 
   const appointmentsByCell = useMemo(() => {
     const map = new Map<string, Appointment[]>();
@@ -64,6 +82,11 @@ function AgendaGrid({ appointments, resolveTitle, resolveSubtitle, headerRight, 
     return map;
   }, [appointments]);
 
+  const availabilityByDate = useMemo(
+    () => new Map(days.map((date) => [toIsoDate(date), availability?.(toIsoDate(date)) ?? []])),
+    [days, availability],
+  );
+
   return (
     <div className="flex flex-col gap-3 rounded-[14px] border border-adm-line-card bg-white p-4 shadow-soft">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -71,7 +94,7 @@ function AgendaGrid({ appointments, resolveTitle, resolveSubtitle, headerRight, 
           <button
             type="button"
             aria-label="Semana anterior"
-            onClick={() => setWeekStart((current) => new Date(current.getFullYear(), current.getMonth(), current.getDate() - 7))}
+            onClick={() => moveWeek(-7)}
             className="flex h-8 w-8 items-center justify-center rounded-lg border border-adm-line-control text-adm-ink-400 transition-colors hover:bg-adm-surface-hover"
           >
             <ChevronLeft size={16} />
@@ -80,7 +103,7 @@ function AgendaGrid({ appointments, resolveTitle, resolveSubtitle, headerRight, 
           <button
             type="button"
             aria-label="Semana siguiente"
-            onClick={() => setWeekStart((current) => new Date(current.getFullYear(), current.getMonth(), current.getDate() + 7))}
+            onClick={() => moveWeek(7)}
             className="flex h-8 w-8 items-center justify-center rounded-lg border border-adm-line-control text-adm-ink-400 transition-colors hover:bg-adm-surface-hover"
           >
             <ChevronRight size={16} />
@@ -89,8 +112,19 @@ function AgendaGrid({ appointments, resolveTitle, resolveSubtitle, headerRight, 
         {headerRight}
       </div>
 
+      {availability && (
+        <div className="flex flex-wrap items-center gap-4 text-[12px] text-adm-ink-400">
+          {(Object.keys(availabilityStyles) as AvailabilityKind[]).map((kind) => (
+            <span key={kind} className="flex items-center gap-1.5">
+              <span className={`h-3 w-3 rounded-[3px] border border-adm-line-div ${availabilityStyles[kind].className}`} />
+              {availabilityStyles[kind].label}
+            </span>
+          ))}
+        </div>
+      )}
+
       <div className="overflow-x-auto">
-        <div className="min-w-[840px]" style={{ display: 'grid', gridTemplateColumns: `64px repeat(6, minmax(130px, 1fr))` }}>
+        <div className="min-w-[840px]" style={{ display: 'grid', gridTemplateColumns: `64px repeat(7, minmax(120px, 1fr))` }}>
           <div />
           {days.map((date, index) => (
             <div key={toIsoDate(date)} className="border-b border-l border-adm-line-div px-2.5 py-3 text-center">
@@ -107,9 +141,23 @@ function AgendaGrid({ appointments, resolveTitle, resolveSubtitle, headerRight, 
               {days.map((date) => {
                 const key = `${toIsoDate(date)}-${hour}`;
                 const cellAppointments = appointmentsByCell.get(key) ?? [];
+                const blocks = availabilityByDate.get(toIsoDate(date)) ?? [];
                 return (
-                  <div key={key} className="min-h-[62px] border-b border-adm-line-faint p-[3px]">
-                    <div className="flex h-full flex-col gap-1">
+                  <div key={key} className="relative min-h-[62px] border-b border-adm-line-faint p-[3px]">
+                    {blocks.map((block) => {
+                      const segment = segmentInHour(block, hour);
+                      if (!segment) return null;
+                      const style = availabilityStyles[block.kind];
+                      return (
+                        <div
+                          key={`${block.kind}-${block.start}`}
+                          title={`${style.label} ${block.start}–${block.end}`}
+                          className={`pointer-events-none absolute inset-x-0 ${style.className}`}
+                          style={{ top: `${segment.topPct}%`, height: `${segment.heightPct}%` }}
+                        />
+                      );
+                    })}
+                    <div className="relative flex h-full flex-col gap-1">
                       {cellAppointments.map((appointment) => {
                         const style = statusStyles[appointment.status];
                         return (

@@ -9,8 +9,10 @@ import { useAllAppointments } from '../../hooks/useAppointments';
 import { useAllPatients } from '../../hooks/usePatients';
 import { useProfessionals } from '../../hooks/useProfessionals';
 import { useServices } from '../../hooks/useServices';
+import { useProfessionalAvailability } from '../../hooks/useProfessionalAvailability';
 import { setAppointmentStatus } from '../../services/appointmentService';
 import { formatFullName } from '../../utils/format';
+import { mondayOf, toLocalIsoDate } from '../../utils/date';
 import type { Appointment } from '../../types/Appointment';
 
 function AgendaPage() {
@@ -23,6 +25,13 @@ function AgendaPage() {
   const [rescheduling, setRescheduling] = useState<Appointment | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [weekStart, setWeekStart] = useState(() => mondayOf(new Date()));
+  const weekEnd = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 6);
+  const { blocksFor, error: availabilityError } = useProfessionalAvailability(
+    professionalId,
+    toLocalIsoDate(weekStart),
+    toLocalIsoDate(weekEnd),
+  );
   const isLoading = isLoadingAppointments || isLoadingPatients || isLoadingProfessionals;
 
   const handleCancel = async (appointment: Appointment) => {
@@ -82,8 +91,19 @@ function AgendaPage() {
     <div className="flex flex-col gap-6">
       <SectionTitle title="Agenda general" align="left" />
 
+      {!professionalId ? (
+        <p className="text-sm text-adm-ink-400">Elige un profesional para ver su horario de trabajo en la agenda.</p>
+      ) : availabilityError ? (
+        <p className="rounded-[10px] border border-adm-status-cancelled-border bg-adm-status-cancelled-bg px-3.5 py-2.5 text-sm font-medium text-adm-danger-text">
+          {availabilityError}
+        </p>
+      ) : null}
+
       <AgendaGrid
         appointments={filteredAppointments}
+        weekStart={weekStart}
+        onWeekStartChange={setWeekStart}
+        availability={professionalId ? blocksFor : undefined}
         resolveTitle={(appointment) => patientName(appointment.patientId)}
         resolveSubtitle={(appointment) => professionalName(appointment.professionalId) ?? appointment.reason}
         onSelect={setSelected}

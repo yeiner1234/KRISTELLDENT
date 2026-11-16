@@ -4,6 +4,7 @@ import { findCall, mockQuery } from '../test/mockQuery';
 import {
   createScheduleException,
   deleteScheduleException,
+  getProfessionalExceptionsBetween,
   getUpcomingBranchClosures,
   getUpcomingProfessionalExceptions,
   validateExceptionInput,
@@ -118,6 +119,18 @@ describe('scheduleExceptionService', () => {
     expect(findCall(query, 'eq')?.args).toEqual(['branch_id', 'b1']);
     expect(findCall(query, 'is')?.args).toEqual(['professional_id', null]);
     expect(findCall(query, 'gte')?.args).toEqual(['exception_date', '2026-11-15']);
+  });
+
+  it('getProfessionalExceptionsBetween filtra por profesional y rango de fechas', async () => {
+    const query = mockQuery({ data: [row] });
+    vi.mocked(supabase.from).mockReturnValue(query as never);
+
+    const result = await getProfessionalExceptionsBetween('p1', '2026-11-09', '2026-11-15');
+
+    expect(findCall(query, 'eq')?.args).toEqual(['professional_id', 'p1']);
+    expect(findCall(query, 'gte')?.args).toEqual(['exception_date', '2026-11-09']);
+    expect(findCall(query, 'lte')?.args).toEqual(['exception_date', '2026-11-15']);
+    expect(result).toHaveLength(1);
   });
 
   it('createScheduleException no escribe si los datos son inválidos', async () => {

@@ -76,6 +76,26 @@ export async function getUpcomingProfessionalExceptions(professionalId: string):
   return ((data ?? []) as ScheduleExceptionRow[]).map(toException);
 }
 
+// Excepciones del profesional entre dos fechas (incluidas), para la agenda.
+export async function getProfessionalExceptionsBetween(
+  professionalId: string,
+  fromDate: string,
+  toDate: string,
+): Promise<ScheduleException[]> {
+  const { data, error } = await supabase
+    .from('schedule_exceptions')
+    .select(COLUMNS)
+    .eq('professional_id', professionalId)
+    .gte('exception_date', fromDate)
+    .lte('exception_date', toDate);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return ((data ?? []) as ScheduleExceptionRow[]).map(toException);
+}
+
 export async function getUpcomingBranchClosures(branchId: string): Promise<ScheduleException[]> {
   const { data, error } = await supabase
     .from('schedule_exceptions')

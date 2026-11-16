@@ -32,3 +32,17 @@ export function addMinutesToTime(time: string, minutes: number): string {
   const newMins = totalMinutes % 60;
   return `${String(newHours).padStart(2, '0')}:${String(newMins).padStart(2, '0')}`;
 }
+
+// Fecha local AAAA-MM-DD (toISOString pasaría a UTC y podría correr el día).
+export function toLocalIsoDate(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+// Lunes (00:00) de la semana de `date`; el domingo pertenece a la semana que termina.
+export function mondayOf(date: Date): Date {
+  const day = date.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + diff);
+}

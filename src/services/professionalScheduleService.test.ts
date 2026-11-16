@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { supabase } from '../lib/supabase';
 import { findCall, mockQuery, type MockQuery } from '../test/mockQuery';
-import { setProfessionalSchedule } from './professionalScheduleService';
+import { getProfessionalWeeklySchedule, setProfessionalSchedule } from './professionalScheduleService';
 
 vi.mock('../lib/supabase', () => ({
   supabase: { from: vi.fn() },
@@ -75,5 +75,22 @@ describe('setProfessionalSchedule', () => {
 
     expect(queries).toHaveLength(1);
     expect(findCall(queries[0], 'delete')).toBeUndefined();
+  });
+});
+
+describe('getProfessionalWeeklySchedule', () => {
+  it('lee el horario de todas las sedes del profesional con horas HH:MM', async () => {
+    const query = mockQuery({ data: [{ branch_id: 'b1', day_of_week: 1, start_time: '09:00:00', end_time: '13:00:00' }] });
+    vi.mocked(supabase.from).mockReturnValue(query as never);
+
+    const entries = await getProfessionalWeeklySchedule('p1');
+
+    expect(query.calls.filter((call) => call.method === 'eq').map((call) => call.args)).toEqual([['professional_id', 'p1']]);
+    expect(entries).toEqual([{ branchId: 'b1', dayOfWeek: 1, startTime: '09:00', endTime: '13:00' }]);
+  });
+
+  it('propaga el error de Supabase', async () => {
+    vi.mocked(supabase.from).mockReturnValue(mockQuery({ error: { message: 'sin permiso' } }) as never);
+    await expect(getProfessionalWeeklySchedule('p1')).rejects.toThrow('sin permiso');
   });
 });

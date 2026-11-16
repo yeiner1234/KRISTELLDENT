@@ -42,6 +42,31 @@ export async function getProfessionalScheduleForAdmin(
   }));
 }
 
+export interface ProfessionalBranchScheduleEntry extends ProfessionalScheduleEntry {
+  branchId: string;
+}
+
+// Horario del profesional en TODAS sus sedes (para pintarlo en la agenda).
+export async function getProfessionalWeeklySchedule(professionalId: string): Promise<ProfessionalBranchScheduleEntry[]> {
+  const { data, error } = await supabase
+    .from('professional_schedules')
+    .select('branch_id, day_of_week, start_time, end_time')
+    .eq('professional_id', professionalId)
+    .order('day_of_week', { ascending: true })
+    .order('start_time', { ascending: true });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return ((data ?? []) as (ProfessionalScheduleRow & { branch_id: string })[]).map((row) => ({
+    branchId: row.branch_id,
+    dayOfWeek: row.day_of_week,
+    startTime: toHHMM(row.start_time),
+    endTime: toHHMM(row.end_time),
+  }));
+}
+
 // Reemplaza el horario del profesional en ESA sede (las demás sedes no se tocan).
 // Supabase no da transacciones desde el cliente: se valida todo antes de
 // borrar y, si el insert falla, se reinserta el horario anterior para no
