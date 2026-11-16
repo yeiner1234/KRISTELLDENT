@@ -9,6 +9,7 @@ import Spinner from '../common/Spinner';
 import { useSpecialties } from '../../hooks/useProfessionals';
 import { specialtyIcons } from './specialtyIcons';
 import { attentionMotives } from './attentionMotives';
+import { findSpecialtyByNames } from '../../utils/specialtyMatch';
 
 type View = 'choice' | 'specialty' | 'motive' | 'recommendation';
 
@@ -28,7 +29,7 @@ function AttentionStep({ specialtyId, motiveLabel, onChange, onContinue }: Atten
 
   const pendingMotive = attentionMotives.find((motive) => motive.id === pendingMotiveId) ?? null;
   const recommendedSpecialty = pendingMotive
-    ? specialties.find((specialty) => specialty.id === pendingMotive.recommendedSpecialtyId)
+    ? findSpecialtyByNames(specialties, pendingMotive.recommendedSpecialtyNames)
     : null;
 
   const handlePickMotive = (motiveId: string) => {
@@ -174,7 +175,7 @@ function AttentionStep({ specialtyId, motiveLabel, onChange, onContinue }: Atten
         </StepTransition>
       )}
 
-      {view === 'recommendation' && pendingMotive && !recommendedSpecialty && (
+      {view === 'recommendation' && pendingMotive && !recommendedSpecialty && !isLoading && (
         <StepTransition transitionKey="recommendation-empty">
           <button
             type="button"
