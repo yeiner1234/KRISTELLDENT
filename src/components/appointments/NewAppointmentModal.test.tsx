@@ -127,5 +127,8 @@ describe('NewAppointmentModal', () => {
     await user.clear(screen.getByLabelText('DNI'));
     await user.type(screen.getByLabelText('DNI'), '11111111');
     expect(screen.getByLabelText('Teléfono')).not.toHaveAttribute('readonly');
+    // No deja los datos del paciente anterior: se crearía la cita con datos ajenos.
+    expect(screen.getByLabelText('Nombre')).toHaveValue('');
+    expect(screen.getByLabelText('Teléfono')).toHaveValue('');
   });
 });

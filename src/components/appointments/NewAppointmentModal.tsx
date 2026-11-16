@@ -264,7 +264,11 @@ function NewAppointmentModal({
                 onChange={(event) => {
                   setDni(event.target.value);
                   setSearchAttempted(false);
-                  setMatchedPatient(null);
+                  // Los datos del paciente anterior no deben quedar en el nuevo DNI.
+                  if (matchedPatient) {
+                    setMatchedPatient(null);
+                    setPatientFields(emptyPatientFields);
+                  }
                 }}
                 className="flex-1"
               />
