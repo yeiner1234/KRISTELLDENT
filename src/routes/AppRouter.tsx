@@ -36,6 +36,8 @@ import ProfessionalMyAgendaPage from '../pages/professional/MyAgendaPage';
 import ProfessionalMyPatientsPage from '../pages/professional/MyPatientsPage';
 import ProfessionalMyAppointmentsPage from '../pages/professional/MyAppointmentsPage';
 
+import AgendaReportPage from '../pages/reports/AgendaReportPage';
+
 function AppRouter() {
   return (
     <BrowserRouter>
@@ -69,6 +71,7 @@ function AppRouter() {
               <Route path="especialidades" element={<AdminSpecialtiesPage />} />
               <Route path="servicios" element={<AdminServicesPage />} />
               <Route path="configuracion" element={<AdminSettingsPage />} />
+              <Route path="reportes/agenda" element={<AgendaReportPage />} />
             </Route>
           </Route>
 
@@ -80,6 +83,10 @@ function AppRouter() {
                 <Route path="agenda" element={<ProfessionalMyAgendaPage />} />
                 <Route path="pacientes" element={<ProfessionalMyPatientsPage />} />
                 <Route path="citas" element={<ProfessionalMyAppointmentsPage />} />
+              </Route>
+              {/* La agenda imprimible es solo de la técnica: la especialista no la ve. */}
+              <Route element={<RoleRoute allowedRoles={['tecnica']} />}>
+                <Route path="reportes/agenda" element={<AgendaReportPage />} />
               </Route>
             </Route>
           </Route>

@@ -1,0 +1,95 @@
+/* Hoja A4 del reporte "Agenda de citas de la sede". En pantalla se ve como
+   una hoja; al imprimir solo queda la hoja y el pie lo pone @page en cada
+   página, con "Página X de Y". */
+
+.agenda-sheet {
+  page: agenda;
+  box-sizing: border-box;
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 6mm 7mm 4mm;
+  background: #fff;
+  color: var(--color-ag-ink);
+  box-shadow: var(--shadow-adm-elev-1);
+  border: 1px solid var(--color-adm-line-card);
+}
+
+/* Como en la plantilla: "Agenda de citas de la / sede" (el text-wrap: pretty
+   global movería "la" a la segunda línea). */
+.agenda-title {
+  text-wrap: wrap;
+}
+
+/* La hoja necesita sus 210 mm: en pantallas angostas se desplaza su contenedor, no la página. */
+.agenda-report {
+  overflow-x: auto;
+}
+
+@page agenda {
+  size: A4 portrait;
+  margin: 6mm 7mm 10mm;
+
+  @bottom-left {
+    content: "KristellDent · Agenda de citas de la sede · Nivel operativo";
+    font-family: "Instrument Sans", system-ui, sans-serif;
+    font-size: 7.5pt;
+    color: #6b7880;
+  }
+  @bottom-center {
+    content: "Confidencial — uso interno";
+    font-family: "Instrument Sans", system-ui, sans-serif;
+    font-size: 7.5pt;
+    color: #6b7880;
+  }
+  @bottom-right {
+    content: "Página " counter(page) " de " counter(pages);
+    font-family: "Instrument Sans", system-ui, sans-serif;
+    font-size: 7.5pt;
+    color: #17242c;
+  }
+}
+
+.agenda-table thead {
+  display: table-header-group;
+}
+
+.agenda-table tr {
+  break-inside: avoid;
+}
+
+@media print {
+  body:has(.agenda-report) aside,
+  body:has(.agenda-report) header,
+  .agenda-toolbar,
+  .agenda-screen-footer {
+    display: none !important;
+  }
+
+  body:has(.agenda-report),
+  body:has(.agenda-report) #root > div {
+    background: #fff !important;
+  }
+
+  body:has(.agenda-report) main {
+    padding: 0 !important;
+  }
+
+  .agenda-report {
+    overflow: visible;
+  }
+
+  .agenda-sheet {
+    width: auto;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .agenda-notes {
+    break-inside: avoid;
+  }
+}
