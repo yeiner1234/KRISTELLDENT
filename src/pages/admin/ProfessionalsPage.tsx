@@ -24,6 +24,8 @@ import {
   setProfessionalSchedule,
   type ProfessionalScheduleEntry,
 } from '../../services/professionalScheduleService';
+import { getBranchScheduleForAdmin, type BranchScheduleEntry } from '../../services/branchScheduleService';
+import { DAY_LABELS, rangesOutsideBranchHours, validateWeeklySchedule } from '../../utils/scheduleValidation';
 import type { Professional } from '../../types/Professional';
 
 interface FormState {
@@ -36,7 +38,8 @@ interface FormState {
 
 const emptyForm: FormState = { profileId: '', bio: '', specialtyIds: [], branchIds: [], serviceIds: [] };
 
-const DAY_LABELS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+// Lunes primero en pantalla; day_of_week sigue siendo 0 = domingo.
+const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
 interface TimeBlock {
   start: string;
@@ -84,6 +87,7 @@ function ProfessionalsPage() {
   const [isLoadingSchedule, setIsLoadingSchedule] = useState(false);
   const [scheduleError, setScheduleError] = useState<string | null>(null);
   const [isSavingSchedule, setIsSavingSchedule] = useState(false);
+  const [branchHours, setBranchHours] = useState<BranchScheduleEntry[]>([]);
 
   const openCreateModal = () => {
     setEditing(null);
@@ -208,6 +212,11 @@ function ProfessionalsPage() {
     }
     setIsLoadingSchedule(true);
     setScheduleError(null);
+    setBranchHours([]);
+    // El horario de la sede solo alimenta el aviso: si falla, no bloquea.
+    getBranchScheduleForAdmin(branchId)
+      .then(setBranchHours)
+      .catch(() => setBranchHours([]));
     getProfessionalScheduleForAdmin(professionalId, branchId)
       .then((entries) => {
         const next = emptyScheduleForm();
@@ -276,15 +285,31 @@ function ProfessionalsPage() {
     );
   };
 
+  const scheduleEntries: ProfessionalScheduleEntry[] = useMemo(
+    () =>
+      scheduleForm.flatMap((day, dayOfWeek) =>
+        day.open ? day.blocks.map((block) => ({ dayOfWeek, startTime: block.start, endTime: block.end })) : [],
+      ),
+    [scheduleForm],
+  );
+  const daysOutsideBranchHours = useMemo(
+    () => rangesOutsideBranchHours(scheduleEntries, branchHours),
+    [scheduleEntries, branchHours],
+  );
+
   const handleSaveSchedule = async (event: FormEvent) => {
     event.preventDefault();
     if (!scheduleProfessional || !scheduleBranchId) return;
+
+    const validationError = validateWeeklySchedule(scheduleEntries);
+    if (validationError) {
+      setScheduleError(validationError);
+      return;
+    }
+
     setScheduleError(null);
     setIsSavingSchedule(true);
-
-    const entries: ProfessionalScheduleEntry[] = scheduleForm.flatMap((day, dayOfWeek) =>
-      day.open ? day.blocks.map((block) => ({ dayOfWeek, startTime: block.start, endTime: block.end })) : [],
-    );
+    const entries = scheduleEntries;
 
     try {
       await setProfessionalSchedule(scheduleProfessional.id, scheduleBranchId, entries);
@@ -569,8 +594,10 @@ function ProfessionalsPage() {
               </div>
             ) : (
               <div className="flex flex-col gap-2.5">
-                {DAY_LABELS.map((label, dayIndex) => {
+                {DAY_ORDER.map((dayIndex) => {
+                  const label = DAY_LABELS[dayIndex];
                   const day = scheduleForm[dayIndex];
+                  const branchDay = branchHours.find((item) => item.dayOfWeek === dayIndex);
                   return (
                     <div key={label} className="flex flex-col gap-2 rounded-[10px] border border-adm-line-field p-2.5">
                       <div className="flex items-center justify-between gap-2">
@@ -582,6 +609,9 @@ function ProfessionalsPage() {
                             onChange={() => toggleScheduleDay(dayIndex)}
                           />
                           {label}
+                          <span className="text-xs font-normal text-adm-ink-400">
+                            {branchDay ? `Sede: ${branchDay.openTime}–${branchDay.closeTime}` : 'Sede cerrada'}
+                          </span>
                         </label>
                         {day.open && (
                           <button
@@ -620,6 +650,12 @@ function ProfessionalsPage() {
                             </button>
                           </div>
                         ))}
+
+                      {day.open && daysOutsideBranchHours.includes(dayIndex) && (
+                        <p className="pl-[26px] text-[12.5px] text-amber-700">
+                          Fuera del horario de la sede: esas horas no se ofrecerán a los pacientes.
+                        </p>
+                      )}
                     </div>
                   );
                 })}
