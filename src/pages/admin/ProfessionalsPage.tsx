@@ -8,6 +8,7 @@ import EmptyState from '../../components/common/EmptyState';
 import Spinner from '../../components/common/Spinner';
 import Modal from '../../components/common/Modal';
 import ProfessionalCard from '../../components/professionals/ProfessionalCard';
+import ScheduleExceptionsPanel from '../../components/schedule/ScheduleExceptionsPanel';
 import { useAdminProfessionals } from '../../hooks/useAdminProfessionals';
 import { useAdminSpecialties } from '../../hooks/useAdminSpecialties';
 import { useAdminBranches } from '../../hooks/useAdminBranches';
@@ -88,6 +89,7 @@ function ProfessionalsPage() {
   const [scheduleError, setScheduleError] = useState<string | null>(null);
   const [isSavingSchedule, setIsSavingSchedule] = useState(false);
   const [branchHours, setBranchHours] = useState<BranchScheduleEntry[]>([]);
+  const [scheduleTab, setScheduleTab] = useState<'weekly' | 'exceptions'>('weekly');
 
   const openCreateModal = () => {
     setEditing(null);
@@ -235,6 +237,8 @@ function ProfessionalsPage() {
   const openScheduleModal = (professional: Professional) => {
     const firstBranch = professional.branchIds[0] ?? '';
     setScheduleProfessional(professional);
+    setScheduleTab('weekly');
+    setScheduleError(null);
     setScheduleBranchId(firstBranch);
     setScheduleForm(emptyScheduleForm());
     if (firstBranch) {
@@ -572,6 +576,36 @@ function ProfessionalsPage() {
         maxWidth="max-w-[560px]"
       >
         {scheduleProfessional && (
+          <div role="tablist" className="flex gap-1 border-b border-adm-line-div">
+            {(
+              [
+                ['weekly', 'Horario semanal'],
+                ['exceptions', 'Ausencias y turnos extra'],
+              ] as const
+            ).map(([tab, label]) => (
+              <button
+                key={tab}
+                type="button"
+                role="tab"
+                aria-selected={scheduleTab === tab}
+                onClick={() => setScheduleTab(tab)}
+                className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
+                  scheduleTab === tab
+                    ? 'border-brand-600 text-adm-accent-deep'
+                    : 'border-transparent text-adm-ink-400 hover:text-adm-ink-700'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {scheduleProfessional && scheduleTab === 'exceptions' && (
+          <ScheduleExceptionsPanel mode="professional" professionalId={scheduleProfessional.id} />
+        )}
+
+        {scheduleProfessional && scheduleTab === 'weekly' && (
           <form onSubmit={handleSaveSchedule} className="flex flex-col gap-4 py-2">
             {scheduleError && (
               <p className="rounded-[10px] border border-adm-status-cancelled-border bg-adm-status-cancelled-bg px-3.5 py-2.5 text-sm font-medium text-adm-danger-text">

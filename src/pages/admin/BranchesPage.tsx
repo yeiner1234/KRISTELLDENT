@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Building2, Clock, Pencil, Phone, Plus } from 'lucide-react';
+import { Building2, CalendarOff, Clock, Pencil, Phone, Plus } from 'lucide-react';
 import SectionTitle from '../../components/common/SectionTitle';
 import Button from '../../components/common/Button';
 import EmptyState from '../../components/common/EmptyState';
@@ -7,6 +7,7 @@ import Spinner from '../../components/common/Spinner';
 import Modal from '../../components/common/Modal';
 import Input from '../../components/common/Input';
 import StatusBadge from '../../components/common/StatusBadge';
+import ScheduleExceptionsPanel from '../../components/schedule/ScheduleExceptionsPanel';
 import { useAdminBranches } from '../../hooks/useAdminBranches';
 import {
   createBranch,
@@ -57,6 +58,7 @@ function BranchesPage() {
   const [isLoadingSchedule, setIsLoadingSchedule] = useState(false);
   const [scheduleError, setScheduleError] = useState<string | null>(null);
   const [isSavingSchedule, setIsSavingSchedule] = useState(false);
+  const [closuresBranch, setClosuresBranch] = useState<BranchRecord | null>(null);
 
   const openCreateModal = () => {
     setEditing(null);
@@ -234,6 +236,15 @@ function BranchesPage() {
               </div>
               <Button
                 type="button"
+                variant="admin-outline"
+                size="xs"
+                icon={<CalendarOff size={14} />}
+                onClick={() => setClosuresBranch(branch)}
+              >
+                Feriados y cierres
+              </Button>
+              <Button
+                type="button"
                 variant={branch.active ? 'admin-danger' : 'admin-outline'}
                 size="xs"
                 disabled={togglingId === branch.id}
@@ -402,6 +413,14 @@ function BranchesPage() {
             </div>
           </form>
         )}
+      </Modal>
+
+      <Modal
+        isOpen={closuresBranch !== null}
+        onClose={() => setClosuresBranch(null)}
+        title={closuresBranch ? `Feriados y cierres — ${closuresBranch.name}` : 'Feriados y cierres'}
+      >
+        {closuresBranch && <ScheduleExceptionsPanel mode="branch" branchId={closuresBranch.id} />}
       </Modal>
     </div>
   );
