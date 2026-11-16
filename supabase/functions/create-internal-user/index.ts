@@ -1,23 +1,6 @@
-// Edge Function: create-internal-user
-//
-// Única vía autorizada para crear personal interno (admin_sede, especialista,
-// odontologa_general, tecnica) o, si quien llama es admin_global, también
-// otro admin_global.
-// Corre en el servidor de Supabase (Deno) — es el único lugar del proyecto
-// donde se usa SUPABASE_SERVICE_ROLE_KEY. Esa clave nunca sale de aquí.
-//
-// Reglas de autorización (ver migración 20260918033456_initial_auth_branches.sql):
-//   - admin_global: puede crear cualquier rol, con o sin sedes.
-//   - admin_sede: solo puede crear 'especialista', 'odontologa_general' o
-//     'tecnica', y únicamente asignándolos a sedes que él mismo tiene en
-//     user_branch_access.
-//   - cualquier otro rol (o cuenta inactiva / sin perfil): rechazado.
-//
-// El rol y las sedes SIEMPRE se deciden aquí, en base al perfil real del
-// llamante (consultado con service_role) — nunca a partir de datos que el
-// cliente pudiera manipular sin verificación.
-import { createClient } from 'jsr:@supabase/supabase-js@2';
 
+import { createClient } from 'npm:@supabase/supabase-js@2';
+ 
 type AppRole = 'admin_global' | 'admin_sede' | 'especialista' | 'odontologa_general' | 'tecnica';
 
 const ALL_ROLES: AppRole[] = ['admin_global', 'admin_sede', 'especialista', 'odontologa_general', 'tecnica'];
