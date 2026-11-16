@@ -67,8 +67,6 @@ function AppointmentsPage() {
     return professional?.fullName ?? '—';
   };
 
-  const rescheduledService = services.find((item) => item.id === rescheduling?.serviceId);
-
   const filteredAppointments = useMemo(() => {
     const term = query.trim().toLowerCase();
     return appointments
@@ -143,7 +141,6 @@ function AppointmentsPage() {
 
       <RescheduleAppointmentModal
         appointment={rescheduling}
-        service={rescheduledService}
         onClose={() => setRescheduling(null)}
         onRescheduled={refetch}
       />

@@ -215,16 +215,19 @@ export async function setAppointmentStatus(id: string, status: AppointmentStatus
 export interface RescheduleAppointmentInput {
   date: string;
   startTime: string;
-  endTime: string;
 }
 
-// La protección real contra choques sigue siendo la restricción de exclusión
-// de la base de datos (aplica también a UPDATE, no solo a INSERT).
+// La RPC reschedule_appointment (SECURITY INVOKER: aplica la RLS de quien
+// llama) comprueba con get_available_slots que la hora esté dentro del
+// horario libre del profesional y calcula end_time con la duración del
+// servicio. La restricción de exclusión sigue siendo la última protección
+// contra choques.
 export async function rescheduleAppointment(id: string, input: RescheduleAppointmentInput): Promise<void> {
-  const { error } = await supabase
-    .from('appointments')
-    .update({ appointment_date: input.date, start_time: input.startTime, end_time: input.endTime })
-    .eq('id', id);
+  const { error } = await supabase.rpc('reschedule_appointment', {
+    p_appointment_id: id,
+    p_date: input.date,
+    p_start_time: input.startTime,
+  });
 
   if (error) {
     if (error.code === '23P01') {

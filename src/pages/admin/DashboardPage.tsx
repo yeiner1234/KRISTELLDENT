@@ -13,7 +13,6 @@ import Spinner from '../../components/common/Spinner';
 import { useAllAppointments } from '../../hooks/useAppointments';
 import { useAllPatients } from '../../hooks/usePatients';
 import { useProfessionals } from '../../hooks/useProfessionals';
-import { useServices } from '../../hooks/useServices';
 import { setAppointmentStatus } from '../../services/appointmentService';
 import { formatFullName } from '../../utils/format';
 import { getTodayIsoDate } from '../../utils/date';
@@ -35,7 +34,6 @@ function DashboardPage() {
   const { appointments, isLoading: isLoadingAppointments, refetch } = useAllAppointments();
   const { patients, isLoading: isLoadingPatients } = useAllPatients();
   const { professionals, isLoading: isLoadingProfessionals } = useProfessionals();
-  const { services } = useServices();
   const [selected, setSelected] = useState<Appointment | null>(null);
   const [rescheduling, setRescheduling] = useState<Appointment | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -70,7 +68,6 @@ function DashboardPage() {
     setRescheduling(appointment);
   };
 
-  const rescheduledService = services.find((item) => item.id === rescheduling?.serviceId);
 
   const todayCount = appointments.filter((appointment) => appointment.date === today).length;
   const pendingCount = appointments.filter((appointment) => appointment.status === 'pending').length;
@@ -147,7 +144,6 @@ function DashboardPage() {
 
       <RescheduleAppointmentModal
         appointment={rescheduling}
-        service={rescheduledService}
         onClose={() => setRescheduling(null)}
         onRescheduled={refetch}
       />

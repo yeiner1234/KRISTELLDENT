@@ -8,7 +8,6 @@ import Spinner from '../../components/common/Spinner';
 import { useAllAppointments } from '../../hooks/useAppointments';
 import { useAllPatients } from '../../hooks/usePatients';
 import { useProfessionals } from '../../hooks/useProfessionals';
-import { useServices } from '../../hooks/useServices';
 import { setAppointmentStatus } from '../../services/appointmentService';
 import { formatFullName } from '../../utils/format';
 import type { Appointment } from '../../types/Appointment';
@@ -17,7 +16,6 @@ function AgendaPage() {
   const { appointments, isLoading: isLoadingAppointments, refetch } = useAllAppointments();
   const { patients, isLoading: isLoadingPatients } = useAllPatients();
   const { professionals, isLoading: isLoadingProfessionals } = useProfessionals();
-  const { services } = useServices();
   const [professionalId, setProfessionalId] = useState('');
   const [selected, setSelected] = useState<Appointment | null>(null);
   const [rescheduling, setRescheduling] = useState<Appointment | null>(null);
@@ -51,8 +49,6 @@ function AgendaPage() {
     setSelected(null);
     setRescheduling(appointment);
   };
-
-  const rescheduledService = services.find((item) => item.id === rescheduling?.serviceId);
 
   const filteredAppointments = useMemo(
     () =>
@@ -107,7 +103,6 @@ function AgendaPage() {
 
       <RescheduleAppointmentModal
         appointment={rescheduling}
-        service={rescheduledService}
         onClose={() => setRescheduling(null)}
         onRescheduled={refetch}
       />

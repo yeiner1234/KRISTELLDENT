@@ -81,31 +81,53 @@ describe('appointmentService', () => {
     );
   });
 
-  it('rescheduleAppointment avisa si el paciente ya tiene otra cita a esa hora', async () => {
-    vi.mocked(supabase.from).mockReturnValue(
-      mockQuery({
-        error: {
-          code: '23P01',
-          message: 'conflicting key value violates exclusion constraint "appointments_no_patient_overlap"',
-        },
-      }) as never,
-    );
+  it('rescheduleAppointment reprograma con la RPC reschedule_appointment', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: null } as never);
 
-    await expect(
-      rescheduleAppointment('a1', { date: '2026-11-20', startTime: '09:00', endTime: '09:30' }),
-    ).rejects.toThrow('El paciente ya tiene otra cita que se cruza con ese horario.');
+    await rescheduleAppointment('a1', { date: '2026-11-20', startTime: '09:00' });
+
+    expect(supabase.rpc).toHaveBeenCalledWith('reschedule_appointment', {
+      p_appointment_id: 'a1',
+      p_date: '2026-11-20',
+      p_start_time: '09:00',
+    });
+    expect(supabase.from).not.toHaveBeenCalled();
+  });
+
+  it('rescheduleAppointment muestra el error de horario fuera del horario libre', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: null,
+      error: { code: 'P0001', message: 'Ese horario está fuera del horario libre del profesional.' },
+    } as never);
+
+    await expect(rescheduleAppointment('a1', { date: '2026-11-20', startTime: '23:00' })).rejects.toThrow(
+      'Ese horario está fuera del horario libre del profesional.',
+    );
+  });
+
+  it('rescheduleAppointment avisa si el paciente ya tiene otra cita a esa hora', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: null,
+      error: {
+        code: '23P01',
+        message: 'conflicting key value violates exclusion constraint "appointments_no_patient_overlap"',
+      },
+    } as never);
+
+    await expect(rescheduleAppointment('a1', { date: '2026-11-20', startTime: '09:00' })).rejects.toThrow(
+      'El paciente ya tiene otra cita que se cruza con ese horario.',
+    );
   });
 
   it('rescheduleAppointment avisa si el horario del profesional ya está ocupado', async () => {
-    vi.mocked(supabase.from).mockReturnValue(
-      mockQuery({
-        error: { code: '23P01', message: 'conflicting key value violates exclusion constraint "appointments_no_overlap"' },
-      }) as never,
-    );
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: null,
+      error: { code: '23P01', message: 'conflicting key value violates exclusion constraint "appointments_no_overlap"' },
+    } as never);
 
-    await expect(
-      rescheduleAppointment('a1', { date: '2026-11-20', startTime: '09:00', endTime: '09:30' }),
-    ).rejects.toThrow('Ese horario ya no está disponible. Elige otro.');
+    await expect(rescheduleAppointment('a1', { date: '2026-11-20', startTime: '09:00' })).rejects.toThrow(
+      'Ese horario ya no está disponible. Elige otro.',
+    );
   });
 
   describe('createPublicAppointment', () => {
