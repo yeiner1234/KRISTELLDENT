@@ -11,6 +11,11 @@
 -- El trigger guard_appointment_changes sigue aplicando (solo se reprograma
 -- una cita pendiente o confirmada).
 --
+-- end_time sale del slot_end de get_available_slots, que usa la duración del
+-- servicio (30 min si service_id es null). No se lee services aquí: con la
+-- RLS de un admin_sede un servicio inactivo no se ve y la duración saldría
+-- distinta de la que validó get_available_slots.
+--
 -- Se puede correr dos veces sin error.
 
 create or replace function public.reschedule_appointment(
@@ -25,7 +30,7 @@ set search_path = ''
 as $$
 declare
   v_appointment record;
-  v_duration integer;
+  v_end_time time;
 begin
   select a.id, a.professional_id, a.branch_id, a.service_id
   into v_appointment
@@ -37,27 +42,18 @@ begin
       using errcode = 'P0001';
   end if;
 
-  if v_appointment.service_id is null then
-    v_duration := 30;
-  else
-    select s.duration_minutes into v_duration
-    from public.services s
-    where s.id = v_appointment.service_id;
+  select s.slot_end into v_end_time
+  from public.get_available_slots(
+    v_appointment.professional_id,
+    v_appointment.branch_id,
+    v_appointment.service_id,
+    p_date,
+    p_appointment_id
+  ) s
+  where s.slot_start = p_start_time
+  limit 1;
 
-    v_duration := coalesce(v_duration, 30);
-  end if;
-
-  if not exists (
-    select 1
-    from public.get_available_slots(
-      v_appointment.professional_id,
-      v_appointment.branch_id,
-      v_appointment.service_id,
-      p_date,
-      p_appointment_id
-    ) s
-    where s.slot_start = p_start_time
-  ) then
+  if v_end_time is null then
     raise exception 'Ese horario está fuera del horario libre del profesional.'
       using errcode = 'P0001';
   end if;
@@ -65,7 +61,7 @@ begin
   update public.appointments
   set appointment_date = p_date,
       start_time = p_start_time,
-      end_time = p_start_time + make_interval(mins => v_duration)
+      end_time = v_end_time
   where id = p_appointment_id;
 
   if not found then
