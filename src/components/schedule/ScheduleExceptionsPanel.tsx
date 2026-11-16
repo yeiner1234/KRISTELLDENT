@@ -61,6 +61,7 @@ function ScheduleExceptionsPanel(props: ScheduleExceptionsPanelProps) {
   const [formError, setFormError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   const fetchList = useCallback(
     () => (isProfessional ? getUpcomingProfessionalExceptions(ownerId) : getUpcomingBranchClosures(ownerId)),
@@ -124,6 +125,7 @@ function ScheduleExceptionsPanel(props: ScheduleExceptionsPanelProps) {
       setLoadError(err instanceof Error ? err.message : 'No se pudo borrar.');
     } finally {
       setDeletingId(null);
+      setConfirmingId(null);
     }
   };
 
@@ -164,15 +166,33 @@ function ScheduleExceptionsPanel(props: ScheduleExceptionsPanelProps) {
                     />
                   )}
                 </div>
-                <button
-                  type="button"
-                  aria-label="Borrar"
-                  disabled={deletingId === item.id}
-                  onClick={() => handleDelete(item.id)}
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] text-adm-ink-300 transition-colors hover:bg-adm-status-cancelled-bg hover:text-adm-danger-text disabled:opacity-50"
-                >
-                  <Trash2 size={15} />
-                </button>
+                {confirmingId === item.id ? (
+                  // Borrar no se puede deshacer: se confirma en la misma fila.
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <span className="text-[13px] font-medium text-adm-danger-text">¿Borrar?</span>
+                    <Button
+                      type="button"
+                      variant="admin-danger"
+                      size="xs"
+                      disabled={deletingId === item.id}
+                      onClick={() => handleDelete(item.id)}
+                    >
+                      {deletingId === item.id ? 'Borrando…' : 'Sí, borrar'}
+                    </Button>
+                    <Button type="button" variant="admin-outline" size="xs" onClick={() => setConfirmingId(null)}>
+                      No
+                    </Button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    aria-label="Borrar"
+                    onClick={() => setConfirmingId(item.id)}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] text-adm-ink-300 transition-colors hover:bg-adm-status-cancelled-bg hover:text-adm-danger-text"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                )}
               </li>
             ))}
           </ul>
