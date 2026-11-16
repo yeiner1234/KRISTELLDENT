@@ -34,7 +34,12 @@ const state = {
 
 function SuccessProbe() {
   const location = useLocation();
-  return <p>Código: {(location.state as { appointmentCode: string }).appointmentCode}</p>;
+  const successState = location.state as { appointmentCode: string; emailSent: boolean };
+  return (
+    <p>
+      Código: {successState.appointmentCode} {successState.emailSent ? 'correo enviado' : 'sin correo'}
+    </p>
+  );
 }
 
 function renderPage() {
@@ -82,9 +87,10 @@ describe('ConfirmBookingPage', () => {
       startTime: '09:00:00',
       endTime: '09:45:00',
       status: 'pending',
+      emailSent: true,
     });
 
-    expect(await screen.findByText('Código: KD-ABC234')).toBeInTheDocument();
+    expect(await screen.findByText('Código: KD-ABC234 correo enviado')).toBeInTheDocument();
   });
 
   it('dos clics seguidos envían una sola reserva', () => {

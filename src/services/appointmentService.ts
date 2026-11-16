@@ -62,6 +62,8 @@ export interface CreatePublicAppointmentResult {
   startTime: string;
   endTime: string;
   status: AppointmentStatus;
+  // true solo si el servidor confirmó el envío del correo con el código.
+  emailSent: boolean;
 }
 
 async function extractFunctionErrorMessage(error: unknown): Promise<string | null> {

@@ -76,6 +76,7 @@ function ConfirmBookingPage() {
           date: state.date,
           time: state.time,
           appointmentCode: appointment.code,
+          emailSent: appointment.emailSent === true,
           patientName,
         },
       });

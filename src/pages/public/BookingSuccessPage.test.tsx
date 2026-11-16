@@ -16,9 +16,9 @@ const state = {
   patientName: 'Lucía Paz',
 };
 
-function renderPage() {
+function renderPage(extra: Record<string, unknown> = {}) {
   return render(
-    <MemoryRouter initialEntries={[{ pathname: '/reservar/exito', state }]}>
+    <MemoryRouter initialEntries={[{ pathname: '/reservar/exito', state: { ...state, ...extra } }]}>
       <BookingSuccessPage />
     </MemoryRouter>,
   );
@@ -49,5 +49,14 @@ describe('BookingSuccessPage', () => {
     renderPage();
     const link = screen.getByRole('link', { name: /whatsapp/i });
     expect(decodeURIComponent(link.getAttribute('href') ?? '')).toContain('KD-ABC234');
+  });
+
+  it('avisa que el código se envió al correo solo si el servidor lo confirmó', () => {
+    const { unmount } = renderPage({ emailSent: true });
+    expect(screen.getByText('También te enviamos el código a tu correo.')).toBeInTheDocument();
+    unmount();
+
+    renderPage({ emailSent: false });
+    expect(screen.queryByText(/te enviamos el código a tu correo/i)).not.toBeInTheDocument();
   });
 });
