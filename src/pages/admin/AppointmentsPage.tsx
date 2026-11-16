@@ -3,145 +3,197 @@ import { CalendarX2, Eye, Plus } from 'lucide-react';
 import SectionTitle from '../../components/common/SectionTitle';
 import DataTable, { type DataTableColumn } from '../../components/common/DataTable';
 import EmptyState from '../../components/common/EmptyState';
-import SearchInput from '../../components/common/SearchInput';
 import Button from '../../components/common/Button';
+import Spinner from '../../components/common/Spinner';
 import AppointmentModal from '../../components/appointments/AppointmentModal';
 import AppointmentStatus from '../../components/appointments/AppointmentStatus';
+import AppointmentActionButtons from '../../components/appointments/AppointmentActionButtons';
+import AppointmentFiltersBar from '../../components/appointments/AppointmentFiltersBar';
 import NewAppointmentModal from '../../components/appointments/NewAppointmentModal';
 import RescheduleAppointmentModal from '../../components/appointments/RescheduleAppointmentModal';
-import ProfessionalSelector from '../../components/professionals/ProfessionalSelector';
-import Spinner from '../../components/common/Spinner';
+import { useAuth } from '../../hooks/useAuth';
 import { useAllAppointments } from '../../hooks/useAppointments';
+import { useAppointmentDetail } from '../../hooks/useAppointmentDetail';
 import { useAllPatients } from '../../hooks/usePatients';
+import { useAdminProfessionals } from '../../hooks/useAdminProfessionals';
 import { useProfessionals } from '../../hooks/useProfessionals';
 import { useAdminBranches } from '../../hooks/useAdminBranches';
+import { useManageableBranchIds } from '../../hooks/useManageableBranchIds';
+import { useAdminServices } from '../../hooks/useAdminServices';
 import { useServices } from '../../hooks/useServices';
-import { setAppointmentStatus } from '../../services/appointmentService';
-import { formatDateLong, formatTimeRange } from '../../utils/date';
-import type { Appointment } from '../../types/Appointment';
+import {
+  buildAppointmentViews,
+  filterAppointmentViews,
+  type AppointmentFilters,
+  type AppointmentView,
+} from '../../utils/appointmentViews';
+import { formatDateLong, formatTimeRange, getTodayIsoDate } from '../../utils/date';
 
 function AppointmentsPage() {
-  const { appointments, isLoading: isLoadingAppointments, refetch } = useAllAppointments();
-  const { patients } = useAllPatients();
-  const { professionals, isLoading: isLoadingProfessionals } = useProfessionals();
+  const { user } = useAuth();
+  const role = user?.role ?? 'admin_sede';
+  const isAdminGlobal = role === 'admin_global';
+
+  const { appointments, isLoading: isLoadingAppointments, error: appointmentsError, refetch } = useAllAppointments();
+  const { patients, isLoading: isLoadingPatients } = useAllPatients();
+  // Incluye profesionales inactivos: sus citas siguen mostrando su nombre.
+  const { professionals, isLoading: isLoadingProfessionals } = useAdminProfessionals();
+  const { services } = useAdminServices();
+  // La nueva cita solo ofrece profesionales y servicios activos.
+  const { professionals: bookableProfessionals } = useProfessionals();
+  const { services: bookableServices } = useServices();
   const { branches } = useAdminBranches();
-  const { services } = useServices();
-  const [professionalId, setProfessionalId] = useState('');
-  const [query, setQuery] = useState('');
-  const [selected, setSelected] = useState<Appointment | null>(null);
-  const [rescheduling, setRescheduling] = useState<Appointment | null>(null);
+  const { branchIds } = useManageableBranchIds();
+
+  const [filters, setFilters] = useState<AppointmentFilters>(() => ({
+    date: getTodayIsoDate(),
+    professionalId: '',
+    status: '',
+    branchId: '',
+    query: '',
+  }));
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
-  const [isCancelling, setIsCancelling] = useState(false);
-  const [isConfirming, setIsConfirming] = useState(false);
-  const isLoading = isLoadingAppointments || isLoadingProfessionals;
+  const { selected, open: openDetail, close, rescheduling, closeReschedule, handleAction, statusAction } =
+    useAppointmentDetail(refetch);
+  const isLoading = isLoadingAppointments || isLoadingPatients || isLoadingProfessionals;
 
-  const handleCancel = async (appointment: Appointment) => {
-    setIsCancelling(true);
-    try {
-      await setAppointmentStatus(appointment.id, 'cancelled');
-      setSelected(null);
-      refetch();
-    } finally {
-      setIsCancelling(false);
-    }
-  };
+  const manageableBranches = useMemo(
+    () => (branchIds === null ? branches : branches.filter((branch) => branchIds.includes(branch.id))),
+    [branches, branchIds],
+  );
+  const namedProfessionals = useMemo(() => professionals.filter((professional) => professional.fullName), [professionals]);
 
-  const handleConfirm = async (appointment: Appointment) => {
-    setIsConfirming(true);
-    try {
-      await setAppointmentStatus(appointment.id, 'confirmed');
-      setSelected(null);
-      refetch();
-    } finally {
-      setIsConfirming(false);
-    }
-  };
+  const views = useMemo(
+    () => buildAppointmentViews(appointments, { patients, professionals, services }),
+    [appointments, patients, professionals, services],
+  );
+  const filteredViews = useMemo(() => filterAppointmentViews(views, filters), [views, filters]);
+  const selectedView = views.find((view) => view.appointment.id === selected?.id);
 
-  const handleReschedule = (appointment: Appointment) => {
-    setSelected(null);
-    setRescheduling(appointment);
-  };
-
-  const professionalName = (id: string) => {
-    const professional = professionals.find((item) => item.id === id);
-    return professional?.fullName ?? '—';
-  };
-
-  const filteredAppointments = useMemo(() => {
-    const term = query.trim().toLowerCase();
-    return appointments
-      .filter((appointment) => (professionalId ? appointment.professionalId === professionalId : true))
-      .filter((appointment) => (term ? professionalName(appointment.professionalId).toLowerCase().includes(term) : true));
-  }, [professionalId, query, appointments, professionalName]);
-
-  const columns: DataTableColumn<Appointment>[] = [
-    { key: 'professional', header: 'Profesional', render: (row) => professionalName(row.professionalId) },
-    { key: 'date', header: 'Fecha', render: (row) => <span className="capitalize">{formatDateLong(row.date)}</span> },
-    { key: 'time', header: 'Hora', render: (row) => formatTimeRange(row.startTime, row.endTime) },
-    { key: 'status', header: 'Estado', render: (row) => <AppointmentStatus status={row.status} theme="admin" /> },
+  const columns: DataTableColumn<AppointmentView>[] = [
+    ...(filters.date
+      ? []
+      : [
+          {
+            key: 'date',
+            header: 'Fecha',
+            render: (row: AppointmentView) => <span className="capitalize">{formatDateLong(row.appointment.date)}</span>,
+          },
+        ]),
+    {
+      key: 'time',
+      header: 'Hora',
+      render: (row) => (
+        <span className="[font-variant-numeric:tabular-nums]">
+          {formatTimeRange(row.appointment.startTime, row.appointment.endTime)}
+        </span>
+      ),
+    },
+    { key: 'code', header: 'Código', render: (row) => <span className="font-medium">{row.appointment.code}</span> },
+    {
+      key: 'patient',
+      header: 'Paciente',
+      render: (row) => (
+        <div className="flex flex-col">
+          <span>{row.patientName}</span>
+          {row.patientDni && <span className="text-xs text-adm-ink-300">DNI {row.patientDni}</span>}
+        </div>
+      ),
+    },
+    { key: 'professional', header: 'Profesional', render: (row) => row.professionalName },
+    { key: 'service', header: 'Servicio', render: (row) => row.serviceName },
+    { key: 'status', header: 'Estado', render: (row) => <AppointmentStatus status={row.appointment.status} theme="admin" /> },
     {
       key: 'actions',
-      header: '',
+      header: 'Acciones',
       render: (row) => (
-        <button
-          type="button"
-          onClick={() => setSelected(row)}
-          aria-label="Ver detalle de la cita"
-          className="rounded-[7px] border border-adm-line-control p-1.5 text-adm-ink-400 transition-colors hover:bg-adm-surface-hover"
-        >
-          <Eye size={16} />
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => openDetail(row.appointment)}
+            aria-label="Ver detalle de la cita"
+            className="rounded-[7px] border border-adm-line-control p-1.5 text-adm-ink-400 transition-colors hover:bg-adm-surface-hover"
+          >
+            <Eye size={16} />
+          </button>
+          <AppointmentActionButtons
+            appointment={row.appointment}
+            role={role}
+            busy={statusAction.pendingId === row.appointment.id}
+            onAction={handleAction}
+          />
+        </div>
       ),
     },
   ];
 
   return (
     <div className="flex flex-col gap-6">
-      <SectionTitle title="Citas" align="left" />
-
-      <div className="flex flex-wrap items-center gap-2.5 rounded-[14px] border border-adm-line-card bg-white p-4">
-        <SearchInput
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Buscar por profesional..."
-          wrapperClassName="min-w-[180px] flex-1"
-        />
-        <div className="w-full max-w-[220px]">
-          <ProfessionalSelector professionals={professionals} value={professionalId} onChange={setProfessionalId} hideLabel />
-        </div>
-        <Button type="button" variant="admin-solid" size="sm" icon={<Plus size={16} />} onClick={() => setIsNewModalOpen(true)}>
-          Nueva cita
-        </Button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <SectionTitle title="Citas" align="left" />
+        <span className="text-[13px] text-adm-ink-300">
+          {filteredViews.length} {filteredViews.length === 1 ? 'cita' : 'citas'}
+          {filters.date && <span className="capitalize"> · {formatDateLong(filters.date)}</span>}
+        </span>
       </div>
+
+      <AppointmentFiltersBar
+        filters={filters}
+        onChange={setFilters}
+        professionals={namedProfessionals}
+        branches={isAdminGlobal ? branches : undefined}
+        actions={
+          <Button type="button" variant="admin-solid" size="sm" icon={<Plus size={16} />} onClick={() => setIsNewModalOpen(true)}>
+            Nueva cita
+          </Button>
+        }
+      />
+
+      {statusAction.error && !selected && (
+        <p
+          role="alert"
+          className="rounded-[10px] border border-adm-status-cancelled-border bg-adm-status-cancelled-bg px-3.5 py-2.5 text-sm font-medium text-adm-danger-text"
+        >
+          {statusAction.error}
+        </p>
+      )}
 
       {isLoading ? (
         <div className="flex justify-center py-10">
           <Spinner size={28} />
         </div>
-      ) : filteredAppointments.length === 0 ? (
+      ) : appointmentsError ? (
+        <EmptyState icon={CalendarX2} title="No se pudieron cargar las citas" description={appointmentsError} />
+      ) : filteredViews.length === 0 ? (
         <EmptyState
           icon={CalendarX2}
           title="Sin citas para mostrar"
-          description="Las citas reservadas por los pacientes aparecerán en esta lista."
+          description="No hay citas con estos filtros. Cambia la fecha, el profesional o el estado."
         />
       ) : (
-        <DataTable columns={columns} rows={filteredAppointments} getRowId={(row) => row.id} />
+        // Las citas del día se ven en una sola pantalla: sin paginar.
+        <DataTable
+          columns={columns}
+          rows={filteredViews}
+          getRowId={(row) => row.appointment.id}
+          pageSize={Math.max(filteredViews.length, 1)}
+        />
       )}
 
       <AppointmentModal
         appointment={selected}
-        professionalName={selected ? professionalName(selected.professionalId) : undefined}
-        onClose={() => setSelected(null)}
-        onCancel={handleCancel}
-        onConfirm={handleConfirm}
-        onReschedule={handleReschedule}
-        isCancelling={isCancelling}
-        isConfirming={isConfirming}
+        role={role}
+        professionalName={selectedView?.professionalName}
+        patientLabel={selectedView ? `${selectedView.patientName} · DNI ${selectedView.patientDni}` : undefined}
+        onClose={close}
+        onAction={handleAction}
+        busy={statusAction.pendingId !== null}
+        error={statusAction.error}
       />
 
       <RescheduleAppointmentModal
         appointment={rescheduling}
-        onClose={() => setRescheduling(null)}
+        onClose={closeReschedule}
         onRescheduled={refetch}
       />
 
@@ -149,9 +201,9 @@ function AppointmentsPage() {
         isOpen={isNewModalOpen}
         onClose={() => setIsNewModalOpen(false)}
         onCreated={refetch}
-        branches={branches}
-        professionals={professionals}
-        services={services}
+        branches={manageableBranches}
+        professionals={bookableProfessionals}
+        services={bookableServices}
         patients={patients}
       />
     </div>
