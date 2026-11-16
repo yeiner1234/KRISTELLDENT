@@ -4,8 +4,11 @@ import { findCall, mockQuery } from '../test/mockQuery';
 import {
   createPublicAppointment,
   getAllAppointments,
-  getAppointmentsByPatientDni,
+  cancelPatientAppointment,
   getAvailableSlots,
+  getPatientAppointments,
+  requestAppointmentCodes,
+  reschedulePatientAppointment,
   rescheduleAppointment,
 } from './appointmentService';
 
@@ -44,32 +47,6 @@ describe('appointmentService', () => {
 
     expect(findCall(query, 'select')?.args[0]).toContain('appointment_code');
     expect(appointment).toMatchObject({ id: 'a1', code: 'KD-ABC234', status: 'in_room', startTime: '09:00' });
-  });
-
-  it('getAppointmentsByPatientDni devuelve las citas sin código (quien solo sabe un DNI no lo recibe)', async () => {
-    vi.mocked(supabase.functions.invoke).mockResolvedValue({
-      data: {
-        patient: { id: 'pt1' },
-        appointments: [
-          {
-            id: 'a1',
-            professionalId: 'p1',
-            branchId: 'b1',
-            serviceId: null,
-            date: '2026-11-20',
-            startTime: '09:00:00',
-            endTime: '09:30:00',
-            status: 'pending',
-            reason: null,
-          },
-        ],
-      },
-      error: null,
-    } as never);
-
-    const [appointment] = await getAppointmentsByPatientDni('12345678');
-
-    expect(appointment).toMatchObject({ id: 'a1', code: '', patientId: 'pt1' });
   });
 
   it('getAvailableSlots envía la cita a excluir al reprogramar', async () => {
@@ -166,6 +143,91 @@ describe('appointmentService', () => {
       } as never);
 
       await expect(createPublicAppointment(input)).rejects.toThrow('Ya tienes una cita que se cruza con ese horario.');
+    });
+  });
+  describe('citas del paciente (patient-appointments)', () => {
+    const serverRow = {
+      id: 'a1',
+      code: 'KD-ABC234',
+      date: '2026-11-20',
+      startTime: '09:00',
+      endTime: '09:45',
+      status: 'pending',
+      branchId: 'b1',
+      branchName: 'Sede Centro',
+      professionalId: 'p1',
+      professionalName: 'Ana Ríos',
+      serviceId: 's1',
+      serviceName: 'Endodoncia',
+      serviceDuration: 45,
+    };
+
+    it('getPatientAppointments envía list con DNI y código y devuelve nombre y citas', async () => {
+      vi.mocked(supabase.functions.invoke).mockResolvedValue({
+        data: { patient: { firstName: 'Lucía', lastName: 'Paz' }, appointments: [serverRow] },
+        error: null,
+      } as never);
+
+      const result = await getPatientAppointments('12345678', 'abc234');
+
+      expect(supabase.functions.invoke).toHaveBeenCalledWith('patient-appointments', {
+        body: { action: 'list', dni: '12345678', code: 'abc234' },
+      });
+      expect(result.patientName).toBe('Lucía Paz');
+      expect(result.appointments).toEqual([serverRow]);
+    });
+
+    it('getPatientAppointments propaga "El DNI y el código no coinciden."', async () => {
+      vi.mocked(supabase.functions.invoke).mockResolvedValue({
+        data: null,
+        error: { context: new Response(JSON.stringify({ error: 'El DNI y el código no coinciden.' }), { status: 404 }) },
+      } as never);
+
+      await expect(getPatientAppointments('12345678', 'ABC234')).rejects.toThrow('El DNI y el código no coinciden.');
+    });
+
+    it('cancelPatientAppointment envía cancel con la cita', async () => {
+      vi.mocked(supabase.functions.invoke).mockResolvedValue({ data: { id: 'a1', status: 'cancelled' }, error: null } as never);
+
+      await cancelPatientAppointment('12345678', 'KD-ABC234', 'a1');
+
+      expect(supabase.functions.invoke).toHaveBeenCalledWith('patient-appointments', {
+        body: { action: 'cancel', dni: '12345678', code: 'KD-ABC234', appointmentId: 'a1' },
+      });
+    });
+
+    it('reschedulePatientAppointment envía fecha y hora y propaga el error del servidor', async () => {
+      vi.mocked(supabase.functions.invoke).mockResolvedValue({
+        data: null,
+        error: { context: new Response(JSON.stringify({ error: 'Ese horario ya no está disponible. Elige otro.' })) },
+      } as never);
+
+      await expect(
+        reschedulePatientAppointment('12345678', 'KD-ABC234', 'a1', { date: '2026-11-21', startTime: '10:00' }),
+      ).rejects.toThrow('Ese horario ya no está disponible. Elige otro.');
+      expect(supabase.functions.invoke).toHaveBeenCalledWith('patient-appointments', {
+        body: { action: 'reschedule', dni: '12345678', code: 'KD-ABC234', appointmentId: 'a1', date: '2026-11-21', startTime: '10:00' },
+      });
+    });
+
+    it('requestAppointmentCodes envía resend-code solo con el DNI y devuelve el mensaje', async () => {
+      vi.mocked(supabase.functions.invoke).mockResolvedValue({
+        data: { message: 'Si el DNI tiene citas registradas, te enviamos los códigos a tu correo.' },
+        error: null,
+      } as never);
+
+      const message = await requestAppointmentCodes('12345678');
+
+      expect(supabase.functions.invoke).toHaveBeenCalledWith('patient-appointments', {
+        body: { action: 'resend-code', dni: '12345678' },
+      });
+      expect(message).toBe('Si el DNI tiene citas registradas, te enviamos los códigos a tu correo.');
+    });
+
+    it('un error sin cuerpo da un mensaje claro', async () => {
+      vi.mocked(supabase.functions.invoke).mockResolvedValue({ data: null, error: new Error('Failed to fetch') } as never);
+
+      await expect(getPatientAppointments('12345678', 'ABC234')).rejects.toThrow('No se pudieron consultar tus citas.');
     });
   });
 });

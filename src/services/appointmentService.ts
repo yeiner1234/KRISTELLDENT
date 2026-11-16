@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import type { Appointment, AppointmentStatus } from '../types/Appointment';
+import type { Appointment, AppointmentStatus, PatientAppointment } from '../types/Appointment';
 import type { TimeSlotOption } from '../types/Schedule';
 
 export interface AvailableSlotsQuery {
@@ -98,57 +98,65 @@ export async function createPublicAppointment(
   return data;
 }
 
-interface LookupAppointmentRow {
-  id: string;
-  professionalId: string;
-  branchId: string;
-  serviceId: string | null;
-  date: string;
-  startTime: string;
-  endTime: string;
-  status: AppointmentStatus;
-  reason: string | null;
+interface PatientAppointmentsResponse {
+  patient: { firstName: string; lastName: string };
+  appointments: PatientAppointment[];
 }
 
-interface LookupResponse {
-  patient: { id: string } | null;
-  appointments: LookupAppointmentRow[];
+export interface PatientAppointmentsResult {
+  patientName: string;
+  appointments: PatientAppointment[];
 }
 
-// Vía pública para que un paciente (sin cuenta) consulte SUS citas por DNI —
-// pasa por una Edge Function porque anon no tiene permiso de lectura directa
-// sobre patients/appointments (evita que cualquiera consulte datos de otro
-// paciente adivinando un DNI vía la API REST).
-export async function getAppointmentsByPatientDni(dni: string): Promise<Appointment[]> {
-  const { data, error } = await supabase.functions.invoke<LookupResponse>('lookup-appointments-by-dni', {
-    body: { dni },
-  });
+// Vía pública para que un paciente (sin cuenta) gestione SUS citas: pasa por
+// la Edge Function patient-appointments, que exige DNI + código de una de sus
+// citas. anon no tiene permiso de lectura ni escritura directa sobre
+// patients/appointments.
+async function invokePatientAppointments<T>(body: Record<string, string>, fallback: string): Promise<T> {
+  const { data, error } = await supabase.functions.invoke<T>('patient-appointments', { body });
 
-  if (error) {
-    const message = await extractFunctionErrorMessage(error);
-    throw new Error(message ?? 'No se pudieron consultar las citas.');
+  if (error || !data) {
+    const message = error ? await extractFunctionErrorMessage(error) : null;
+    throw new Error(message ?? fallback);
   }
 
-  if (!data?.patient) {
-    return [];
-  }
+  return data;
+}
 
-  const patientId = data.patient.id;
+export async function getPatientAppointments(dni: string, code: string): Promise<PatientAppointmentsResult> {
+  const data = await invokePatientAppointments<PatientAppointmentsResponse>(
+    { action: 'list', dni, code },
+    'No se pudieron consultar tus citas.',
+  );
+  return {
+    patientName: `${data.patient.firstName} ${data.patient.lastName}`.trim(),
+    appointments: data.appointments,
+  };
+}
 
-  return data.appointments.map((row) => ({
-    id: row.id,
-    // El código sirve como contraseña: nunca se entrega a quien solo sabe un DNI.
-    code: '',
-    patientId,
-    professionalId: row.professionalId,
-    branchId: row.branchId,
-    serviceId: row.serviceId,
-    date: row.date,
-    startTime: row.startTime.slice(0, 5),
-    endTime: row.endTime.slice(0, 5),
-    status: row.status,
-    reason: row.reason ?? '',
-  }));
+export async function cancelPatientAppointment(dni: string, code: string, appointmentId: string): Promise<void> {
+  await invokePatientAppointments({ action: 'cancel', dni, code, appointmentId }, 'No se pudo cancelar la cita.');
+}
+
+export async function reschedulePatientAppointment(
+  dni: string,
+  code: string,
+  appointmentId: string,
+  slot: { date: string; startTime: string },
+): Promise<void> {
+  await invokePatientAppointments(
+    { action: 'reschedule', dni, code, appointmentId, date: slot.date, startTime: slot.startTime },
+    'No se pudo reprogramar la cita.',
+  );
+}
+
+// La respuesta es la misma exista o no el DNI: nunca revela si hay citas.
+export async function requestAppointmentCodes(dni: string): Promise<string> {
+  const data = await invokePatientAppointments<{ message: string }>(
+    { action: 'resend-code', dni },
+    'No se pudo enviar el código. Inténtalo de nuevo.',
+  );
+  return data.message;
 }
 
 interface AppointmentRow {
