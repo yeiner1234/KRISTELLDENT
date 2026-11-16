@@ -68,6 +68,12 @@ describe('setProfessionalSchedule', () => {
     ]);
   });
 
+  it('traduce el bloqueo de permisos al guardar', async () => {
+    respondInOrder({ data: [] }, { error: { message: 'new row violates row-level security policy for table "professional_schedules"' } });
+
+    await expect(setProfessionalSchedule('p1', 'b1', [])).rejects.toThrow('No tienes permiso para modificar esta sede.');
+  });
+
   it('no borra nada si no puede leer el horario actual', async () => {
     respondInOrder({ error: { message: 'sin permiso' } });
 

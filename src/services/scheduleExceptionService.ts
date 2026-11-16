@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { friendlyWriteError } from '../utils/supabaseErrors';
 import { getTodayIsoDate } from '../utils/date';
 import { validateDayRanges } from '../utils/scheduleValidation';
 
@@ -75,7 +76,7 @@ export async function getUpcomingProfessionalExceptions(professionalId: string):
     .order('start_time', { ascending: true, nullsFirst: true });
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error(friendlyWriteError(error.message));
   }
 
   return ((data ?? []) as ScheduleExceptionRow[]).map(toException);
@@ -91,7 +92,7 @@ export async function getUpcomingBranchClosures(branchId: string): Promise<Sched
     .order('exception_date', { ascending: true });
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error(friendlyWriteError(error.message));
   }
 
   return ((data ?? []) as ScheduleExceptionRow[]).map(toException);
@@ -114,7 +115,7 @@ export async function createScheduleException(input: ScheduleExceptionInput): Pr
   });
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error(friendlyWriteError(error.message));
   }
 }
 
@@ -122,6 +123,6 @@ export async function deleteScheduleException(id: string): Promise<void> {
   const { error } = await supabase.from('schedule_exceptions').delete().eq('id', id);
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error(friendlyWriteError(error.message));
   }
 }

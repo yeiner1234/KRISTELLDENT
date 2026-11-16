@@ -172,6 +172,14 @@ describe('scheduleExceptionService', () => {
     });
   });
 
+  it('createScheduleException traduce el bloqueo de permisos', async () => {
+    vi.mocked(supabase.from).mockReturnValue(
+      mockQuery({ error: { message: 'new row violates row-level security policy for table "schedule_exceptions"' } }) as never,
+    );
+
+    await expect(createScheduleException(absence)).rejects.toThrow('No tienes permiso para modificar esta sede.');
+  });
+
   it('propaga el error de Supabase', async () => {
     vi.mocked(supabase.from).mockReturnValue(mockQuery({ error: { message: 'sin permiso' } }) as never);
     await expect(deleteScheduleException('e1')).rejects.toThrow('sin permiso');

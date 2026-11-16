@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { friendlyWriteError } from '../utils/supabaseErrors';
 import type { WeekdayKey, WeeklyHours } from '../utils/businessHours';
 
 const WEEKDAY_KEYS: WeekdayKey[] = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
@@ -23,7 +24,7 @@ export async function getBranchWeeklyHours(branchId: string): Promise<WeeklyHour
     .eq('branch_id', branchId);
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error(friendlyWriteError(error.message));
   }
 
   const hours: WeeklyHours = {};
@@ -52,7 +53,7 @@ export async function getBranchScheduleForAdmin(branchId: string): Promise<Branc
     .order('day_of_week', { ascending: true });
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error(friendlyWriteError(error.message));
   }
 
   return ((data ?? []) as BranchScheduleRow[]).map((row) => ({
@@ -68,7 +69,7 @@ export async function setBranchSchedule(branchId: string, entries: BranchSchedul
   const { error: deleteError } = await supabase.from('branch_schedules').delete().eq('branch_id', branchId);
 
   if (deleteError) {
-    throw new Error(deleteError.message);
+    throw new Error(friendlyWriteError(deleteError.message));
   }
 
   if (entries.length === 0) {
@@ -85,6 +86,6 @@ export async function setBranchSchedule(branchId: string, entries: BranchSchedul
   );
 
   if (insertError) {
-    throw new Error(insertError.message);
+    throw new Error(friendlyWriteError(insertError.message));
   }
 }

@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { friendlyWriteError } from '../utils/supabaseErrors';
 import { validateWeeklySchedule } from '../utils/scheduleValidation';
 
 interface ProfessionalScheduleRow {
@@ -32,7 +33,7 @@ export async function getProfessionalScheduleForAdmin(
     .order('start_time', { ascending: true });
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error(friendlyWriteError(error.message));
   }
 
   return ((data ?? []) as ProfessionalScheduleRow[]).map((row) => ({
@@ -63,7 +64,7 @@ export async function setProfessionalSchedule(
     .eq('branch_id', branchId);
 
   if (readError) {
-    throw new Error(readError.message);
+    throw new Error(friendlyWriteError(readError.message));
   }
 
   const { error: deleteError } = await supabase
@@ -73,7 +74,7 @@ export async function setProfessionalSchedule(
     .eq('branch_id', branchId);
 
   if (deleteError) {
-    throw new Error(deleteError.message);
+    throw new Error(friendlyWriteError(deleteError.message));
   }
 
   if (entries.length === 0) {
@@ -97,6 +98,6 @@ export async function setProfessionalSchedule(
     if (previousRows.length > 0) {
       await supabase.from('professional_schedules').insert(previousRows.map(toRow));
     }
-    throw new Error(insertError.message);
+    throw new Error(friendlyWriteError(insertError.message));
   }
 }
