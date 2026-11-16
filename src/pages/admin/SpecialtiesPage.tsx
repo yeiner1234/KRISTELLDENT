@@ -26,8 +26,9 @@ function SpecialtiesPage() {
   const { user } = useAuth();
   // admin_sede ve el catálogo en solo lectura: solo admin_global lo edita.
   const isAdminGlobal = user?.role === 'admin_global';
-  const { professionals, isLoading: isLoadingProfessionals } = useProfessionals();
-  const { specialties, isLoading: isLoadingSpecialties, error, refetch } = useAdminSpecialties();
+  const { professionals, isLoading: isLoadingProfessionals, error: professionalsError } = useProfessionals();
+  const { specialties, isLoading: isLoadingSpecialties, error: specialtiesError, refetch } = useAdminSpecialties();
+  const error = specialtiesError ?? professionalsError;
   const [query, setQuery] = useState('');
   const isLoading = isLoadingProfessionals || isLoadingSpecialties;
 

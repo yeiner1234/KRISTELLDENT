@@ -19,10 +19,12 @@ function ConfirmBookingPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const state = location.state as ConfirmBookingState | null;
-  const { professionals } = useProfessionals();
-  const { specialties } = useSpecialties();
-  const { branches } = useBranches();
-  const { services, isLoading: isLoadingServices } = useServices();
+  const { professionals, error: professionalsError } = useProfessionals();
+  const { specialties, error: specialtiesError } = useSpecialties();
+  const { branches, error: branchesError } = useBranches();
+  const { services, isLoading: isLoadingServices, error: servicesError } = useServices();
+  // Sin estos datos el resumen sale incompleto: no se deja confirmar a ciegas.
+  const loadError = servicesError ?? professionalsError ?? specialtiesError ?? branchesError;
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Bloquea el doble clic aunque React aún no haya vuelto a pintar el botón.
   const submittingRef = useRef(false);
@@ -44,7 +46,7 @@ function ConfirmBookingPage() {
   };
 
   const handleConfirm = async () => {
-    if (submittingRef.current || isLoadingServices) {
+    if (submittingRef.current || isLoadingServices || loadError) {
       return;
     }
     submittingRef.current = true;
@@ -107,7 +109,7 @@ function ConfirmBookingPage() {
       currentStep={7}
       onBack={handleBack}
       onContinue={handleConfirm}
-      continueDisabled={isSubmitting || isLoadingServices}
+      continueDisabled={isSubmitting || isLoadingServices || Boolean(loadError)}
       continueLabel={isSubmitting ? 'Confirmando…' : 'Confirmar cita'}
       continueIcon={<CalendarCheck size={16} />}
     >
@@ -116,9 +118,9 @@ function ConfirmBookingPage() {
         title="Revisa tu cita"
         subtitle="Comprueba que toda la información sea correcta antes de confirmar."
       />
-      {error && (
-        <p className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
-          {error}
+      {(error ?? loadError) && (
+        <p role="alert" className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+          {error ?? `${loadError} Recarga la página para revisar tu cita.`}
         </p>
       )}
       <BookingSummary rows={rows} />

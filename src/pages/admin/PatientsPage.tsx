@@ -9,7 +9,7 @@ import PatientCard from '../../components/patients/PatientCard';
 import { useAllPatients } from '../../hooks/usePatients';
 
 function PatientsPage() {
-  const { patients, isLoading } = useAllPatients();
+  const { patients, isLoading, error } = useAllPatients();
   const [query, setQuery] = useState('');
 
   const filteredPatients = useMemo(() => {
@@ -41,6 +41,8 @@ function PatientsPage() {
         <div className="flex justify-center py-10">
           <Spinner size={28} />
         </div>
+      ) : error ? (
+        <EmptyState icon={Users} title="No se pudieron cargar los pacientes" description={error} />
       ) : filteredPatients.length === 0 ? (
         <EmptyState
           icon={Users}

@@ -18,8 +18,9 @@ interface ServiceStepProps {
 }
 
 function ServiceStep({ specialtyId, branchId, professionalId, serviceId, onChange }: ServiceStepProps) {
-  const { professionals, isLoading: isLoadingProfessionals } = useProfessionals();
-  const { services, isLoading: isLoadingServices } = useServices();
+  const { professionals, isLoading: isLoadingProfessionals, error: professionalsError } = useProfessionals();
+  const { services, isLoading: isLoadingServices, error: servicesError } = useServices();
+  const loadError = professionalsError ?? servicesError;
   const isLoading = isLoadingProfessionals || isLoadingServices;
 
   const candidateProfessionals = useMemo(
@@ -46,6 +47,8 @@ function ServiceStep({ specialtyId, branchId, professionalId, serviceId, onChang
         <div className="flex justify-center py-8">
           <Spinner size={26} />
         </div>
+      ) : loadError ? (
+        <EmptyState icon={ClipboardList} title={loadError} description="Revisa tu conexión y vuelve a intentarlo." />
       ) : candidateProfessionals.length === 0 ? (
         <EmptyState
           icon={ClipboardList}

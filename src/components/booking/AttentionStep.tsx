@@ -21,7 +21,7 @@ interface AttentionStepProps {
 }
 
 function AttentionStep({ specialtyId, motiveLabel, onChange, onContinue }: AttentionStepProps) {
-  const { specialties, isLoading } = useSpecialties();
+  const { specialties, isLoading, error } = useSpecialties();
   const [view, setView] = useState<View>(specialtyId ? 'specialty' : 'choice');
   const [pendingMotiveId, setPendingMotiveId] = useState<string | null>(
     motiveLabel ? (attentionMotives.find((motive) => motive.label === motiveLabel)?.id ?? null) : null,
@@ -91,6 +91,8 @@ function AttentionStep({ specialtyId, motiveLabel, onChange, onContinue }: Atten
             <div className="flex justify-center py-8">
               <Spinner size={26} />
             </div>
+          ) : error ? (
+            <EmptyState icon={Stethoscope} title={error} description="Revisa tu conexión y vuelve a intentarlo." />
           ) : specialties.length === 0 ? (
             <EmptyState
               icon={Stethoscope}

@@ -40,7 +40,7 @@ function DateTimeStep({
   onSelectDate,
   onSelectTime,
 }: DateTimeStepProps) {
-  const { professionals, isLoading: isLoadingProfessionals } = useProfessionals();
+  const { professionals, isLoading: isLoadingProfessionals, error: professionalsError } = useProfessionals();
   const [result, setResult] = useState<SlotsResult | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [weeklyHours, setWeeklyHours] = useState<WeeklyHours | null>(null);
@@ -130,6 +130,8 @@ function DateTimeStep({
             <div className="mt-4">
               <Spinner size={24} />
             </div>
+          ) : professionalsError ? (
+            <p className="mt-4 text-sm text-ink-secondary">{professionalsError} Revisa tu conexión y vuelve a intentarlo.</p>
           ) : current?.failed ? (
             <div className="mt-4 flex flex-col items-start gap-3">
               <p className="text-sm text-ink-secondary">No se pudieron cargar los horarios. Intenta de nuevo.</p>

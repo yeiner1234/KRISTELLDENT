@@ -22,13 +22,14 @@ function TodayAppointmentsPage() {
   const { user } = useAuth();
   const role = user?.role ?? 'tecnica';
   const { appointments, isLoading: isLoadingAppointments, error: appointmentsError, refetch } = useAllAppointments();
-  const { patients, isLoading: isLoadingPatients } = useAllPatients();
+  const { patients, isLoading: isLoadingPatients, error: patientsError } = useAllPatients();
   // La técnica no puede leer profiles: los nombres salen de get_public_professionals.
-  const { professionals } = useProfessionals();
-  const { services } = useServices();
+  const { professionals, error: professionalsError } = useProfessionals();
+  const { services, error: servicesError } = useServices();
   const statusAction = useAppointmentStatusAction(refetch);
   const today = getTodayIsoDate();
   const isLoading = isLoadingAppointments || isLoadingPatients;
+  const loadError = appointmentsError ?? patientsError ?? professionalsError ?? servicesError;
 
   const todayViews = useMemo(
     () => filterAppointmentViews(buildAppointmentViews(appointments, { patients, professionals, services }), { date: today }),
@@ -63,8 +64,8 @@ function TodayAppointmentsPage() {
         <div className="flex justify-center py-10">
           <Spinner size={28} />
         </div>
-      ) : appointmentsError ? (
-        <EmptyState icon={CalendarX2} title="No se pudieron cargar las citas" description={appointmentsError} />
+      ) : loadError ? (
+        <EmptyState icon={CalendarX2} title="No se pudieron cargar las citas" description={loadError} />
       ) : todayViews.length === 0 ? (
         <EmptyState icon={CalendarX2} title="Sin citas hoy" description="No hay citas programadas para hoy en tu sede." />
       ) : (

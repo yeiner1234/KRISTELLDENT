@@ -22,10 +22,11 @@ function AgendaPage() {
   const isAdminGlobal = role === 'admin_global';
 
   const { appointments, isLoading: isLoadingAppointments, error: appointmentsError, refetch } = useAllAppointments();
-  const { patients, isLoading: isLoadingPatients } = useAllPatients();
-  const { professionals, isLoading: isLoadingProfessionals } = useAdminProfessionals();
-  const { services } = useAdminServices();
-  const { branches } = useAdminBranches();
+  const { patients, isLoading: isLoadingPatients, error: patientsError } = useAllPatients();
+  const { professionals, isLoading: isLoadingProfessionals, error: professionalsError } = useAdminProfessionals();
+  const { services, error: servicesError } = useAdminServices();
+  const { branches, error: branchesError } = useAdminBranches();
+  const loadError = appointmentsError ?? patientsError ?? professionalsError ?? servicesError ?? branchesError;
   // La semana de la grilla hace de filtro de fecha.
   const [filters, setFilters] = useState<AppointmentFilters>({
     date: '',
@@ -66,8 +67,8 @@ function AgendaPage() {
         showDate={false}
       />
 
-      {appointmentsError ? (
-        <EmptyState icon={CalendarX2} title="No se pudieron cargar las citas" description={appointmentsError} />
+      {loadError ? (
+        <EmptyState icon={CalendarX2} title="No se pudieron cargar las citas" description={loadError} />
       ) : (
         <AgendaGrid
           appointments={filteredViews.map((view) => view.appointment)}

@@ -63,10 +63,11 @@ function toggleInList(list: string[], id: string): string[] {
 }
 
 function ProfessionalsPage() {
-  const { professionals, isLoading: isLoadingProfessionals, error, refetch } = useAdminProfessionals();
-  const { specialties, isLoading: isLoadingSpecialties } = useAdminSpecialties();
-  const { branches, isLoading: isLoadingBranches } = useAdminBranches();
-  const { services, isLoading: isLoadingServices } = useAdminServices();
+  const { professionals, isLoading: isLoadingProfessionals, error: professionalsError, refetch } = useAdminProfessionals();
+  const { specialties, isLoading: isLoadingSpecialties, error: specialtiesError } = useAdminSpecialties();
+  const { branches, isLoading: isLoadingBranches, error: branchesError } = useAdminBranches();
+  const { services, isLoading: isLoadingServices, error: servicesError } = useAdminServices();
+  const error = professionalsError ?? specialtiesError ?? branchesError ?? servicesError;
   const [query, setQuery] = useState('');
   const [specialtyFilter, setSpecialtyFilter] = useState('');
   const isLoading = isLoadingProfessionals || isLoadingSpecialties || isLoadingBranches || isLoadingServices;

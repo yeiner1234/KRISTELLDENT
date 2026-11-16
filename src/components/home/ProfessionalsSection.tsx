@@ -8,7 +8,7 @@ import Spinner from '../common/Spinner';
 import { useProfessionals, useSpecialties } from '../../hooks/useProfessionals';
 
 function ProfessionalsSection() {
-  const { professionals, isLoading } = useProfessionals();
+  const { professionals, isLoading, error } = useProfessionals();
   const { specialties } = useSpecialties();
 
   return (
@@ -29,6 +29,10 @@ function ProfessionalsSection() {
         {isLoading ? (
           <div className="mt-10 flex justify-center">
             <Spinner size={28} />
+          </div>
+        ) : error ? (
+          <div className="mt-10">
+            <EmptyState icon={UserRoundX} title={error} description="Revisa tu conexión y vuelve a intentarlo." />
           </div>
         ) : professionals.length === 0 ? (
           <div className="mt-10">

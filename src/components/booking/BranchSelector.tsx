@@ -11,7 +11,7 @@ interface BranchSelectorProps {
 }
 
 function BranchSelector({ selectedId, onSelect }: BranchSelectorProps) {
-  const { branches, isLoading } = useBranches();
+  const { branches, isLoading, error } = useBranches();
 
   if (isLoading) {
     return (
@@ -19,6 +19,10 @@ function BranchSelector({ selectedId, onSelect }: BranchSelectorProps) {
         <Spinner size={26} />
       </div>
     );
+  }
+
+  if (error) {
+    return <EmptyState icon={MapPin} title={error} description="Revisa tu conexión y vuelve a intentarlo." />;
   }
 
   if (branches.length === 0) {

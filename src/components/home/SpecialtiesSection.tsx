@@ -7,7 +7,7 @@ import { useSpecialties } from '../../hooks/useProfessionals';
 import { specialtyIcons } from '../booking/specialtyIcons';
 
 function SpecialtiesSection() {
-  const { specialties, isLoading } = useSpecialties();
+  const { specialties, isLoading, error } = useSpecialties();
 
   return (
     <AnimatedSection id="especialidades" className="bg-white py-24">
@@ -22,6 +22,10 @@ function SpecialtiesSection() {
         {isLoading ? (
           <div className="mt-10 flex justify-center">
             <Spinner size={28} />
+          </div>
+        ) : error ? (
+          <div className="mt-10">
+            <EmptyState icon={Smile} title={error} description="Revisa tu conexión y vuelve a intentarlo." />
           </div>
         ) : specialties.length === 0 ? (
           <div className="mt-10">

@@ -14,8 +14,9 @@ import { formatFullName } from '../../utils/format';
 function MyAgendaPage() {
   const { user } = useAuth();
   const role = user?.role ?? 'especialista';
-  const { appointments, isLoading: isLoadingAppointments, error, refetch } = useMyAppointments(user?.id);
-  const { patients, isLoading: isLoadingPatients } = useAllPatients();
+  const { appointments, isLoading: isLoadingAppointments, error: appointmentsError, refetch } = useMyAppointments(user?.id);
+  const { patients, isLoading: isLoadingPatients, error: patientsError } = useAllPatients();
+  const error = appointmentsError ?? patientsError;
   const { selected, open, close, handleAction, statusAction } = useAppointmentDetail(refetch);
   const isLoading = isLoadingAppointments || isLoadingPatients;
 

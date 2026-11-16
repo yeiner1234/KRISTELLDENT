@@ -38,7 +38,7 @@ function TeamPage() {
   const assignableRoles = isAdminGlobal ? rolesAdminGlobalCanCreate : rolesAdminSedeCanCreate;
 
   const { members, isLoading, error, refetch } = useTeamMembers();
-  const { branches, isLoading: isLoadingBranches } = useAdminBranches();
+  const { branches, isLoading: isLoadingBranches, error: branchesError } = useAdminBranches();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form, setForm] = useState<FormState>({
@@ -226,6 +226,8 @@ function TeamPage() {
               <span className="text-sm font-medium text-adm-ink-700">Sedes asignadas</span>
               {isLoadingBranches ? (
                 <Spinner size={20} />
+              ) : branchesError ? (
+                <p className="text-sm text-adm-danger-text">{branchesError}</p>
               ) : activeBranches.length === 0 ? (
                 <p className="text-sm text-adm-ink-400">No hay sedes activas registradas todavía.</p>
               ) : (

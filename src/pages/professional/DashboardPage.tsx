@@ -35,7 +35,7 @@ const statusBarClasses: Record<string, string> = {
 function DashboardPage() {
   const { user } = useAuth();
   const role = user?.role ?? 'especialista';
-  const { appointments, isLoading: isLoadingAppointments, refetch } = useMyAppointments(user?.id);
+  const { appointments, isLoading: isLoadingAppointments, error: appointmentsError, refetch } = useMyAppointments(user?.id);
   const statusAction = useAppointmentStatusAction(refetch);
 
   const handleAction = (appointment: Appointment, action: AppointmentAction) => {
@@ -43,8 +43,9 @@ function DashboardPage() {
       void statusAction.run(appointment, ACTION_TARGET_STATUS[action]);
     }
   };
-  const { patients, isLoading: isLoadingPatients } = useAllPatients();
+  const { patients, isLoading: isLoadingPatients, error: patientsError } = useAllPatients();
   const isLoading = isLoadingAppointments || isLoadingPatients;
+  const loadError = appointmentsError ?? patientsError;
 
   const patientName = (patientId: string): string => {
     const patient = patients.find((item) => item.id === patientId);
@@ -71,6 +72,10 @@ function DashboardPage() {
         <Spinner size={30} />
       </div>
     );
+  }
+
+  if (loadError) {
+    return <EmptyState icon={CalendarCheck} title="No se pudo cargar tu panel" description={loadError} />;
   }
 
   return (

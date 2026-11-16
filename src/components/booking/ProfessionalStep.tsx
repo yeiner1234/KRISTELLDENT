@@ -4,6 +4,7 @@ import OptionCard from './OptionCard';
 import StepHeader from './StepHeader';
 import StepTransition from './StepTransition';
 import EmptyState from '../common/EmptyState';
+import Spinner from '../common/Spinner';
 import { useProfessionals, useSpecialties } from '../../hooks/useProfessionals';
 import { getInitials } from '../../utils/format';
 import { ANY_PROFESSIONAL, professionalsForBooking } from '../../utils/bookingCandidates';
@@ -22,8 +23,9 @@ function ProfessionalStep({ specialtyId, branchId, professionalId, onChange }: P
     professionalId && professionalId !== ANY_PROFESSIONAL ? 'grid' : 'choice',
   );
 
-  const { professionals } = useProfessionals();
-  const { specialties } = useSpecialties();
+  const { professionals, isLoading, error: professionalsError } = useProfessionals();
+  const { specialties, error: specialtiesError } = useSpecialties();
+  const loadError = professionalsError ?? specialtiesError;
   const specialty = specialties.find((item) => item.id === specialtyId);
   const matchingProfessionals = professionalsForBooking(professionals, specialtyId, branchId);
 
@@ -68,7 +70,13 @@ function ProfessionalStep({ specialtyId, branchId, professionalId, onChange }: P
           </button>
           <StepHeader icon={User} title="Elige un profesional" subtitle="Estos profesionales atienden esta especialidad en la sede elegida." />
 
-          {matchingProfessionals.length === 0 ? (
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <Spinner size={26} />
+            </div>
+          ) : loadError ? (
+            <EmptyState icon={User} title={loadError} description="Revisa tu conexión y vuelve a intentarlo." />
+          ) : matchingProfessionals.length === 0 ? (
             <EmptyState
               icon={User}
               title="No hay profesionales registrados"

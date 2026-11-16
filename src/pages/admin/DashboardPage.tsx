@@ -31,9 +31,10 @@ function professionalName(professionals: Professional[], professionalId: string)
 }
 
 function DashboardPage() {
-  const { appointments, isLoading: isLoadingAppointments, refetch } = useAllAppointments();
-  const { patients, isLoading: isLoadingPatients } = useAllPatients();
-  const { professionals, isLoading: isLoadingProfessionals } = useAdminProfessionals();
+  const { appointments, isLoading: isLoadingAppointments, error: appointmentsError, refetch } = useAllAppointments();
+  const { patients, isLoading: isLoadingPatients, error: patientsError } = useAllPatients();
+  const { professionals, isLoading: isLoadingProfessionals, error: professionalsError } = useAdminProfessionals();
+  const loadError = appointmentsError ?? patientsError ?? professionalsError;
   const { user } = useAuth();
   const { selected, open, close, rescheduling, closeReschedule, handleAction, statusAction } = useAppointmentDetail(refetch);
   const today = getTodayIsoDate();
@@ -70,6 +71,10 @@ function DashboardPage() {
         <Spinner size={30} />
       </div>
     );
+  }
+
+  if (loadError) {
+    return <EmptyState icon={CalendarCheck} title="No se pudo cargar el panel" description={loadError} />;
   }
 
   return (

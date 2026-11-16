@@ -18,9 +18,10 @@ import type { Appointment } from '../../types/Appointment';
 function MyAppointmentsPage() {
   const { user } = useAuth();
   const role = user?.role ?? 'especialista';
-  const { appointments, isLoading: isLoadingAppointments, error, refetch } = useMyAppointments(user?.id);
-  const { patients, isLoading: isLoadingPatients } = useAllPatients();
-  const { services } = useServices();
+  const { appointments, isLoading: isLoadingAppointments, error: appointmentsError, refetch } = useMyAppointments(user?.id);
+  const { patients, isLoading: isLoadingPatients, error: patientsError } = useAllPatients();
+  const { services, error: servicesError } = useServices();
+  const error = appointmentsError ?? patientsError ?? servicesError;
   const statusAction = useAppointmentStatusAction(refetch);
   const isLoading = isLoadingAppointments || isLoadingPatients;
 

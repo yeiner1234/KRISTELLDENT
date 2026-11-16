@@ -26,8 +26,9 @@ function ServicesPage() {
   const { user } = useAuth();
   // admin_sede ve el catálogo en solo lectura: solo admin_global lo edita.
   const isAdminGlobal = user?.role === 'admin_global';
-  const { services, isLoading: isLoadingServices, error, refetch } = useAdminServices();
-  const { specialties, isLoading: isLoadingSpecialties } = useAdminSpecialties();
+  const { services, isLoading: isLoadingServices, error: servicesError, refetch } = useAdminServices();
+  const { specialties, isLoading: isLoadingSpecialties, error: specialtiesError } = useAdminSpecialties();
+  const error = servicesError ?? specialtiesError;
   const [query, setQuery] = useState('');
   const [specialtyId, setSpecialtyId] = useState('');
   const isLoading = isLoadingServices || isLoadingSpecialties;

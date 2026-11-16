@@ -8,7 +8,7 @@ import Spinner from '../common/Spinner';
 import { useBranches } from '../../hooks/useBranches';
 
 function ContactSection() {
-  const { branches, isLoading } = useBranches();
+  const { branches, isLoading, error } = useBranches();
 
   return (
     <AnimatedSection id="contacto" className="bg-white py-24">
@@ -23,6 +23,10 @@ function ContactSection() {
         {isLoading ? (
           <div className="mt-10 flex justify-center">
             <Spinner size={28} />
+          </div>
+        ) : error ? (
+          <div className="mt-10">
+            <EmptyState icon={MapPin} title={error} description="Revisa tu conexión y vuelve a intentarlo." />
           </div>
         ) : branches.length === 0 ? (
           <div className="mt-10">

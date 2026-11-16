@@ -35,15 +35,18 @@ function AppointmentsPage() {
   const isAdminGlobal = role === 'admin_global';
 
   const { appointments, isLoading: isLoadingAppointments, error: appointmentsError, refetch } = useAllAppointments();
-  const { patients, isLoading: isLoadingPatients } = useAllPatients();
+  const { patients, isLoading: isLoadingPatients, error: patientsError } = useAllPatients();
   // Incluye profesionales inactivos: sus citas siguen mostrando su nombre.
-  const { professionals, isLoading: isLoadingProfessionals } = useAdminProfessionals();
-  const { services } = useAdminServices();
+  const { professionals, isLoading: isLoadingProfessionals, error: professionalsError } = useAdminProfessionals();
+  const { services, error: servicesError } = useAdminServices();
   // La nueva cita solo ofrece profesionales y servicios activos.
-  const { professionals: bookableProfessionals } = useProfessionals();
-  const { services: bookableServices } = useServices();
-  const { branches } = useAdminBranches();
-  const { branchIds } = useManageableBranchIds();
+  const { professionals: bookableProfessionals, error: bookableProfessionalsError } = useProfessionals();
+  const { services: bookableServices, error: bookableServicesError } = useServices();
+  const { branches, error: branchesError } = useAdminBranches();
+  const { branchIds, error: branchIdsError } = useManageableBranchIds();
+  const loadError = appointmentsError ?? patientsError ?? professionalsError ?? servicesError;
+  // Sin estos datos la lista se ve, pero "Nueva cita" y el filtro de sede quedan incompletos.
+  const catalogError = bookableProfessionalsError ?? bookableServicesError ?? branchesError ?? branchIdsError;
 
   const [filters, setFilters] = useState<AppointmentFilters>(() => ({
     date: getTodayIsoDate(),
@@ -149,6 +152,15 @@ function AppointmentsPage() {
         }
       />
 
+      {catalogError && (
+        <p
+          role="alert"
+          className="rounded-[10px] border border-adm-status-cancelled-border bg-adm-status-cancelled-bg px-3.5 py-2.5 text-sm font-medium text-adm-danger-text"
+        >
+          {catalogError} Recarga la página antes de registrar una cita.
+        </p>
+      )}
+
       {statusAction.error && !selected && (
         <p
           role="alert"
@@ -162,8 +174,8 @@ function AppointmentsPage() {
         <div className="flex justify-center py-10">
           <Spinner size={28} />
         </div>
-      ) : appointmentsError ? (
-        <EmptyState icon={CalendarX2} title="No se pudieron cargar las citas" description={appointmentsError} />
+      ) : loadError ? (
+        <EmptyState icon={CalendarX2} title="No se pudieron cargar las citas" description={loadError} />
       ) : filteredViews.length === 0 ? (
         <EmptyState
           icon={CalendarX2}
