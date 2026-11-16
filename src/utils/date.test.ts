@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getLimaNowTime, getTodayIsoDate } from './date';
+import { addDaysToIsoDate, getAgendaWeekStart, getLimaNowTime, getTodayIsoDate } from './date';
 
 describe('getTodayIsoDate', () => {
   afterEach(() => {
@@ -38,5 +38,25 @@ describe('getLimaNowTime', () => {
     vi.setSystemTime(new Date('2026-11-14T05:07:00Z'));
 
     expect(getLimaNowTime()).toBe('00:07');
+  });
+});
+
+describe('addDaysToIsoDate', () => {
+  it('cruza meses y años', () => {
+    expect(addDaysToIsoDate('2026-11-30', 1)).toBe('2026-12-01');
+    expect(addDaysToIsoDate('2026-03-01', -1)).toBe('2026-02-28');
+    expect(addDaysToIsoDate('2026-12-31', 1)).toBe('2027-01-01');
+  });
+});
+
+describe('getAgendaWeekStart', () => {
+  it('en domingo abre la semana que empieza mañana', () => {
+    expect(getAgendaWeekStart('2026-11-15')).toBe('2026-11-16');
+  });
+
+  it('de lunes a sábado abre en el lunes de esa semana', () => {
+    expect(getAgendaWeekStart('2026-11-16')).toBe('2026-11-16');
+    expect(getAgendaWeekStart('2026-11-18')).toBe('2026-11-16');
+    expect(getAgendaWeekStart('2026-11-21')).toBe('2026-11-16');
   });
 });

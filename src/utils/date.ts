@@ -45,3 +45,23 @@ export function addMinutesToTime(time: string, minutes: number): string {
   const newMins = totalMinutes % 60;
   return `${String(newHours).padStart(2, '0')}:${String(newMins).padStart(2, '0')}`;
 }
+
+// Aritmética de fechas sobre cadenas AAAA-MM-DD en UTC: el resultado no
+// depende de la zona horaria del navegador.
+function parseIsoDateUtc(isoDate: string): Date {
+  const [year, month, day] = isoDate.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+export function addDaysToIsoDate(isoDate: string, days: number): string {
+  const date = parseIsoDateUtc(isoDate);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+// Lunes de la semana que muestra la agenda (lunes a sábado). La semana se
+// cuenta desde el domingo: un domingo abre en la semana que empieza mañana.
+export function getAgendaWeekStart(todayIso: string): string {
+  const dayOfWeek = parseIsoDateUtc(todayIso).getUTCDay();
+  return addDaysToIsoDate(todayIso, dayOfWeek === 0 ? 1 : 1 - dayOfWeek);
+}
