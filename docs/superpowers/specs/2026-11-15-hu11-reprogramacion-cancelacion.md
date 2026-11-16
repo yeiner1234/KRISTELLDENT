@@ -29,3 +29,14 @@ Hoy /consultar-citas pide solo el DNI, /consultar-citas/verificar acepta cualqui
    - Reprogramar: modal con calendario y horarios libres del mismo profesional, sede y servicio; al confirmar llama a 'reschedule'.
    - Sin state (recarga) → vuelve a /consultar-citas.
 5. Errores siempre visibles, sin ruedita infinita.
+6. Correo con el código de la cita (mejora, no está en las HU):
+   - `supabase/functions/_shared/email.ts` con `sendEmail({ to, subject, html })` sobre la API HTTP de Resend con los secretos RESEND_API_KEY y EMAIL_FROM. Si falta un secreto, registra un aviso y no lanza error.
+   - create-public-appointment: tras crear la cita envía al correo del paciente el código, fecha, hora, sede, profesional, servicio y el enlace a /consultar-citas. Si el envío falla, la reserva igual se confirma.
+   - patient-appointments: acción 'resend-code' con dni. Si el paciente tiene citas futuras pending/confirmed, envía sus códigos SOLO a su correo registrado. Responde siempre "Si el DNI tiene citas registradas, te enviamos los códigos a tu correo", exista o no el DNI; nunca muestra el correo. Máximo 3 envíos por DNI por hora.
+   - /consultar-citas: enlace "¿No tienes tu código? Te lo enviamos a tu correo" que pide el DNI y llama a 'resend-code'.
+   - BookingSuccessPage: "También te enviamos el código a tu correo" solo si la función confirma que el envío salió bien.
+
+## Decisiones
+- El enlace del correo sale del secreto SITE_URL (no del header Origin, que cualquiera puede falsificar en un POST directo y convertiría el correo de la clínica en phishing). Sin SITE_URL el correo indica la ruta en texto.
+- El límite de 3 por hora cuenta pedidos por DNI (exista o no), en la tabla nueva `patient_code_email_log` (RLS sin policies, solo service_role).
+- create-public-appointment usa el correo registrado del paciente (que una reserva no sobrescribe), no el del formulario.
