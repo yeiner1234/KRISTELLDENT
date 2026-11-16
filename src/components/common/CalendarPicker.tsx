@@ -5,24 +5,29 @@ interface CalendarPickerProps {
   selectedDate: string | null;
   onSelect: (date: string) => void;
   minDate?: string;
+  // Días que no se pueden elegir aunque sean futuros (p. ej. sede cerrada).
+  isDateDisabled?: (isoDate: string) => boolean;
 }
 
+// Con la fecha local: toISOString() pasa a UTC y puede correr el día.
 function toIsoDate(date: Date): string {
-  return date.toISOString().split('T')[0];
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
 }
 
 const weekdayLabels = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
 
-function CalendarPicker({ selectedDate, onSelect, minDate }: CalendarPickerProps) {
+function CalendarPicker({ selectedDate, onSelect, minDate, isDateDisabled }: CalendarPickerProps) {
   const today = new Date();
-  const [viewDate, setViewDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
+  const minBoundary = minDate ? new Date(`${minDate}T00:00:00`) : today;
+  const [viewDate, setViewDate] = useState(new Date(minBoundary.getFullYear(), minBoundary.getMonth(), 1));
 
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
   const firstDayIndex = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const monthLabel = viewDate.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' });
-  const minBoundary = minDate ? new Date(`${minDate}T00:00:00`) : today;
   const minBoundaryStart = new Date(minBoundary.getFullYear(), minBoundary.getMonth(), minBoundary.getDate());
 
   const cells: (number | null)[] = [
@@ -66,17 +71,17 @@ function CalendarPicker({ selectedDate, onSelect, minDate }: CalendarPickerProps
 
           const cellDate = new Date(year, month, day);
           const iso = toIsoDate(cellDate);
-          const isPast = cellDate < minBoundaryStart;
+          const isDisabled = cellDate < minBoundaryStart || (isDateDisabled?.(iso) ?? false);
           const isSelected = iso === selectedDate;
 
           return (
             <button
               key={iso}
               type="button"
-              disabled={isPast}
+              disabled={isDisabled}
               onClick={() => onSelect(iso)}
               className={`aspect-square rounded-lg text-sm transition-colors ${
-                isPast
+                isDisabled
                   ? 'cursor-not-allowed text-ink-tertiary'
                   : isSelected
                     ? 'bg-brand-600 text-white'

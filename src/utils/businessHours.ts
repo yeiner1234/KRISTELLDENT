@@ -73,3 +73,10 @@ export function getBranchOpenStatus(hours: WeeklyHours): BranchOpenStatus {
 
   return { isOpen, todayLabel: `Hoy ${today.open} – ${today.close}` };
 }
+
+// Fecha ISO (AAAA-MM-DD) en un día de la semana sin horario = sede cerrada.
+// Se lee en UTC para que el día no dependa de la zona del dispositivo.
+export function isBranchClosedOn(isoDate: string, hours: WeeklyHours): boolean {
+  const weekday = WEEKDAY_KEYS[new Date(`${isoDate}T00:00:00Z`).getUTCDay()];
+  return !hours[weekday];
+}
