@@ -4,7 +4,7 @@ import SectionTitle from '../common/SectionTitle';
 import EmptyState from '../common/EmptyState';
 import Spinner from '../common/Spinner';
 import { useSpecialties } from '../../hooks/useProfessionals';
-import { specialtyIcons } from '../booking/specialtyIcons';
+import { getSpecialtyIcon } from '../booking/specialtyIcons';
 
 function SpecialtiesSection() {
   const { specialties, isLoading, error } = useSpecialties();
@@ -38,7 +38,7 @@ function SpecialtiesSection() {
         ) : (
         <div className="mt-10 grid gap-5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
           {specialties.map((specialty, index) => {
-            const Icon = specialtyIcons[specialty.id] ?? Smile;
+            const Icon = getSpecialtyIcon(specialty.name);
 
             return (
               <RevealItem key={specialty.id} index={index} className="group min-w-0">

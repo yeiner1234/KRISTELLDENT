@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, CheckCircle2, Smile, Sparkles, Stethoscope } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Sparkles, Stethoscope } from 'lucide-react';
 import OptionCard from './OptionCard';
 import StepHeader from './StepHeader';
 import StepTransition from './StepTransition';
@@ -7,7 +7,7 @@ import Button from '../common/Button';
 import EmptyState from '../common/EmptyState';
 import Spinner from '../common/Spinner';
 import { useSpecialties } from '../../hooks/useProfessionals';
-import { specialtyIcons } from './specialtyIcons';
+import { getSpecialtyIcon } from './specialtyIcons';
 import { attentionMotives } from './attentionMotives';
 import { findSpecialtyByNames } from '../../utils/specialtyMatch';
 
@@ -102,7 +102,7 @@ function AttentionStep({ specialtyId, motiveLabel, onChange, onContinue }: Atten
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
               {specialties.map((specialty) => {
-                const Icon = specialtyIcons[specialty.id] ?? Smile;
+                const Icon = getSpecialtyIcon(specialty.name);
                 const isSelected = specialty.id === specialtyId;
 
                 return (
