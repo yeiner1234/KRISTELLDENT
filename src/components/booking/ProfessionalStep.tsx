@@ -6,18 +6,18 @@ import StepTransition from './StepTransition';
 import EmptyState from '../common/EmptyState';
 import { useProfessionals, useSpecialties } from '../../hooks/useProfessionals';
 import { getInitials } from '../../utils/format';
+import { ANY_PROFESSIONAL, professionalsForBooking } from '../../utils/bookingCandidates';
 
 type View = 'choice' | 'grid';
 
-export const ANY_PROFESSIONAL = 'any';
-
 interface ProfessionalStepProps {
   specialtyId: string;
+  branchId: string;
   professionalId: string | null;
   onChange: (professionalId: string) => void;
 }
 
-function ProfessionalStep({ specialtyId, professionalId, onChange }: ProfessionalStepProps) {
+function ProfessionalStep({ specialtyId, branchId, professionalId, onChange }: ProfessionalStepProps) {
   const [view, setView] = useState<View>(
     professionalId && professionalId !== ANY_PROFESSIONAL ? 'grid' : 'choice',
   );
@@ -25,7 +25,7 @@ function ProfessionalStep({ specialtyId, professionalId, onChange }: Professiona
   const { professionals } = useProfessionals();
   const { specialties } = useSpecialties();
   const specialty = specialties.find((item) => item.id === specialtyId);
-  const matchingProfessionals = professionals.filter((professional) => professional.specialtyIds.includes(specialtyId));
+  const matchingProfessionals = professionalsForBooking(professionals, specialtyId, branchId);
 
   return (
     <div>
@@ -66,13 +66,13 @@ function ProfessionalStep({ specialtyId, professionalId, onChange }: Professiona
             <ArrowLeft size={14} />
             Cambiar opción
           </button>
-          <StepHeader icon={User} title="Elige un profesional" subtitle="Estos profesionales atienden esta especialidad." />
+          <StepHeader icon={User} title="Elige un profesional" subtitle="Estos profesionales atienden esta especialidad en la sede elegida." />
 
           {matchingProfessionals.length === 0 ? (
             <EmptyState
               icon={User}
               title="No hay profesionales registrados"
-              description="No hay profesionales disponibles para esta especialidad."
+              description="No hay profesionales de esta especialidad en la sede elegida."
             />
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">

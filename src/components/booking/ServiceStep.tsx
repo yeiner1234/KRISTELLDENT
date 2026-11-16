@@ -6,27 +6,25 @@ import EmptyState from '../common/EmptyState';
 import Spinner from '../common/Spinner';
 import { useProfessionals } from '../../hooks/useProfessionals';
 import { useServices } from '../../hooks/useServices';
-import { ANY_PROFESSIONAL } from './ProfessionalStep';
+import { candidateProfessionals as findCandidates } from '../../utils/bookingCandidates';
 import { formatCurrency } from '../../utils/format';
 
 interface ServiceStepProps {
   specialtyId: string;
+  branchId: string;
   professionalId: string;
   serviceId: string | null;
   onChange: (serviceId: string) => void;
 }
 
-function ServiceStep({ specialtyId, professionalId, serviceId, onChange }: ServiceStepProps) {
+function ServiceStep({ specialtyId, branchId, professionalId, serviceId, onChange }: ServiceStepProps) {
   const { professionals, isLoading: isLoadingProfessionals } = useProfessionals();
   const { services, isLoading: isLoadingServices } = useServices();
   const isLoading = isLoadingProfessionals || isLoadingServices;
 
   const candidateProfessionals = useMemo(
-    () =>
-      professionalId === ANY_PROFESSIONAL
-        ? professionals.filter((professional) => professional.specialtyIds.includes(specialtyId))
-        : professionals.filter((professional) => professional.id === professionalId),
-    [professionals, professionalId, specialtyId],
+    () => findCandidates(professionals, { specialtyId, branchId, professionalId }),
+    [professionals, professionalId, specialtyId, branchId],
   );
 
   // Solo se ofrecen servicios que el/los profesional(es) candidato(s)

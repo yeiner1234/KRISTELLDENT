@@ -4,7 +4,7 @@ import CalendarPicker from '../common/CalendarPicker';
 import StepHeader from './StepHeader';
 import Spinner from '../common/Spinner';
 import EmptyState from '../common/EmptyState';
-import { ANY_PROFESSIONAL } from './ProfessionalStep';
+import { ANY_PROFESSIONAL, candidateProfessionals } from '../../utils/bookingCandidates';
 import { useProfessionals } from '../../hooks/useProfessionals';
 import { getAvailableSlots } from '../../services/appointmentService';
 import { formatDateLong, getTodayIsoDate } from '../../utils/date';
@@ -37,8 +37,7 @@ function DateTimeStep({
   const [isLoading, setIsLoading] = useState(false);
 
   const isAnyProfessional = professionalId === ANY_PROFESSIONAL;
-  const matchingProfessionals = professionals.filter((professional) => professional.specialtyIds.includes(specialtyId));
-  const candidateIds = isAnyProfessional ? matchingProfessionals.map((p) => p.id) : [professionalId];
+  const candidateIds = candidateProfessionals(professionals, { specialtyId, branchId, professionalId }).map((p) => p.id);
   const candidateKey = candidateIds.join(',');
 
   useEffect(() => {

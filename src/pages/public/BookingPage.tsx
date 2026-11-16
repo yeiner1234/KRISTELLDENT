@@ -3,7 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import BookingShell from '../../components/booking/BookingShell';
 import BranchSelector from '../../components/booking/BranchSelector';
 import AttentionStep from '../../components/booking/AttentionStep';
-import ProfessionalStep, { ANY_PROFESSIONAL } from '../../components/booking/ProfessionalStep';
+import ProfessionalStep from '../../components/booking/ProfessionalStep';
+import { ANY_PROFESSIONAL } from '../../utils/bookingCandidates';
 import ServiceStep from '../../components/booking/ServiceStep';
 import DateTimeStep from '../../components/booking/DateTimeStep';
 
@@ -42,6 +43,18 @@ function BookingPage() {
       return;
     }
     setStep((current) => current - 1);
+  };
+
+  // Los profesionales dependen de la sede: al cambiarla se suelta lo elegido después.
+  const handleChangeBranch = (id: string) => {
+    if (id !== branchId) {
+      setProfessionalChoice(null);
+      setResolvedProfessionalId(null);
+      setServiceId(null);
+      setDate(null);
+      setTime(null);
+    }
+    setBranchId(id);
   };
 
   const handleChangeSpecialty = (id: string, motive: string | null) => {
@@ -121,7 +134,7 @@ function BookingPage() {
       onContinue={current.onContinue}
       continueDisabled={!current.canContinue}
     >
-      {step === 1 && <BranchSelector selectedId={branchId} onSelect={setBranchId} />}
+      {step === 1 && <BranchSelector selectedId={branchId} onSelect={handleChangeBranch} />}
 
       {step === 2 && (
         <AttentionStep
@@ -132,17 +145,19 @@ function BookingPage() {
         />
       )}
 
-      {step === 3 && specialtyId && (
+      {step === 3 && specialtyId && branchId && (
         <ProfessionalStep
           specialtyId={specialtyId}
+          branchId={branchId}
           professionalId={professionalChoice}
           onChange={handleChangeProfessional}
         />
       )}
 
-      {step === 4 && specialtyId && professionalChoice && (
+      {step === 4 && specialtyId && professionalChoice && branchId && (
         <ServiceStep
           specialtyId={specialtyId}
+          branchId={branchId}
           professionalId={professionalChoice}
           serviceId={serviceId}
           onChange={handleChangeService}
