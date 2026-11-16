@@ -46,6 +46,12 @@ function ServiceStep({ specialtyId, branchId, professionalId, serviceId, onChang
         <div className="flex justify-center py-8">
           <Spinner size={26} />
         </div>
+      ) : candidateProfessionals.length === 0 ? (
+        <EmptyState
+          icon={ClipboardList}
+          title="No hay profesionales de esta especialidad en esta sede."
+          description="Vuelve atrás y elige otra sede u otra especialidad."
+        />
       ) : availableServices.length === 0 ? (
         <EmptyState
           icon={ClipboardList}
