@@ -1,17 +1,20 @@
 import { NavLink } from 'react-router-dom';
-import { CalendarRange, ClipboardList, LayoutDashboard, Users } from 'lucide-react';
+import { CalendarCheck, CalendarRange, ClipboardList, LayoutDashboard, Users } from 'lucide-react';
 import logo from '../../../imagenes/kristelldent-icon.png';
 import { useAuth } from '../../hooks/useAuth';
 
-const items = [
+const professionalItems = [
   { label: 'Dashboard', to: '/profesional', icon: LayoutDashboard, end: true },
   { label: 'Mi agenda', to: '/profesional/agenda', icon: CalendarRange },
   { label: 'Mis pacientes', to: '/profesional/pacientes', icon: Users },
   { label: 'Mis citas', to: '/profesional/citas', icon: ClipboardList },
 ];
 
+const technicianItems = [{ label: 'Citas de hoy', to: '/profesional', icon: CalendarCheck, end: true }];
+
 function ProfessionalSidebar() {
   const { user } = useAuth();
+  const items = user?.role === 'tecnica' ? technicianItems : professionalItems;
   const initials = user?.name ? user.name.slice(0, 2).toUpperCase() : 'PR';
 
   return (

@@ -3,24 +3,19 @@ import Modal from '../common/Modal';
 import Button from '../common/Button';
 import AdminSlotPicker from './AdminSlotPicker';
 import { rescheduleAppointment } from '../../services/appointmentService';
-import { addMinutesToTime } from '../../utils/date';
 import type { Appointment } from '../../types/Appointment';
-import type { Service } from '../../types/Service';
 
 interface RescheduleAppointmentModalProps {
   appointment: Appointment | null;
-  service: Service | undefined;
   onClose: () => void;
   onRescheduled: () => void;
 }
 
-function RescheduleAppointmentModal({ appointment, service, onClose, onRescheduled }: RescheduleAppointmentModalProps) {
+function RescheduleAppointmentModal({ appointment, onClose, onRescheduled }: RescheduleAppointmentModalProps) {
   const [date, setDate] = useState<string | null>(null);
   const [time, setTime] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const duration = service?.duration ?? 30;
 
   const handleClose = () => {
     setDate(null);
@@ -37,11 +32,7 @@ function RescheduleAppointmentModal({ appointment, service, onClose, onReschedul
     setIsSubmitting(true);
 
     try {
-      await rescheduleAppointment(appointment.id, {
-        date,
-        startTime: time,
-        endTime: addMinutesToTime(time, duration),
-      });
+      await rescheduleAppointment(appointment.id, { date, startTime: time });
       handleClose();
       onRescheduled();
     } catch (err) {

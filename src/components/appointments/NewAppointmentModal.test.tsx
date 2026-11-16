@@ -95,6 +95,7 @@ describe('NewAppointmentModal', () => {
     vi.mocked(createPublicAppointment).mockResolvedValue({
       id: 'a1',
       code: 'KD-ABC234',
+      emailSent: true,
       patientId: 'pt1',
       date: '2026-11-20',
       startTime: '09:00:00',

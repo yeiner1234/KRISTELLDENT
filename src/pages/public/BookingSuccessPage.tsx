@@ -1,4 +1,4 @@
-import { CheckCircle2, MessageCircle } from 'lucide-react';
+import { CheckCircle2, MailCheck, MessageCircle } from 'lucide-react';
 import { useLocation, Navigate } from 'react-router-dom';
 import BookingShell from '../../components/booking/BookingShell';
 import BookingSummary, { type BookingSummaryRow } from '../../components/booking/BookingSummary';
@@ -16,6 +16,7 @@ interface SuccessState {
   time: string;
   appointmentCode: string;
   patientName: string;
+  emailSent?: boolean;
 }
 
 function BookingSuccessPage() {
@@ -71,6 +72,12 @@ function BookingSuccessPage() {
             code={state.appointmentCode}
             hint="Guárdalo: con tu DNI y este código puedes reprogramar o cancelar tu cita"
           />
+          {state.emailSent && (
+            <p className="mt-3 flex items-center justify-center gap-1.5 text-sm text-ink-secondary">
+              <MailCheck size={16} className="text-brand-700" />
+              También te enviamos el código a tu correo.
+            </p>
+          )}
         </div>
 
         <div className="mt-4 w-full max-w-[600px]">

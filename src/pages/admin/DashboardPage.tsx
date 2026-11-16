@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { CalendarCheck, Clock, Stethoscope, Users, Eye } from 'lucide-react';
 import StatCard from '../../components/common/StatCard';
 import SectionTitle from '../../components/common/SectionTitle';
@@ -12,9 +11,9 @@ import EmptyState from '../../components/common/EmptyState';
 import Spinner from '../../components/common/Spinner';
 import { useAllAppointments } from '../../hooks/useAppointments';
 import { useAllPatients } from '../../hooks/usePatients';
-import { useProfessionals } from '../../hooks/useProfessionals';
-import { useServices } from '../../hooks/useServices';
-import { setAppointmentStatus } from '../../services/appointmentService';
+import { useAdminProfessionals } from '../../hooks/useAdminProfessionals';
+import { useAuth } from '../../hooks/useAuth';
+import { useAppointmentDetail } from '../../hooks/useAppointmentDetail';
 import { formatFullName } from '../../utils/format';
 import { getTodayIsoDate } from '../../utils/date';
 import type { Appointment } from '../../types/Appointment';
@@ -34,43 +33,11 @@ function professionalName(professionals: Professional[], professionalId: string)
 function DashboardPage() {
   const { appointments, isLoading: isLoadingAppointments, refetch } = useAllAppointments();
   const { patients, isLoading: isLoadingPatients } = useAllPatients();
-  const { professionals, isLoading: isLoadingProfessionals } = useProfessionals();
-  const { services } = useServices();
-  const [selected, setSelected] = useState<Appointment | null>(null);
-  const [rescheduling, setRescheduling] = useState<Appointment | null>(null);
-  const [isCancelling, setIsCancelling] = useState(false);
-  const [isConfirming, setIsConfirming] = useState(false);
+  const { professionals, isLoading: isLoadingProfessionals } = useAdminProfessionals();
+  const { user } = useAuth();
+  const { selected, open, close, rescheduling, closeReschedule, handleAction, statusAction } = useAppointmentDetail(refetch);
   const today = getTodayIsoDate();
   const isLoading = isLoadingAppointments || isLoadingPatients || isLoadingProfessionals;
-
-  const handleCancel = async (appointment: Appointment) => {
-    setIsCancelling(true);
-    try {
-      await setAppointmentStatus(appointment.id, 'cancelled');
-      setSelected(null);
-      refetch();
-    } finally {
-      setIsCancelling(false);
-    }
-  };
-
-  const handleConfirm = async (appointment: Appointment) => {
-    setIsConfirming(true);
-    try {
-      await setAppointmentStatus(appointment.id, 'confirmed');
-      setSelected(null);
-      refetch();
-    } finally {
-      setIsConfirming(false);
-    }
-  };
-
-  const handleReschedule = (appointment: Appointment) => {
-    setSelected(null);
-    setRescheduling(appointment);
-  };
-
-  const rescheduledService = services.find((item) => item.id === rescheduling?.serviceId);
 
   const todayCount = appointments.filter((appointment) => appointment.date === today).length;
   const pendingCount = appointments.filter((appointment) => appointment.status === 'pending').length;
@@ -90,7 +57,7 @@ function DashboardPage() {
       key: 'actions',
       header: '',
       render: (row) => (
-        <Button type="button" variant="admin-outline" size="xs" icon={<Eye size={14} />} onClick={() => setSelected(row)}>
+        <Button type="button" variant="admin-outline" size="xs" icon={<Eye size={14} />} onClick={() => open(row)}>
           Ver
         </Button>
       ),
@@ -137,18 +104,17 @@ function DashboardPage() {
       <AppointmentModal
         appointment={selected}
         professionalName={selected ? professionalName(professionals, selected.professionalId) : undefined}
-        onClose={() => setSelected(null)}
-        onCancel={handleCancel}
-        onConfirm={handleConfirm}
-        onReschedule={handleReschedule}
-        isCancelling={isCancelling}
-        isConfirming={isConfirming}
+        role={user?.role ?? 'admin_sede'}
+        patientLabel={selected ? patientName(patients, selected.patientId) : undefined}
+        onClose={close}
+        onAction={handleAction}
+        busy={statusAction.pendingId !== null}
+        error={statusAction.error}
       />
 
       <RescheduleAppointmentModal
         appointment={rescheduling}
-        service={rescheduledService}
-        onClose={() => setRescheduling(null)}
+        onClose={closeReschedule}
         onRescheduled={refetch}
       />
     </div>

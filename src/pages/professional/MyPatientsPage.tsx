@@ -6,9 +6,18 @@ import EmptyState from '../../components/common/EmptyState';
 import Spinner from '../../components/common/Spinner';
 import PatientCard from '../../components/patients/PatientCard';
 import { useAllPatients } from '../../hooks/usePatients';
+import { useAuth } from '../../hooks/useAuth';
+import { useMyAppointments } from '../../hooks/useAppointments';
+import { patientsOfAppointments } from '../../utils/appointmentViews';
 
 function MyPatientsPage() {
-  const { patients, isLoading } = useAllPatients();
+  const { user } = useAuth();
+  const { patients: visiblePatients, isLoading: isLoadingPatients, error: patientsError } = useAllPatients();
+  const { appointments, isLoading: isLoadingAppointments, error: appointmentsError } = useMyAppointments(user?.id);
+  // Solo los pacientes de sus propias citas (criterio 2 de HU12).
+  const patients = useMemo(() => patientsOfAppointments(visiblePatients, appointments), [visiblePatients, appointments]);
+  const isLoading = isLoadingPatients || isLoadingAppointments;
+  const error = patientsError ?? appointmentsError;
   const [query, setQuery] = useState('');
 
   const filteredPatients = useMemo(() => {
@@ -38,6 +47,8 @@ function MyPatientsPage() {
         <div className="flex justify-center py-10">
           <Spinner size={28} />
         </div>
+      ) : error ? (
+        <EmptyState icon={Users} title="No se pudieron cargar tus pacientes" description={error} />
       ) : filteredPatients.length === 0 ? (
         <EmptyState
           icon={Users}

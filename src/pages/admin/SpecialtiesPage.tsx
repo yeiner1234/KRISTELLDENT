@@ -1,6 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { Pencil, Plus, Stethoscope } from 'lucide-react';
 import SectionTitle from '../../components/common/SectionTitle';
+import { useAuth } from '../../hooks/useAuth';
 import DataTable, { type DataTableColumn } from '../../components/common/DataTable';
 import EmptyState from '../../components/common/EmptyState';
 import Spinner from '../../components/common/Spinner';
@@ -22,6 +23,9 @@ import type { Specialty } from '../../types/Specialty';
 const emptyForm: SpecialtyInput = { name: '', description: '' };
 
 function SpecialtiesPage() {
+  const { user } = useAuth();
+  // admin_sede ve el catálogo en solo lectura: solo admin_global lo edita.
+  const isAdminGlobal = user?.role === 'admin_global';
   const { professionals, isLoading: isLoadingProfessionals } = useProfessionals();
   const { specialties, isLoading: isLoadingSpecialties, error, refetch } = useAdminSpecialties();
   const [query, setQuery] = useState('');
@@ -83,9 +87,13 @@ function SpecialtiesPage() {
     }
   };
 
-  const columns: DataTableColumn<Specialty>[] = [
+  const allColumns: DataTableColumn<Specialty>[] = [
     { key: 'name', header: 'Especialidad', render: (row) => row.name },
-    { key: 'description', header: 'Descripción', render: (row) => row.description ?? '—' },
+    {
+      key: 'description',
+      header: 'Descripción',
+      render: (row) => <span className="block min-w-[200px] max-w-[360px] whitespace-normal">{row.description ?? '—'}</span>,
+    },
     {
       key: 'professionals',
       header: 'Profesionales',
@@ -117,6 +125,7 @@ function SpecialtiesPage() {
       ),
     },
   ];
+  const columns = isAdminGlobal ? allColumns : allColumns.filter((column) => column.key !== 'actions');
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -128,9 +137,11 @@ function SpecialtiesPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <SectionTitle title="Especialidades" align="left" />
-        <Button type="button" variant="admin-solid" size="sm" icon={<Plus size={16} />} onClick={openCreateModal}>
-          Nueva especialidad
-        </Button>
+        {isAdminGlobal && (
+          <Button type="button" variant="admin-solid" size="sm" icon={<Plus size={16} />} onClick={openCreateModal}>
+            Nueva especialidad
+          </Button>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-2.5 rounded-[14px] border border-adm-line-card bg-white p-4">

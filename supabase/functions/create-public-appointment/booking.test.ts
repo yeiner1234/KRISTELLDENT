@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   addMinutes,
   limaToday,
+  bookingMatchesPatient,
+  limaNow,
   missingPatientFields,
   overlapErrorMessage,
   validateBookingPayload,
@@ -134,9 +136,39 @@ describe('missingPatientFields', () => {
     expect(missingPatientFields(existing, incoming)).toEqual({});
   });
 
-  it('completa solo los campos vacíos', () => {
+  it('completa solo los campos vacíos, nunca el correo', () => {
+    // El correo recibe los códigos (resend-code): quien solo sabe un DNI no
+    // puede registrar el suyo en el paciente de otra persona.
     const existing = { first_name: 'Anita', last_name: 'Rios', email: null, phone: '  ' };
-    expect(missingPatientFields(existing, incoming)).toEqual({ email: 'nuevo@correo.pe', phone: '911111111' });
+    expect(missingPatientFields(existing, incoming)).toEqual({ phone: '911111111' });
+  });
+});
+
+describe('limaNow', () => {
+  it('da fecha y hora de Lima aunque en UTC ya sea mañana', () => {
+    expect(limaNow(new Date('2026-11-16T02:05:00Z'))).toEqual({ date: '2026-11-15', time: '21:05' });
+  });
+});
+
+describe('bookingMatchesPatient', () => {
+  const existing = { first_name: 'Ana María', last_name: 'Ríos Paz', email: 'Ana@Correo.pe', phone: '987654321' };
+
+  it('coincide si nombres, apellidos y correo son los registrados (sin importar mayúsculas, tildes ni espacios)', () => {
+    expect(
+      bookingMatchesPatient(existing, { firstName: ' ana  maria ', lastName: 'RIOS PAZ', email: 'ana@correo.pe' }),
+    ).toBe(true);
+  });
+
+  it('no coincide si cambia el correo, el nombre o el apellido', () => {
+    expect(bookingMatchesPatient(existing, { firstName: 'Ana María', lastName: 'Ríos Paz', email: 'otro@correo.pe' })).toBe(false);
+    expect(bookingMatchesPatient(existing, { firstName: 'Juan', lastName: 'Ríos Paz', email: 'ana@correo.pe' })).toBe(false);
+    expect(bookingMatchesPatient(existing, { firstName: 'Ana María', lastName: 'Pérez', email: 'ana@correo.pe' })).toBe(false);
+  });
+
+  it('no coincide si el paciente no tiene correo registrado', () => {
+    expect(
+      bookingMatchesPatient({ ...existing, email: null }, { firstName: 'Ana María', lastName: 'Ríos Paz', email: 'ana@correo.pe' }),
+    ).toBe(false);
   });
 });
 

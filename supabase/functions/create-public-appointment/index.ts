@@ -14,9 +14,15 @@
 // entendible, así que es segura aunque dos personas reserven a la vez.
 //
 // La validación y los cálculos viven en booking.ts (probados con Vitest).
+//
+// Tras crear la cita se envía el código al correo del paciente. El correo
+// nunca rompe la reserva: si falla, la respuesta lleva emailSent: false.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { sendEmail } from '../_shared/email.ts';
+import { bookingEmail } from '../_shared/emailTemplates.ts';
 import {
   addMinutes,
+  bookingMatchesPatient,
   limaToday,
   missingPatientFields,
   overlapErrorMessage,
@@ -69,12 +75,12 @@ Deno.serve(async (req) => {
 
   const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-  // Las tres lecturas son independientes: van en paralelo para que la
-  // reserva se confirme en menos de 3 s.
-  const [serviceResult, slotsResult, patientResult] = await Promise.all([
+  // Las lecturas son independientes: van en paralelo para que la reserva se
+  // confirme en menos de 3 s. Sede y profesional solo dan nombres al correo.
+  const [serviceResult, slotsResult, patientResult, branchResult, professionalResult] = await Promise.all([
     adminClient
       .from('services')
-      .select('duration_minutes')
+      .select('name, duration_minutes')
       .eq('id', booking.serviceId)
       .eq('active', true)
       .maybeSingle(),
@@ -87,6 +93,9 @@ Deno.serve(async (req) => {
       p_date: booking.date,
     }),
     adminClient.from('patients').select('id, first_name, last_name, email, phone').eq('dni', booking.dni).maybeSingle(),
+    adminClient.from('branches').select('name').eq('id', booking.branchId).maybeSingle(),
+    // El nombre del profesional vive en profiles (mismo id que professionals).
+    adminClient.from('profiles').select('full_name').eq('id', booking.professionalId).maybeSingle(),
   ]);
 
   if (serviceResult.error || slotsResult.error || patientResult.error) {
@@ -144,6 +153,10 @@ Deno.serve(async (req) => {
     patientId = existingPatient.id;
   }
 
+  // Con un DNI ya registrado y otros datos, quien reserva quizá solo conoce
+  // el DNI: el código de esta cita no le abrirá las demás del paciente.
+  const codeLimited = existingPatient !== null && !bookingMatchesPatient(existingPatient, booking);
+
   if (existingPatient) {
     const patch = missingPatientFields(existingPatient, booking);
     if (Object.keys(patch).length > 0) {
@@ -166,6 +179,7 @@ Deno.serve(async (req) => {
       end_time: endTime,
       reason: booking.reason,
       status: 'pending',
+      code_limited: codeLimited,
     })
     .select('id, appointment_code, appointment_date, start_time, end_time, status')
     .single();
@@ -178,10 +192,29 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'No se pudo registrar la cita. Inténtalo de nuevo.' }, 400);
   }
 
+  // Paciente existente: solo a su correo registrado (si no tiene, no se envía),
+  // así también se entera de una reserva hecha con su DNI. Paciente nuevo: al
+  // correo que acaba de dar.
+  const recipient = existingPatient ? (existingPatient.email?.trim() ?? '') : booking.email;
+  const email = bookingEmail({
+    patientName: existingPatient?.first_name?.trim() || booking.firstName,
+    appointment: {
+      code: appointment.appointment_code,
+      date: appointment.appointment_date,
+      startTime: appointment.start_time,
+      branchName: branchResult.data?.name ?? null,
+      professionalName: professionalResult.data?.full_name ?? null,
+      serviceName: serviceResult.data.name,
+    },
+    siteUrl: Deno.env.get('SITE_URL') ?? null,
+  });
+  const emailSent = recipient ? await sendEmail({ to: recipient, ...email }) : false;
+
   return jsonResponse(
     {
       id: appointment.id,
       code: appointment.appointment_code,
+      emailSent,
       patientId,
       date: appointment.appointment_date,
       startTime: appointment.start_time,

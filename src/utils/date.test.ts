@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getTodayIsoDate } from './date';
+import { addDaysToIsoDate, getAgendaWeekStart, getLimaNowTime, getTodayIsoDate } from './date';
 
 describe('getTodayIsoDate', () => {
   afterEach(() => {
@@ -18,5 +18,45 @@ describe('getTodayIsoDate', () => {
     vi.setSystemTime(new Date('2026-11-13T15:00:00Z'));
 
     expect(getTodayIsoDate()).toBe('2026-11-13');
+  });
+});
+
+describe('getLimaNowTime', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('devuelve la hora HH:MM de Lima (UTC-5)', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-14T03:05:00Z'));
+
+    expect(getLimaNowTime()).toBe('22:05');
+  });
+
+  it('a medianoche de Lima devuelve 00:xx, no 24:xx', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-14T05:07:00Z'));
+
+    expect(getLimaNowTime()).toBe('00:07');
+  });
+});
+
+describe('addDaysToIsoDate', () => {
+  it('cruza meses y años', () => {
+    expect(addDaysToIsoDate('2026-11-30', 1)).toBe('2026-12-01');
+    expect(addDaysToIsoDate('2026-03-01', -1)).toBe('2026-02-28');
+    expect(addDaysToIsoDate('2026-12-31', 1)).toBe('2027-01-01');
+  });
+});
+
+describe('getAgendaWeekStart', () => {
+  it('en domingo abre la semana que empieza mañana', () => {
+    expect(getAgendaWeekStart('2026-11-15')).toBe('2026-11-16');
+  });
+
+  it('de lunes a sábado abre en el lunes de esa semana', () => {
+    expect(getAgendaWeekStart('2026-11-16')).toBe('2026-11-16');
+    expect(getAgendaWeekStart('2026-11-18')).toBe('2026-11-16');
+    expect(getAgendaWeekStart('2026-11-21')).toBe('2026-11-16');
   });
 });

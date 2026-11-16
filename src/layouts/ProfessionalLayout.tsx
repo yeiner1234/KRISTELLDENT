@@ -6,7 +6,7 @@ function ProfessionalLayout() {
   return (
     <div className="flex min-h-screen bg-adm-surface-app">
       <ProfessionalSidebar />
-      <div className="flex flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
         <DashboardHeader heading="Panel profesional" variant="professional" />
         <main className="flex-1 p-[26px]">
           <Outlet />

@@ -4,7 +4,12 @@ import SectionTitle from '../../components/common/SectionTitle';
 import AppointmentStatus from '../../components/appointments/AppointmentStatus';
 import EmptyState from '../../components/common/EmptyState';
 import Spinner from '../../components/common/Spinner';
-import { useAllAppointments } from '../../hooks/useAppointments';
+import AppointmentActionButtons from '../../components/appointments/AppointmentActionButtons';
+import { useAuth } from '../../hooks/useAuth';
+import { useMyAppointments } from '../../hooks/useAppointments';
+import { useAppointmentStatusAction } from '../../hooks/useAppointmentStatusAction';
+import { ACTION_TARGET_STATUS, type AppointmentAction } from '../../utils/appointmentActions';
+import type { Appointment } from '../../types/Appointment';
 import { useAllPatients } from '../../hooks/usePatients';
 import { formatFullName } from '../../utils/format';
 import { getTodayIsoDate } from '../../utils/date';
@@ -28,7 +33,16 @@ const statusBarClasses: Record<string, string> = {
 };
 
 function DashboardPage() {
-  const { appointments, isLoading: isLoadingAppointments } = useAllAppointments();
+  const { user } = useAuth();
+  const role = user?.role ?? 'especialista';
+  const { appointments, isLoading: isLoadingAppointments, refetch } = useMyAppointments(user?.id);
+  const statusAction = useAppointmentStatusAction(refetch);
+
+  const handleAction = (appointment: Appointment, action: AppointmentAction) => {
+    if (action !== 'reschedule') {
+      void statusAction.run(appointment, ACTION_TARGET_STATUS[action]);
+    }
+  };
   const { patients, isLoading: isLoadingPatients } = useAllPatients();
   const isLoading = isLoadingAppointments || isLoadingPatients;
 
@@ -81,6 +95,14 @@ function DashboardPage() {
 
       <div>
         <SectionTitle title="Agenda de hoy" align="left" />
+        {statusAction.error && (
+          <p
+            role="alert"
+            className="mt-4 rounded-[10px] border border-adm-status-cancelled-border bg-adm-status-cancelled-bg px-3.5 py-2.5 text-sm font-medium text-adm-danger-text"
+          >
+            {statusAction.error}
+          </p>
+        )}
         <div className="mt-4 rounded-[14px] border border-adm-line-card bg-white">
           {todayAppointments.length === 0 ? (
             <div className="p-6">
@@ -101,9 +123,12 @@ function DashboardPage() {
                   <span className="text-[13px] text-adm-ink-400">{appointment.reason || 'Consulta'}</span>
                 </div>
                 <AppointmentStatus status={appointment.status} theme="admin" />
-                <button type="button" className="h-[30px] px-2 text-sm font-medium text-adm-accent-deep hover:underline">
-                  Abrir
-                </button>
+                <AppointmentActionButtons
+                  appointment={appointment}
+                  role={role}
+                  busy={statusAction.pendingId === appointment.id}
+                  onAction={handleAction}
+                />
               </div>
             ))
           )}

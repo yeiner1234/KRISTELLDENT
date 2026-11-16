@@ -1,6 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Appointment } from '../../types/Appointment';
+import { addDaysToIsoDate, getAgendaWeekStart, getTodayIsoDate } from '../../utils/date';
 
 interface AgendaGridProps {
   appointments: Appointment[];
@@ -22,35 +23,19 @@ const statusStyles: Record<Appointment['status'], { bg: string; text: string; so
   completed: { bg: 'bg-adm-status-completed-bg', text: 'text-adm-status-completed-text', solid: 'border-adm-status-completed-solid' },
 };
 
-function toIsoDate(date: Date): string {
-  return date.toISOString().split('T')[0];
-}
-
-function mondayOf(date: Date): Date {
-  const day = date.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  const monday = new Date(date);
-  monday.setDate(date.getDate() + diff);
-  monday.setHours(0, 0, 0, 0);
-  return monday;
+function toLocalDate(isoDate: string): Date {
+  return new Date(`${isoDate}T00:00:00`);
 }
 
 function AgendaGrid({ appointments, resolveTitle, resolveSubtitle, headerRight, onSelect }: AgendaGridProps) {
-  const [weekStart, setWeekStart] = useState(() => mondayOf(new Date()));
+  const today = getTodayIsoDate();
+  const [weekStart, setWeekStart] = useState(() => getAgendaWeekStart(today));
 
-  const days = useMemo(
-    () =>
-      Array.from({ length: 6 }, (_, index) => {
-        const date = new Date(weekStart);
-        date.setDate(weekStart.getDate() + index);
-        return date;
-      }),
-    [weekStart],
-  );
+  const days = useMemo(() => Array.from({ length: 6 }, (_, index) => addDaysToIsoDate(weekStart, index)), [weekStart]);
 
   const hours = useMemo(() => Array.from({ length: HOUR_END - HOUR_START }, (_, index) => HOUR_START + index), []);
 
-  const weekLabel = `${days[0].toLocaleDateString('es-PE', { day: 'numeric', month: 'short' })} – ${days[5].toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+  const weekLabel = `${toLocalDate(days[0]).toLocaleDateString('es-PE', { day: 'numeric', month: 'short' })} – ${toLocalDate(days[5]).toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' })}`;
 
   const appointmentsByCell = useMemo(() => {
     const map = new Map<string, Appointment[]>();
@@ -71,7 +56,7 @@ function AgendaGrid({ appointments, resolveTitle, resolveSubtitle, headerRight, 
           <button
             type="button"
             aria-label="Semana anterior"
-            onClick={() => setWeekStart((current) => new Date(current.getFullYear(), current.getMonth(), current.getDate() - 7))}
+            onClick={() => setWeekStart((current) => addDaysToIsoDate(current, -7))}
             className="flex h-8 w-8 items-center justify-center rounded-lg border border-adm-line-control text-adm-ink-400 transition-colors hover:bg-adm-surface-hover"
           >
             <ChevronLeft size={16} />
@@ -80,7 +65,7 @@ function AgendaGrid({ appointments, resolveTitle, resolveSubtitle, headerRight, 
           <button
             type="button"
             aria-label="Semana siguiente"
-            onClick={() => setWeekStart((current) => new Date(current.getFullYear(), current.getMonth(), current.getDate() + 7))}
+            onClick={() => setWeekStart((current) => addDaysToIsoDate(current, 7))}
             className="flex h-8 w-8 items-center justify-center rounded-lg border border-adm-line-control text-adm-ink-400 transition-colors hover:bg-adm-surface-hover"
           >
             <ChevronRight size={16} />
@@ -93,9 +78,12 @@ function AgendaGrid({ appointments, resolveTitle, resolveSubtitle, headerRight, 
         <div className="min-w-[840px]" style={{ display: 'grid', gridTemplateColumns: `64px repeat(6, minmax(130px, 1fr))` }}>
           <div />
           {days.map((date, index) => (
-            <div key={toIsoDate(date)} className="border-b border-l border-adm-line-div px-2.5 py-3 text-center">
+            <div
+              key={date}
+              className={`border-b border-l border-adm-line-div px-2.5 py-3 text-center ${date === today ? 'bg-adm-surface-hover' : ''}`}
+            >
               <p className="text-[11px] uppercase tracking-[0.06em] text-adm-ink-300">{dayLabels[index]}</p>
-              <p className="text-[15px] font-semibold text-adm-ink-700 [font-variant-numeric:tabular-nums]">{date.getDate()}</p>
+              <p className="text-[15px] font-semibold text-adm-ink-700 [font-variant-numeric:tabular-nums]">{Number(date.slice(8, 10))}</p>
             </div>
           ))}
 
@@ -105,7 +93,7 @@ function AgendaGrid({ appointments, resolveTitle, resolveSubtitle, headerRight, 
                 {String(hour).padStart(2, '0')}:00
               </div>
               {days.map((date) => {
-                const key = `${toIsoDate(date)}-${hour}`;
+                const key = `${date}-${hour}`;
                 const cellAppointments = appointmentsByCell.get(key) ?? [];
                 return (
                   <div key={key} className="min-h-[62px] border-b border-adm-line-faint p-[3px]">

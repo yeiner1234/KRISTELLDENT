@@ -1,74 +1,50 @@
 import { useMemo, useState } from 'react';
+import { CalendarX2 } from 'lucide-react';
 import SectionTitle from '../../components/common/SectionTitle';
+import EmptyState from '../../components/common/EmptyState';
+import Spinner from '../../components/common/Spinner';
 import AgendaGrid from '../../components/dashboard/AgendaGrid';
 import AppointmentModal from '../../components/appointments/AppointmentModal';
+import AppointmentFiltersBar from '../../components/appointments/AppointmentFiltersBar';
 import RescheduleAppointmentModal from '../../components/appointments/RescheduleAppointmentModal';
-import ProfessionalSelector from '../../components/professionals/ProfessionalSelector';
-import Spinner from '../../components/common/Spinner';
+import { useAuth } from '../../hooks/useAuth';
 import { useAllAppointments } from '../../hooks/useAppointments';
+import { useAppointmentDetail } from '../../hooks/useAppointmentDetail';
 import { useAllPatients } from '../../hooks/usePatients';
-import { useProfessionals } from '../../hooks/useProfessionals';
-import { useServices } from '../../hooks/useServices';
-import { setAppointmentStatus } from '../../services/appointmentService';
-import { formatFullName } from '../../utils/format';
-import type { Appointment } from '../../types/Appointment';
+import { useAdminProfessionals } from '../../hooks/useAdminProfessionals';
+import { useAdminServices } from '../../hooks/useAdminServices';
+import { useAdminBranches } from '../../hooks/useAdminBranches';
+import { buildAppointmentViews, filterAppointmentViews, type AppointmentFilters } from '../../utils/appointmentViews';
 
 function AgendaPage() {
-  const { appointments, isLoading: isLoadingAppointments, refetch } = useAllAppointments();
+  const { user } = useAuth();
+  const role = user?.role ?? 'admin_sede';
+  const isAdminGlobal = role === 'admin_global';
+
+  const { appointments, isLoading: isLoadingAppointments, error: appointmentsError, refetch } = useAllAppointments();
   const { patients, isLoading: isLoadingPatients } = useAllPatients();
-  const { professionals, isLoading: isLoadingProfessionals } = useProfessionals();
-  const { services } = useServices();
-  const [professionalId, setProfessionalId] = useState('');
-  const [selected, setSelected] = useState<Appointment | null>(null);
-  const [rescheduling, setRescheduling] = useState<Appointment | null>(null);
-  const [isCancelling, setIsCancelling] = useState(false);
-  const [isConfirming, setIsConfirming] = useState(false);
+  const { professionals, isLoading: isLoadingProfessionals } = useAdminProfessionals();
+  const { services } = useAdminServices();
+  const { branches } = useAdminBranches();
+  // La semana de la grilla hace de filtro de fecha.
+  const [filters, setFilters] = useState<AppointmentFilters>({
+    date: '',
+    professionalId: '',
+    status: '',
+    branchId: '',
+    query: '',
+  });
+  const { selected, open, close, rescheduling, closeReschedule, handleAction, statusAction } = useAppointmentDetail(refetch);
   const isLoading = isLoadingAppointments || isLoadingPatients || isLoadingProfessionals;
 
-  const handleCancel = async (appointment: Appointment) => {
-    setIsCancelling(true);
-    try {
-      await setAppointmentStatus(appointment.id, 'cancelled');
-      setSelected(null);
-      refetch();
-    } finally {
-      setIsCancelling(false);
-    }
-  };
-
-  const handleConfirm = async (appointment: Appointment) => {
-    setIsConfirming(true);
-    try {
-      await setAppointmentStatus(appointment.id, 'confirmed');
-      setSelected(null);
-      refetch();
-    } finally {
-      setIsConfirming(false);
-    }
-  };
-
-  const handleReschedule = (appointment: Appointment) => {
-    setSelected(null);
-    setRescheduling(appointment);
-  };
-
-  const rescheduledService = services.find((item) => item.id === rescheduling?.serviceId);
-
-  const filteredAppointments = useMemo(
-    () =>
-      professionalId ? appointments.filter((appointment) => appointment.professionalId === professionalId) : appointments,
-    [professionalId, appointments],
+  const namedProfessionals = useMemo(() => professionals.filter((professional) => professional.fullName), [professionals]);
+  const views = useMemo(
+    () => buildAppointmentViews(appointments, { patients, professionals, services }),
+    [appointments, patients, professionals, services],
   );
-
-  const professionalName = (id: string) => {
-    const professional = professionals.find((item) => item.id === id);
-    return professional?.fullName;
-  };
-
-  const patientName = (id: string) => {
-    const patient = patients.find((item) => item.id === id);
-    return patient ? formatFullName(patient.firstName, patient.lastName) : 'Paciente';
-  };
+  const filteredViews = useMemo(() => filterAppointmentViews(views, filters), [views, filters]);
+  const viewById = useMemo(() => new Map(views.map((view) => [view.appointment.id, view])), [views]);
+  const selectedView = selected ? viewById.get(selected.id) : undefined;
 
   if (isLoading) {
     return (
@@ -82,35 +58,37 @@ function AgendaPage() {
     <div className="flex flex-col gap-6">
       <SectionTitle title="Agenda general" align="left" />
 
-      <AgendaGrid
-        appointments={filteredAppointments}
-        resolveTitle={(appointment) => patientName(appointment.patientId)}
-        resolveSubtitle={(appointment) => professionalName(appointment.professionalId) ?? appointment.reason}
-        onSelect={setSelected}
-        headerRight={
-          <div className="w-full max-w-[220px]">
-            <ProfessionalSelector professionals={professionals} value={professionalId} onChange={setProfessionalId} hideLabel />
-          </div>
-        }
+      <AppointmentFiltersBar
+        filters={filters}
+        onChange={setFilters}
+        professionals={namedProfessionals}
+        branches={isAdminGlobal ? branches : undefined}
+        showDate={false}
       />
+
+      {appointmentsError ? (
+        <EmptyState icon={CalendarX2} title="No se pudieron cargar las citas" description={appointmentsError} />
+      ) : (
+        <AgendaGrid
+          appointments={filteredViews.map((view) => view.appointment)}
+          resolveTitle={(appointment) => viewById.get(appointment.id)?.patientName ?? 'Paciente'}
+          resolveSubtitle={(appointment) => viewById.get(appointment.id)?.professionalName ?? ''}
+          onSelect={open}
+        />
+      )}
 
       <AppointmentModal
         appointment={selected}
-        professionalName={selected ? professionalName(selected.professionalId) : undefined}
-        onClose={() => setSelected(null)}
-        onCancel={handleCancel}
-        onConfirm={handleConfirm}
-        onReschedule={handleReschedule}
-        isCancelling={isCancelling}
-        isConfirming={isConfirming}
+        role={role}
+        professionalName={selectedView?.professionalName}
+        patientLabel={selectedView ? `${selectedView.patientName} · DNI ${selectedView.patientDni}` : undefined}
+        onClose={close}
+        onAction={handleAction}
+        busy={statusAction.pendingId !== null}
+        error={statusAction.error}
       />
 
-      <RescheduleAppointmentModal
-        appointment={rescheduling}
-        service={rescheduledService}
-        onClose={() => setRescheduling(null)}
-        onRescheduled={refetch}
-      />
+      <RescheduleAppointmentModal appointment={rescheduling} onClose={closeReschedule} onRescheduled={refetch} />
     </div>
   );
 }
