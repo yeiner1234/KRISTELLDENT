@@ -27,6 +27,7 @@ import {
 } from '../../services/professionalScheduleService';
 import { getBranchScheduleForAdmin, type BranchScheduleEntry } from '../../services/branchScheduleService';
 import { DAY_LABELS, rangesOutsideBranchHours, validateWeeklySchedule } from '../../utils/scheduleValidation';
+import { activeBranchesOf } from '../../utils/professionalBranches';
 import type { Professional } from '../../types/Professional';
 
 interface FormState {
@@ -235,7 +236,8 @@ function ProfessionalsPage() {
   };
 
   const openScheduleModal = (professional: Professional) => {
-    const firstBranch = professional.branchIds[0] ?? '';
+    // Abre en la primera sede activa: una inactiva no ofrece horarios.
+    const firstBranch = activeBranchesOf(professional.branchIds, branches)[0]?.id ?? '';
     setScheduleProfessional(professional);
     setScheduleTab('weekly');
     setScheduleError(null);
@@ -386,7 +388,11 @@ function ProfessionalsPage() {
                   variant="admin"
                   agendaHref="/admin/agenda"
                   onEdit={() => openEditModal(professional)}
-                  onSchedule={professional.branchIds.length > 0 ? () => openScheduleModal(professional) : undefined}
+                  onSchedule={
+                    activeBranchesOf(professional.branchIds, branches).length > 0
+                      ? () => openScheduleModal(professional)
+                      : undefined
+                  }
                 />
                 <Button
                   type="button"
@@ -618,9 +624,7 @@ function ProfessionalsPage() {
           <ScheduleExceptionsPanel
             mode="professional"
             professionalId={scheduleProfessional.id}
-            branches={branches
-              .filter((branch) => scheduleProfessional.branchIds.includes(branch.id))
-              .map((branch) => ({ id: branch.id, name: branch.name }))}
+            branches={activeBranchesOf(scheduleProfessional.branchIds, branches)}
           />
         )}
 
@@ -636,9 +640,10 @@ function ProfessionalsPage() {
               label="Sede"
               value={scheduleBranchId}
               onChange={(event) => handleScheduleBranchChange(event.target.value)}
-              options={branches
-                .filter((branch) => scheduleProfessional.branchIds.includes(branch.id))
-                .map((branch) => ({ value: branch.id, label: branch.name }))}
+              options={activeBranchesOf(scheduleProfessional.branchIds, branches).map((branch) => ({
+                value: branch.id,
+                label: branch.name,
+              }))}
             />
 
             {isLoadingSchedule ? (

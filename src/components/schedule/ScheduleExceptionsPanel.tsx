@@ -154,7 +154,7 @@ function ScheduleExceptionsPanel(props: ScheduleExceptionsPanelProps) {
                   <span className="text-sm font-medium capitalize text-adm-ink-700">{formatDateLong(item.date)}</span>
                   <span className="text-[13px] text-adm-ink-400">
                     {item.startTime && item.endTime ? `${item.startTime} – ${item.endTime}` : 'Todo el día'}
-                    {isProfessional ? ` · ${branchName(item.branchId) ?? 'Todas sus sedes'}` : ''}
+                    {isProfessional ? ` · ${item.branchId ? (branchName(item.branchId) ?? 'Sede inactiva') : 'Todas sus sedes'}` : ''}
                     {item.reason ? ` · ${item.reason}` : ''}
                   </span>
                   {isProfessional && (
