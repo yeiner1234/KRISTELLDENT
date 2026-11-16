@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import { useAuth } from '../../hooks/useAuth';
+import { homePathForRole } from '../../utils/roleHome';
 import icon from '../../../imagenes/kristelldent-icon.png';
 
 function LoginPage() {
@@ -21,8 +22,7 @@ function LoginPage() {
 
     try {
       const user = await login({ email, password });
-      const isAdmin = user.role === 'admin_global' || user.role === 'admin_sede';
-      navigate(isAdmin ? '/admin' : '/profesional');
+      navigate(homePathForRole(user.role));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo iniciar sesión.');
     } finally {

@@ -12,6 +12,7 @@ import {
 } from '../../lib/supabase';
 import { getCurrentUser } from '../../services/authService';
 import { isValidPassword } from '../../utils/validation';
+import { homePathForRole } from '../../utils/roleHome';
 import icon from '../../../imagenes/kristelldent-icon.png';
 
 function describeUpdatePasswordError(message: string): string {
@@ -101,8 +102,7 @@ function UpdatePasswordPage() {
       clearPasswordRecoveryFlow();
 
       const user = await getCurrentUser();
-      const isAdmin = user?.role === 'admin_global' || user?.role === 'admin_sede';
-      navigate(isAdmin ? '/admin' : user ? '/profesional' : '/login');
+      navigate(user ? homePathForRole(user.role) : '/login');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo actualizar la contraseña.');
     } finally {

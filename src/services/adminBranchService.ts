@@ -117,3 +117,37 @@ export async function setBranchActive(id: string, active: boolean): Promise<Bran
 
   return mapRow(data);
 }
+
+// Sedes que el usuario actual puede asignar o quitar: null = todas (admin_global).
+export async function getManageableBranchIds(): Promise<string[] | null> {
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !authData.user) {
+    throw new Error(authError?.message ?? 'No hay una sesión activa.');
+  }
+
+  const userId = authData.user.id;
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (profileError) {
+    throw new Error(profileError.message);
+  }
+  if (profile?.role === 'admin_global') {
+    return null;
+  }
+
+  const { data: access, error: accessError } = await supabase
+    .from('user_branch_access')
+    .select('branch_id')
+    .eq('user_id', userId);
+
+  if (accessError) {
+    throw new Error(accessError.message);
+  }
+
+  return ((access ?? []) as { branch_id: string }[]).map((row) => row.branch_id);
+}
