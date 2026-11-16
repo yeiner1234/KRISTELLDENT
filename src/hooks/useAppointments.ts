@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Appointment } from '../types/Appointment';
 import { getAllAppointments } from '../services/appointmentService';
 
@@ -42,4 +42,15 @@ export function useAllAppointments(): UseAllAppointmentsResult {
   const refetch = useCallback(() => setReloadKey((key) => key + 1), []);
 
   return { appointments, isLoading, error, refetch };
+}
+
+// Citas de la profesional con sesión. La RLS ya limita la lectura; este filtro
+// lo asegura también en la pantalla (criterio 2 de HU12).
+export function useMyAppointments(professionalId: string | undefined): UseAllAppointmentsResult {
+  const result = useAllAppointments();
+  const appointments = useMemo(
+    () => result.appointments.filter((appointment) => appointment.professionalId === professionalId),
+    [result.appointments, professionalId],
+  );
+  return { ...result, appointments };
 }

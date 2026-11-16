@@ -6,6 +6,7 @@ import ProfessionalLayout from '../layouts/ProfessionalLayout';
 
 import ProtectedRoute from './ProtectedRoute';
 import RoleRoute from './RoleRoute';
+import { PROFESSIONAL_ROLES } from '../services/professionalService';
 
 import HomePage from '../pages/public/HomePage';
 import BookingPage from '../pages/public/BookingPage';
@@ -30,7 +31,7 @@ import AdminSpecialtiesPage from '../pages/admin/SpecialtiesPage';
 import AdminServicesPage from '../pages/admin/ServicesPage';
 import AdminSettingsPage from '../pages/admin/SettingsPage';
 
-import ProfessionalDashboardPage from '../pages/professional/DashboardPage';
+import ProfessionalHomePage from '../pages/professional/HomePage';
 import ProfessionalMyAgendaPage from '../pages/professional/MyAgendaPage';
 import ProfessionalMyPatientsPage from '../pages/professional/MyPatientsPage';
 import ProfessionalMyAppointmentsPage from '../pages/professional/MyAppointmentsPage';
@@ -73,10 +74,13 @@ function AppRouter() {
 
           <Route element={<RoleRoute allowedRoles={['especialista', 'odontologa_general', 'tecnica']} />}>
             <Route path="/profesional" element={<ProfessionalLayout />}>
-              <Route index element={<ProfessionalDashboardPage />} />
-              <Route path="agenda" element={<ProfessionalMyAgendaPage />} />
-              <Route path="pacientes" element={<ProfessionalMyPatientsPage />} />
-              <Route path="citas" element={<ProfessionalMyAppointmentsPage />} />
+              <Route index element={<ProfessionalHomePage />} />
+              {/* La técnica solo tiene "Citas de hoy": si entra aquí, vuelve a /profesional. */}
+              <Route element={<RoleRoute allowedRoles={PROFESSIONAL_ROLES} />}>
+                <Route path="agenda" element={<ProfessionalMyAgendaPage />} />
+                <Route path="pacientes" element={<ProfessionalMyPatientsPage />} />
+                <Route path="citas" element={<ProfessionalMyAppointmentsPage />} />
+              </Route>
             </Route>
           </Route>
         </Route>
