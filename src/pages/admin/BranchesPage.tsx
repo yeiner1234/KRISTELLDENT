@@ -96,6 +96,12 @@ function BranchesPage() {
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setFormError(null);
+
+    if (!form.region?.trim()) {
+      setFormError('Ingresa la región o ciudad de la sede.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     const input: BranchInput = {
@@ -318,11 +324,12 @@ function BranchesPage() {
             required
           />
           <Input
-            label="Región / ciudad (opcional)"
+            label="Región / ciudad"
             name="region"
             variant="admin"
             value={form.region ?? ''}
             onChange={(event) => setForm((current) => ({ ...current, region: event.target.value }))}
+            required
           />
           <Input
             label="Teléfono (opcional)"
