@@ -5,11 +5,14 @@ import EmptyState from '../../components/common/EmptyState';
 import Spinner from '../../components/common/Spinner';
 import AppointmentStatus from '../../components/appointments/AppointmentStatus';
 import AppointmentActionButtons from '../../components/appointments/AppointmentActionButtons';
+import BranchTag from '../../components/appointments/BranchTag';
 import { useAuth } from '../../hooks/useAuth';
 import { useMyAppointments } from '../../hooks/useAppointments';
 import { useAppointmentStatusAction } from '../../hooks/useAppointmentStatusAction';
 import { useAllPatients } from '../../hooks/usePatients';
 import { useServices } from '../../hooks/useServices';
+import { usePanelBranch } from '../../hooks/usePanelBranch';
+import { filterByPanelBranch } from '../../utils/panelBranch';
 import { ACTION_TARGET_STATUS, type AppointmentAction } from '../../utils/appointmentActions';
 import { buildAppointmentViews } from '../../utils/appointmentViews';
 import { formatDateLong, formatTimeRange } from '../../utils/date';
@@ -24,11 +27,17 @@ function MyAppointmentsPage() {
   const error = appointmentsError ?? patientsError ?? servicesError;
   const statusAction = useAppointmentStatusAction(refetch);
   const isLoading = isLoadingAppointments || isLoadingPatients;
+  const { selectedBranchId } = usePanelBranch();
 
-  // Las más recientes primero.
+  // Las más recientes primero, de la sede elegida arriba.
   const views = useMemo(
-    () => buildAppointmentViews(appointments, { patients, professionals: [], services }).reverse(),
-    [appointments, patients, services],
+    () =>
+      buildAppointmentViews(filterByPanelBranch(appointments, selectedBranchId), {
+        patients,
+        professionals: [],
+        services,
+      }).reverse(),
+    [appointments, selectedBranchId, patients, services],
   );
 
   const handleAction = (appointment: Appointment, action: AppointmentAction) => {
@@ -82,6 +91,7 @@ function MyAppointmentsPage() {
                 <span className="text-sm font-medium text-adm-ink-700">{view.patientName}</span>
                 <span className="text-[13px] text-adm-ink-400">{view.serviceName}</span>
               </div>
+              <BranchTag branchId={view.appointment.branchId} />
               <AppointmentStatus status={view.appointment.status} theme="admin" />
               <AppointmentActionButtons
                 appointment={view.appointment}

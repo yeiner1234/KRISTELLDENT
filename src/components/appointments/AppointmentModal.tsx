@@ -13,6 +13,7 @@ interface AppointmentModalProps {
   role: AppRole;
   professionalName?: string;
   patientLabel?: string;
+  branchName?: string;
   onClose: () => void;
   onAction: (appointment: Appointment, action: AppointmentAction) => void;
   busy?: boolean;
@@ -33,6 +34,7 @@ function AppointmentModal({
   role,
   professionalName,
   patientLabel,
+  branchName,
   onClose,
   onAction,
   busy,
@@ -68,6 +70,7 @@ function AppointmentModal({
           <Row label="Código" value={appointment.code} />
           {patientLabel && <Row label="Paciente" value={patientLabel} />}
           <Row label="Profesional" value={professionalName || '—'} />
+          {branchName && <Row label="Sede" value={branchName} />}
           <Row label="Fecha" value={<span className="capitalize">{formatDateLong(appointment.date)}</span>} />
           <Row label="Hora" value={formatTimeRange(appointment.startTime, appointment.endTime)} />
           {appointment.reason && (

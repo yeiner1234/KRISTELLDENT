@@ -13,6 +13,7 @@ import { useServices } from '../../hooks/useServices';
 import { useBranches } from '../../hooks/useBranches';
 import { useManageableBranchIds } from '../../hooks/useManageableBranchIds';
 import { useBranchWeeklyHours } from '../../hooks/useBranchWeeklyHours';
+import { usePanelBranch } from '../../hooks/usePanelBranch';
 import { getTodayIsoDate } from '../../utils/date';
 import {
   AGENDA_SHIFT_OPTIONS,
@@ -62,7 +63,11 @@ function AgendaReportPage() {
     () => (manageableIds === null ? branches : branches.filter((branch) => manageableIds.includes(branch.id))),
     [branches, manageableIds],
   );
-  const branch = allowedBranches.find((item) => item.id === selectedBranchId) ?? allowedBranches[0];
+  // En el panel profesional, la sede de la hoja es la del selector del panel
+  // (con "Todas mis sedes", la primera). En /admin la elige aquí.
+  const panel = usePanelBranch();
+  const branchChoice = panel.inPanel ? panel.selectedBranchId : selectedBranchId;
+  const branch = allowedBranches.find((item) => item.id === branchChoice) ?? allowedBranches[0];
   const branchId = branch?.id ?? '';
   const { hours, error: hoursError } = useBranchWeeklyHours(branchId);
 
@@ -128,7 +133,11 @@ function AgendaReportPage() {
           label="Sede"
           value={branchId}
           onChange={(event) => {
-            setSelectedBranchId(event.target.value);
+            if (panel.inPanel) {
+              panel.setSelectedBranchId(event.target.value);
+            } else {
+              setSelectedBranchId(event.target.value);
+            }
             setProfessionalId('');
           }}
           options={allowedBranches.map((item) => ({ value: item.id, label: item.name }))}
