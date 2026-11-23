@@ -11,7 +11,8 @@ import StatusBadge from '../../components/common/StatusBadge';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeamMembers } from '../../hooks/useTeamMembers';
 import { useAdminBranches } from '../../hooks/useAdminBranches';
-import { inviteInternalUser, setProfileActive } from '../../services/teamService';
+import { EMAIL_TAKEN_MESSAGE, inviteInternalUser, setProfileActive } from '../../services/teamService';
+import { PROFESSIONAL_ROLES } from '../../services/professionalService';
 import type { AppRole } from '../../types/User';
 
 const roleLabels: Record<AppRole, string> = {
@@ -72,6 +73,15 @@ function TeamPage() {
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setFormError(null);
+
+    // Una persona = una cuenta. La Edge Function lo revisa también (aquí solo
+    // se ven los correos que la RLS deja leer).
+    const email = form.email.trim().toLowerCase();
+    if (members.some((member) => member.email.toLowerCase() === email)) {
+      setFormError(EMAIL_TAKEN_MESSAGE);
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -152,8 +162,17 @@ function TeamPage() {
                 <StatusBadge label={member.active ? 'Activo' : 'Inactivo'} tone={member.active ? 'adm-active' : 'adm-inactive'} />
               </div>
 
-              {member.branchNames.length > 0 && (
-                <p className="text-[13px] text-adm-ink-400">{member.branchNames.join(', ')}</p>
+              {member.branchesFromProfessionals ? (
+                <div className="flex flex-col gap-0.5">
+                  <p className="text-[13px] text-adm-ink-400">
+                    {member.branchNames.length > 0 ? member.branchNames.join(', ') : 'Sin sedes todavía'}
+                  </p>
+                  <p className="text-[12px] italic text-adm-ink-300">Se asignan en Profesionales</p>
+                </div>
+              ) : (
+                member.branchNames.length > 0 && (
+                  <p className="text-[13px] text-adm-ink-400">{member.branchNames.join(', ')}</p>
+                )
               )}
 
               {isAdminGlobal && member.id !== user?.id && (
@@ -223,7 +242,14 @@ function TeamPage() {
 
           {needsBranches && (
             <div className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium text-adm-ink-700">Sedes asignadas</span>
+              <span className="text-sm font-medium text-adm-ink-700">
+                {PROFESSIONAL_ROLES.includes(form.role) ? 'Sede inicial' : 'Sedes asignadas'}
+              </span>
+              {PROFESSIONAL_ROLES.includes(form.role) && (
+                <p className="text-xs leading-relaxed text-adm-ink-400">
+                  Después, las sedes donde atiende se asignan en Profesionales.
+                </p>
+              )}
               {isLoadingBranches ? (
                 <Spinner size={20} />
               ) : branchesError ? (
