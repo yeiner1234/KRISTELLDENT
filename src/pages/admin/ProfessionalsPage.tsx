@@ -14,6 +14,7 @@ import { useAdminProfessionals } from '../../hooks/useAdminProfessionals';
 import { useAdminSpecialties } from '../../hooks/useAdminSpecialties';
 import { useAdminBranches } from '../../hooks/useAdminBranches';
 import { useAdminServices } from '../../hooks/useAdminServices';
+import { useManageableBranchIds } from '../../hooks/useManageableBranchIds';
 import {
   createProfessional,
   getEligibleProfilesForProfessional,
@@ -72,6 +73,10 @@ function ProfessionalsPage() {
   const { specialties, isLoading: isLoadingSpecialties, error: specialtiesError } = useAdminSpecialties();
   const { branches, isLoading: isLoadingBranches, error: branchesError } = useAdminBranches();
   const { services, isLoading: isLoadingServices, error: servicesError } = useAdminServices();
+  // null = admin_global. Un admin_sede ve el horario de todas las sedes de la
+  // profesional (es público), pero solo guarda en las suyas.
+  const { branchIds: manageableBranchIds } = useManageableBranchIds();
+  const canManageBranch = (branchId: string) => manageableBranchIds === null || manageableBranchIds.includes(branchId);
   const error = professionalsError ?? specialtiesError ?? branchesError ?? servicesError;
   const [query, setQuery] = useState('');
   const [specialtyFilter, setSpecialtyFilter] = useState('');
@@ -261,8 +266,11 @@ function ProfessionalsPage() {
   };
 
   const openScheduleModal = (professional: Professional) => {
-    // Abre en la primera sede activa: una inactiva no ofrece horarios.
-    const firstBranch = activeBranchesOf(professional.branchIds, branches)[0]?.id ?? '';
+    // Abre en la primera sede activa que el usuario administra (una inactiva
+    // no ofrece horarios); si no administra ninguna, en la primera activa.
+    const activeOfProfessional = activeBranchesOf(professional.branchIds, branches);
+    const firstBranch =
+      activeOfProfessional.find((branch) => canManageBranch(branch.id))?.id ?? activeOfProfessional[0]?.id ?? '';
     setScheduleProfessional(professional);
     setScheduleTab('weekly');
     setScheduleError(null);
@@ -634,7 +642,13 @@ function ProfessionalsPage() {
                 type="submit"
                 form="horario-profesional-form"
                 variant="admin-solid"
-                disabled={isSavingSchedule || isLoadingSchedule || scheduleLoadFailed || !scheduleBranchId}
+                disabled={
+                  isSavingSchedule ||
+                  isLoadingSchedule ||
+                  scheduleLoadFailed ||
+                  !scheduleBranchId ||
+                  !canManageBranch(scheduleBranchId)
+                }
               >
                 {isSavingSchedule ? 'Guardando…' : 'Guardar horario'}
               </Button>
@@ -686,9 +700,16 @@ function ProfessionalsPage() {
               onChange={(event) => handleScheduleBranchChange(event.target.value)}
               options={activeBranchesOf(scheduleProfessional.branchIds, branches).map((branch) => ({
                 value: branch.id,
-                label: branch.name,
+                label: canManageBranch(branch.id) ? branch.name : `${branch.name} (solo lectura)`,
               }))}
             />
+
+            {scheduleBranchId && !canManageBranch(scheduleBranchId) && (
+              <p className="rounded-[10px] border border-adm-line-field bg-adm-surface-input px-3.5 py-2.5 text-sm text-adm-ink-400">
+                No administras esta sede: puedes ver el horario, pero solo lo cambia su administrador o el administrador
+                general.
+              </p>
+            )}
 
             {isLoadingSchedule ? (
               <div className="flex justify-center py-8">

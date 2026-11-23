@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -15,9 +15,12 @@ const anali: Professional = {
   bio: null,
   active: true,
   specialtyIds: ['endo'],
-  branchIds: ['bagua', 'chacha'],
+  branchIds: ['bagua', 'chacha', 'jaen'],
   serviceIds: [],
 };
+
+// null = admin_global (todas las sedes); una lista = admin_sede.
+const access = vi.hoisted(() => ({ branchIds: null as string[] | null }));
 
 // Solo en Bagua (inactiva): no tiene botón Horario.
 const bea: Professional = { ...anali, id: 'bea', fullName: 'Bea', branchIds: ['bagua'] };
@@ -49,11 +52,14 @@ vi.mock('../../hooks/useAdminServices', () => ({
 }));
 vi.mock('../../hooks/useAdminBranches', () => ({
   useAdminBranches: () => ({
-    branches: [branch('bagua', 'Bagua', false), branch('chacha', 'Chachapoyas', true)],
+    branches: [branch('bagua', 'Bagua', false), branch('chacha', 'Chachapoyas', true), branch('jaen', 'Jaén', true)],
     isLoading: false,
     error: null,
     refetch: vi.fn(),
   }),
+}));
+vi.mock('../../hooks/useManageableBranchIds', () => ({
+  useManageableBranchIds: () => ({ branchIds: access.branchIds, isLoading: false, error: null }),
 }));
 vi.mock('../../services/professionalScheduleService', () => ({
   getProfessionalScheduleForAdmin: vi.fn(),
@@ -95,7 +101,7 @@ describe('ProfessionalsPage — modal Horario', () => {
     const { dialog } = await openSchedule();
 
     const select = within(dialog).getByLabelText('Sede');
-    expect(within(select).getAllByRole('option').map((option) => option.textContent)).toEqual(['Chachapoyas']);
+    expect(within(select).getAllByRole('option').map((option) => option.textContent)).toEqual(['Chachapoyas', 'Jaén']);
     expect(getProfessionalScheduleForAdmin).toHaveBeenCalledWith('anali', 'chacha');
   });
 
@@ -145,6 +151,37 @@ describe('ProfessionalsPage — horario dentro del de la sede', () => {
   });
 });
 
+describe('ProfessionalsPage — horario para admin_sede', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    Element.prototype.scrollIntoView = vi.fn();
+    vi.mocked(getProfessionalScheduleForAdmin).mockResolvedValue([{ dayOfWeek: 1, startTime: '09:00', endTime: '13:00' }]);
+    vi.mocked(getBranchScheduleForAdmin).mockResolvedValue([]);
+    access.branchIds = ['jaen'];
+  });
+
+  afterEach(() => {
+    access.branchIds = null;
+  });
+
+  it('abre en su sede y muestra las demás en solo lectura', async () => {
+    const { user, dialog } = await openSchedule();
+
+    expect(getProfessionalScheduleForAdmin).toHaveBeenCalledWith('anali', 'jaen');
+    const select = within(dialog).getByLabelText('Sede');
+    expect(within(select).getAllByRole('option').map((option) => option.textContent)).toEqual([
+      'Chachapoyas (solo lectura)',
+      'Jaén',
+    ]);
+    expect(screen.getByRole('button', { name: 'Guardar horario' })).toBeEnabled();
+
+    await user.selectOptions(select, 'chacha');
+
+    expect(await within(dialog).findByText(/No administras esta sede/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Guardar horario' })).toBeDisabled();
+  });
+});
+
 describe('ProfessionalsPage — formulario', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -166,8 +203,9 @@ describe('ProfessionalsPage — formulario', () => {
   it('no guarda un especialista sin sede activa', async () => {
     const { user, dialog } = await openEdit();
 
-    // Bagua está inactiva: quitar Chachapoyas deja al especialista sin sede activa.
+    // Bagua está inactiva: quitar Chachapoyas y Jaén deja al especialista sin sede activa.
     await user.click(within(dialog).getByLabelText('Chachapoyas'));
+    await user.click(within(dialog).getByLabelText('Jaén'));
     await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
     expect(within(dialog).getByText('Elige al menos una sede activa.')).toBeInTheDocument();
