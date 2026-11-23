@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { supabase } from '../lib/supabase';
 import { findCall, mockQuery, type QueryCall } from '../test/mockQuery';
-import { createProfessional, getProfessionals, updateProfessional } from './professionalService';
+import { createProfessional, getAllProfessionalsForAdmin, getProfessionals, updateProfessional } from './professionalService';
 
 vi.mock('../lib/supabase', () => ({
   supabase: {
@@ -64,6 +64,28 @@ describe('getProfessionals', () => {
     vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: { message: 'permission denied' } } as never);
 
     await expect(getProfessionals()).rejects.toThrow('permission denied');
+  });
+});
+
+describe('getAllProfessionalsForAdmin', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('completa el nombre que la RLS de profiles no deja ver (admin_sede de otra sede)', async () => {
+    vi.mocked(supabase.from).mockReturnValue(
+      mockQuery({
+        data: [
+          { ...professionalRow('p1'), profiles: { full_name: 'Ana Torres', role: 'especialista' } },
+          { ...professionalRow('p2'), profiles: null },
+        ],
+      }) as never,
+    );
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: [{ id: 'p2', full_name: 'Bea Ríos' }], error: null } as never);
+
+    const professionals = await getAllProfessionalsForAdmin();
+
+    expect(professionals.map((professional) => professional.fullName)).toEqual(['Ana Torres', 'Bea Ríos']);
   });
 });
 

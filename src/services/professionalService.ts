@@ -84,14 +84,29 @@ export async function getProfessionalsBySpecialty(specialtyId: string): Promise<
   return all.filter((professional) => professional.specialtyIds.includes(specialtyId));
 }
 
+// Un admin_sede solo lee el perfil del personal que comparte sede con él en
+// Equipo (user_branch_access); si la profesional está en su sede solo por
+// professional_branches, el nombre llega vacío y se toma de
+// get_public_professionals (solo profesionales activos).
 export async function getAllProfessionalsForAdmin(): Promise<Professional[]> {
-  const { data, error } = await supabase.from('professionals').select(SELECT_COLUMNS);
+  const [{ data, error }, { data: names, error: namesError }] = await Promise.all([
+    supabase.from('professionals').select(SELECT_COLUMNS),
+    supabase.rpc('get_public_professionals'),
+  ]);
 
   if (error) {
     throw new Error(error.message);
   }
+  if (namesError) {
+    throw new Error(namesError.message);
+  }
 
-  return ((data ?? []) as unknown as ProfessionalRow[]).map(mapRow);
+  const nameById = new Map(((names ?? []) as PublicProfessionalNameRow[]).map((row) => [row.id, row.full_name]));
+
+  return ((data ?? []) as unknown as ProfessionalRow[]).map((row) => {
+    const professional = mapRow(row);
+    return professional.fullName ? professional : { ...professional, fullName: nameById.get(row.id) ?? '' };
+  });
 }
 
 // Roles clínicos que atienden citas y por eso llevan ficha en professionals.
