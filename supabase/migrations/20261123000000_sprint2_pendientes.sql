@@ -92,3 +92,47 @@ create trigger prevent_specialty_deactivation_with_services
   for each row
   when (old.active and not new.active)
   execute function public.prevent_specialty_deactivation_with_services();
+
+-- --- 6. Un profesional solo ofrece servicios de sus especialidades ----------
+-- Solo revisa altas y cambios. Filas que hoy no cumplen (se corrigen al
+-- volver a guardar a ese profesional desde el panel):
+--
+--   select ps.professional_id, pr.full_name, s.name as servicio, sp.name as especialidad
+--   from public.professional_services ps
+--   join public.services s on s.id = ps.service_id
+--   join public.specialties sp on sp.id = s.specialty_id
+--   left join public.profiles pr on pr.id = ps.professional_id
+--   where not exists (
+--     select 1 from public.professional_specialties x
+--     where x.professional_id = ps.professional_id and x.specialty_id = s.specialty_id
+--   );
+create or replace function public.enforce_service_matches_specialty()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not exists (
+    select 1
+    from public.services s
+    join public.professional_specialties ps
+      on ps.specialty_id = s.specialty_id
+     and ps.professional_id = new.professional_id
+    where s.id = new.service_id
+  ) then
+    raise exception 'El servicio pertenece a una especialidad que el profesional no tiene.'
+      using errcode = 'P0001';
+  end if;
+
+  return new;
+end;
+$$;
+
+revoke all on function public.enforce_service_matches_specialty() from public;
+
+drop trigger if exists enforce_service_matches_specialty on public.professional_services;
+create trigger enforce_service_matches_specialty
+  before insert or update on public.professional_services
+  for each row
+  execute function public.enforce_service_matches_specialty();

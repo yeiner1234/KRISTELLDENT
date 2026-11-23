@@ -162,6 +162,21 @@ describe('updateProfessional (relaciones por diferencia)', () => {
     expect(lastDelete).toBeLessThan(firstInsert);
   });
 
+  it('borra servicios antes que especialidades e inserta especialidades antes que servicios', async () => {
+    const log = setupRelations({ role: 'admin_global', current });
+
+    await updateProfessional('p1', { ...input, serviceIds: ['v3'] });
+
+    const writes = log
+      .filter((entry) => entry.op === 'insert' || entry.op === 'delete')
+      .map((entry) => `${entry.op}:${entry.table}`);
+    const at = (write: string) => writes.indexOf(write);
+    expect(at('delete:professional_services')).toBeLessThan(at('delete:professional_specialties'));
+    expect(at('insert:professional_specialties')).toBeLessThan(at('insert:professional_services'));
+    // Cada paso espera al anterior: no se lanzan juntos.
+    expect(at('delete:professional_specialties')).toBeLessThan(at('insert:professional_specialties'));
+  });
+
   it('admin_global puede quitar cualquier sede', async () => {
     const log = setupRelations({ role: 'admin_global', current });
 

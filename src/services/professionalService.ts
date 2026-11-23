@@ -177,33 +177,35 @@ async function replaceRelations(professionalId: string, input: ProfessionalRelat
     };
   });
 
-  // Bajas antes que altas: enforce_specialist_single_specialty cuenta las
-  // especialidades después de cada insert, así que la anterior debe salir antes.
-  throwIfError(
-    await Promise.all(
-      changes
-        .filter((change) => change.toRemove.length > 0)
-        .map((change) =>
-          supabase
-            .from(change.relation.table)
-            .delete()
-            .eq('professional_id', professionalId)
-            .in(change.relation.column, change.toRemove),
-        ),
-    ),
-  );
+  const removeFrom = (table: string) => {
+    const change = changes.find((item) => item.relation.table === table)!;
+    return change.toRemove.length === 0
+      ? Promise.resolve({ error: null })
+      : supabase
+          .from(table)
+          .delete()
+          .eq('professional_id', professionalId)
+          .in(change.relation.column, change.toRemove);
+  };
+  const addTo = (table: string) => {
+    const change = changes.find((item) => item.relation.table === table)!;
+    return change.toAdd.length === 0
+      ? Promise.resolve({ error: null })
+      : supabase
+          .from(table)
+          .insert(change.toAdd.map((id) => ({ professional_id: professionalId, [change.relation.column]: id })));
+  };
 
-  throwIfError(
-    await Promise.all(
-      changes
-        .filter((change) => change.toAdd.length > 0)
-        .map((change) =>
-          supabase
-            .from(change.relation.table)
-            .insert(change.toAdd.map((id) => ({ professional_id: professionalId, [change.relation.column]: id }))),
-        ),
-    ),
-  );
+  // El orden importa por dos triggers:
+  // - enforce_specialist_single_specialty cuenta las especialidades después de
+  //   cada insert: las bajas van antes que las altas.
+  // - enforce_service_matches_specialty pide que el servicio sea de una
+  //   especialidad del profesional: los servicios salen antes que su
+  //   especialidad y entran después de ella.
+  throwIfError([await removeFrom('professional_services')]);
+  throwIfError(await Promise.all([removeFrom('professional_specialties'), removeFrom('professional_branches')]));
+  throwIfError(await Promise.all([addTo('professional_specialties'), addTo('professional_branches')]));
+  throwIfError([await addTo('professional_services')]);
 }
 
 // Criterio 1 de la HU: todo profesional queda con al menos una sede y una
