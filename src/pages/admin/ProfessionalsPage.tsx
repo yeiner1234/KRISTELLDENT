@@ -70,6 +70,7 @@ function ProfessionalsPage() {
   const error = professionalsError ?? specialtiesError ?? branchesError ?? servicesError;
   const [query, setQuery] = useState('');
   const [specialtyFilter, setSpecialtyFilter] = useState('');
+  const [branchFilter, setBranchFilter] = useState('');
   const isLoading = isLoadingProfessionals || isLoadingSpecialties || isLoadingBranches || isLoadingServices;
 
   const activeSpecialties = useMemo(() => specialties.filter((specialty) => specialty.active), [specialties]);
@@ -351,8 +352,9 @@ function ProfessionalsPage() {
     const term = query.trim().toLowerCase();
     return professionals
       .filter((professional) => (specialtyFilter ? professional.specialtyIds.includes(specialtyFilter) : true))
+      .filter((professional) => (branchFilter ? professional.branchIds.includes(branchFilter) : true))
       .filter((professional) => (term ? professional.fullName.toLowerCase().includes(term) : true));
-  }, [query, specialtyFilter, professionals]);
+  }, [query, specialtyFilter, branchFilter, professionals]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -377,6 +379,15 @@ function ProfessionalsPage() {
             value={specialtyFilter}
             onChange={(event) => setSpecialtyFilter(event.target.value)}
             options={[{ value: '', label: 'Todas las especialidades' }, ...specialties.map((s) => ({ value: s.id, label: s.name }))]}
+          />
+        </div>
+        <div className="w-full max-w-[220px]">
+          <Select
+            label="Sede"
+            hideLabel
+            value={branchFilter}
+            onChange={(event) => setBranchFilter(event.target.value)}
+            options={[{ value: '', label: 'Todas las sedes' }, ...branches.map((b) => ({ value: b.id, label: b.name }))]}
           />
         </div>
       </div>

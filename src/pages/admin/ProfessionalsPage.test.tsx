@@ -19,6 +19,9 @@ const anali: Professional = {
   serviceIds: [],
 };
 
+// Solo en Bagua (inactiva): no tiene botón Horario.
+const bea: Professional = { ...anali, id: 'bea', fullName: 'Bea', branchIds: ['bagua'] };
+
 const branch = (id: string, name: string, active: boolean) => ({
   id,
   name,
@@ -34,7 +37,7 @@ const branch = (id: string, name: string, active: boolean) => ({
 });
 
 vi.mock('../../hooks/useAdminProfessionals', () => ({
-  useAdminProfessionals: () => ({ professionals: [anali], isLoading: false, error: null, refetch: vi.fn() }),
+  useAdminProfessionals: () => ({ professionals: [anali, bea], isLoading: false, error: null, refetch: vi.fn() }),
 }));
 vi.mock('../../hooks/useAdminSpecialties', () => ({
   useAdminSpecialties: () => ({
@@ -121,7 +124,7 @@ describe('ProfessionalsPage — formulario', () => {
         <ProfessionalsPage />
       </MemoryRouter>,
     );
-    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    await user.click(screen.getAllByRole('button', { name: 'Editar' })[0]);
     const dialog = await screen.findByRole('dialog');
     return { user, dialog };
   }
@@ -135,5 +138,22 @@ describe('ProfessionalsPage — formulario', () => {
 
     expect(within(dialog).getByText('Elige al menos una sede activa.')).toBeInTheDocument();
     expect(updateProfessional).not.toHaveBeenCalled();
+  });
+});
+
+describe('ProfessionalsPage — filtros', () => {
+  it('filtra por sede', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <ProfessionalsPage />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText('Bea')).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText('Sede'), 'chacha');
+
+    expect(screen.getByText('ANali')).toBeInTheDocument();
+    expect(screen.queryByText('Bea')).not.toBeInTheDocument();
   });
 });
