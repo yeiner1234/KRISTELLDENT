@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getAllProfessionalsForAdmin } from '../services/professionalService';
-import type { Professional } from '../types/Professional';
+import type { AdminProfessional } from '../types/Professional';
 
 interface UseAdminProfessionalsResult {
-  professionals: Professional[];
+  professionals: AdminProfessional[];
   isLoading: boolean;
   error: string | null;
   refetch: () => void;
 }
 
 export function useAdminProfessionals(): UseAdminProfessionalsResult {
-  const [professionals, setProfessionals] = useState<Professional[]>([]);
+  const [professionals, setProfessionals] = useState<AdminProfessional[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);

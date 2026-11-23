@@ -1,7 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { supabase } from '../lib/supabase';
 import { findCall, mockQuery, type QueryCall } from '../test/mockQuery';
-import { createProfessional, getAllProfessionalsForAdmin, getProfessionals, updateProfessional } from './professionalService';
+import {
+  addProfessionalToBranch,
+  createProfessional,
+  getAllProfessionalsForAdmin,
+  getProfessionals,
+  removeProfessionalFromBranch,
+  setProfessionalBranchServices,
+  updateProfessionalProfile,
+} from './professionalService';
 
 vi.mock('../lib/supabase', () => ({
   supabase: {
@@ -18,7 +26,11 @@ function professionalRow(id: string) {
     active: true,
     professional_specialties: [{ specialty_id: 's1' }],
     professional_branches: [{ branch_id: 'b1' }],
-    professional_services: [{ service_id: 'v1' }],
+    professional_services: [
+      { service_id: 'v1', branch_id: 'b1', active: true },
+      { service_id: 'v9', branch_id: 'b1', active: false },
+    ],
+    professional_schedules: [{ branch_id: 'b1' }, { branch_id: 'b1' }],
   };
 }
 
@@ -87,15 +99,20 @@ describe('getAllProfessionalsForAdmin', () => {
 
     expect(professionals.map((professional) => professional.fullName)).toEqual(['Ana Torres', 'Bea Ríos']);
   });
+
+  it('trae los servicios activos con su sede y las sedes donde tiene horario', async () => {
+    vi.mocked(supabase.from).mockReturnValue(
+      mockQuery({ data: [{ ...professionalRow('p1'), profiles: { full_name: 'Ana', role: 'especialista' } }] }) as never,
+    );
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: [], error: null } as never);
+
+    const [professional] = await getAllProfessionalsForAdmin();
+
+    expect(professional.serviceIds).toEqual(['v1']);
+    expect(professional.assignments).toEqual([{ serviceId: 'v1', branchId: 'b1' }]);
+    expect(professional.scheduleBranchIds).toEqual(['b1']);
+  });
 });
-
-type Relations = Record<'professional_specialties' | 'professional_branches' | 'professional_services', string[]>;
-
-const relationColumns = {
-  professional_specialties: 'specialty_id',
-  professional_branches: 'branch_id',
-  professional_services: 'service_id',
-} as const;
 
 interface LoggedQuery {
   table: string;
@@ -103,159 +120,168 @@ interface LoggedQuery {
   calls: QueryCall[];
 }
 
-function setupRelations(options: {
-  role: 'admin_global' | 'admin_sede';
-  adminBranchIds?: string[];
-  current: Relations;
-  failOn?: { table: string; op: LoggedQuery['op'] };
-}): LoggedQuery[] {
+function setupWrites(failOn?: { table: string; op: LoggedQuery['op']; message?: string }): LoggedQuery[] {
   const log: LoggedQuery[] = [];
-
-  vi.mocked(supabase.auth.getUser).mockResolvedValue({ data: { user: { id: 'u1' } }, error: null } as never);
   vi.mocked(supabase.from).mockImplementation(
     (table: string) =>
       mockQuery((calls) => {
-        const op = (['insert', 'update', 'delete'] as const).find((method) => calls.some((call) => call.method === method)) ?? 'select';
+        const op =
+          (['insert', 'update', 'delete'] as const).find((method) => calls.some((call) => call.method === method)) ??
+          'select';
         log.push({ table, op, calls });
-
-        if (options.failOn?.table === table && options.failOn.op === op) {
-          return { error: { message: 'new row violates row-level security policy' } };
+        if (failOn?.table === table && failOn.op === op) {
+          return { error: { message: failOn.message ?? 'new row violates row-level security policy' } };
         }
-        if (op !== 'select') return {};
-        if (table === 'profiles') return { data: { role: options.role } };
-        if (table === 'user_branch_access') {
-          return { data: (options.adminBranchIds ?? []).map((branchId) => ({ branch_id: branchId })) };
-        }
-        const relation = table as keyof Relations;
-        return { data: options.current[relation].map((id) => ({ [relationColumns[relation]]: id })) };
+        return {};
       }) as never,
   );
-
   return log;
 }
 
-function insertedIds(log: LoggedQuery[], table: keyof Relations): string[] {
-  return log
-    .filter((entry) => entry.table === table && entry.op === 'insert')
-    .flatMap((entry) => entry.calls.find((call) => call.method === 'insert')!.args[0] as Record<string, string>[])
-    .map((row) => row[relationColumns[table]]);
+function argsOf(entry: LoggedQuery, method: string): unknown[] {
+  return entry.calls.find((call) => call.method === method)!.args;
 }
 
-function deletedIds(log: LoggedQuery[], table: keyof Relations): string[] {
-  return log
-    .filter((entry) => entry.table === table && entry.op === 'delete')
-    .flatMap((entry) => entry.calls.find((call) => call.method === 'in')!.args[1] as string[]);
-}
+const writes = (log: LoggedQuery[]) => log.map((entry) => `${entry.op}:${entry.table}`);
 
-const current: Relations = {
-  professional_specialties: ['s1'],
-  professional_branches: ['b1', 'bAjena'],
-  professional_services: ['v1', 'v2'],
-};
-
-const input = { bio: null, specialtyIds: ['s2'], branchIds: ['b1', 'b2'], serviceIds: ['v1'] };
-
-describe('updateProfessional (relaciones por diferencia)', () => {
+describe('createProfessional', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('inserta solo lo nuevo y borra solo lo quitado', async () => {
-    const log = setupRelations({ role: 'admin_global', current });
+  it('crea la ficha, luego sus especialidades y luego sus sedes', async () => {
+    const log = setupWrites();
 
-    await updateProfessional('p1', input);
+    await createProfessional({ profileId: 'p1', bio: 'Hola', specialtyIds: ['s1'], branchIds: ['b1', 'b2'] });
 
-    expect(insertedIds(log, 'professional_specialties')).toEqual(['s2']);
-    expect(deletedIds(log, 'professional_specialties')).toEqual(['s1']);
-    expect(insertedIds(log, 'professional_branches')).toEqual(['b2']);
-    expect(insertedIds(log, 'professional_services')).toEqual([]);
-    expect(deletedIds(log, 'professional_services')).toEqual(['v2']);
+    expect(writes(log)).toEqual([
+      'insert:professionals',
+      'insert:professional_specialties',
+      'insert:professional_branches',
+    ]);
+    expect(argsOf(log[2], 'insert')[0]).toEqual([
+      { professional_id: 'p1', branch_id: 'b1' },
+      { professional_id: 'p1', branch_id: 'b2' },
+    ]);
   });
 
-  it('borra antes de insertar (el especialista cambia de especialidad sin chocar con el trigger)', async () => {
-    const log = setupRelations({ role: 'admin_global', current });
-
-    await updateProfessional('p1', input);
-
-    const writes = log.filter((entry) => entry.op === 'insert' || entry.op === 'delete');
-    const lastDelete = writes.map((entry) => entry.op).lastIndexOf('delete');
-    const firstInsert = writes.map((entry) => entry.op).indexOf('insert');
-    expect(lastDelete).toBeGreaterThanOrEqual(0);
-    expect(lastDelete).toBeLessThan(firstInsert);
-  });
-
-  it('borra servicios antes que especialidades e inserta especialidades antes que servicios', async () => {
-    const log = setupRelations({ role: 'admin_global', current });
-
-    await updateProfessional('p1', { ...input, serviceIds: ['v3'] });
-
-    const writes = log
-      .filter((entry) => entry.op === 'insert' || entry.op === 'delete')
-      .map((entry) => `${entry.op}:${entry.table}`);
-    const at = (write: string) => writes.indexOf(write);
-    expect(at('delete:professional_services')).toBeLessThan(at('delete:professional_specialties'));
-    expect(at('insert:professional_specialties')).toBeLessThan(at('insert:professional_services'));
-    // Cada paso espera al anterior: no se lanzan juntos.
-    expect(at('delete:professional_specialties')).toBeLessThan(at('insert:professional_specialties'));
-  });
-
-  it('admin_global puede quitar cualquier sede', async () => {
-    const log = setupRelations({ role: 'admin_global', current });
-
-    await updateProfessional('p1', input);
-
-    expect(deletedIds(log, 'professional_branches')).toEqual(['bAjena']);
-  });
-
-  it('admin_sede no toca las sedes que no son suyas', async () => {
-    const log = setupRelations({ role: 'admin_sede', adminBranchIds: ['b1', 'b2'], current });
-
-    await updateProfessional('p1', input);
-
-    expect(deletedIds(log, 'professional_branches')).toEqual([]);
-    expect(insertedIds(log, 'professional_branches')).toEqual(['b2']);
-  });
-
-  it('sin cambios no inserta ni borra', async () => {
-    const log = setupRelations({ role: 'admin_global', current });
-
-    await updateProfessional('p1', {
-      bio: null,
-      specialtyIds: ['s1'],
-      branchIds: ['b1', 'bAjena'],
-      serviceIds: ['v1', 'v2'],
-    });
-
-    expect(log.filter((entry) => entry.op === 'insert' || entry.op === 'delete')).toEqual([]);
-  });
-
-  it('propaga el error de Supabase', async () => {
-    setupRelations({ role: 'admin_global', current, failOn: { table: 'professional_services', op: 'delete' } });
-
-    await expect(updateProfessional('p1', input)).rejects.toThrow('new row violates row-level security policy');
+  it('sin sede o sin especialidad no escribe nada', async () => {
+    await expect(
+      createProfessional({ profileId: 'p1', bio: null, specialtyIds: ['s1'], branchIds: [] }),
+    ).rejects.toThrow('Elige al menos una sede.');
+    await expect(
+      createProfessional({ profileId: 'p1', bio: null, specialtyIds: [], branchIds: ['b1'] }),
+    ).rejects.toThrow('Elige una especialidad.');
+    expect(supabase.from).not.toHaveBeenCalled();
   });
 });
 
-describe('createProfessional / updateProfessional (sede y especialidad obligatorias)', () => {
+describe('updateProfessionalProfile (datos generales: valen para todas sus sedes)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('sin sedes no escribe nada', async () => {
-    await expect(updateProfessional('p1', { ...input, branchIds: [] })).rejects.toThrow('Elige al menos una sede.');
-    await expect(createProfessional({ profileId: 'p1', ...input, branchIds: [] })).rejects.toThrow(
-      'Elige al menos una sede.',
-    );
+  it('guarda la bio y cambia solo las especialidades que cambiaron, primero las bajas', async () => {
+    const log = setupWrites();
 
-    expect(supabase.from).not.toHaveBeenCalled();
+    await updateProfessionalProfile('p1', { bio: null, specialtyIds: ['s2', 's3'] }, ['s1', 's2']);
+
+    expect(writes(log)).toEqual([
+      'update:professionals',
+      'delete:professional_specialties',
+      'insert:professional_specialties',
+    ]);
+    expect(argsOf(log[1], 'in')).toEqual(['specialty_id', ['s1']]);
+    expect(argsOf(log[2], 'insert')[0]).toEqual([{ professional_id: 'p1', specialty_id: 's3' }]);
+  });
+
+  it('sin cambios de especialidad solo guarda la bio', async () => {
+    const log = setupWrites();
+
+    await updateProfessionalProfile('p1', { bio: 'x', specialtyIds: ['s1'] }, ['s1']);
+
+    expect(writes(log)).toEqual(['update:professionals']);
   });
 
   it('sin especialidad no escribe nada', async () => {
-    await expect(updateProfessional('p1', { ...input, specialtyIds: [] })).rejects.toThrow('Elige una especialidad.');
-    await expect(createProfessional({ profileId: 'p1', ...input, specialtyIds: [] })).rejects.toThrow(
+    await expect(updateProfessionalProfile('p1', { bio: null, specialtyIds: [] }, ['s1'])).rejects.toThrow(
       'Elige una especialidad.',
     );
-
     expect(supabase.from).not.toHaveBeenCalled();
+  });
+
+  it('muestra el mensaje del trigger tal cual', async () => {
+    setupWrites({
+      table: 'professional_specialties',
+      op: 'delete',
+      message: 'Primero quita sus servicios de esta especialidad en todas sus sedes.',
+    });
+
+    await expect(updateProfessionalProfile('p1', { bio: null, specialtyIds: ['s2'] }, ['s1'])).rejects.toThrow(
+      'Primero quita sus servicios de esta especialidad en todas sus sedes.',
+    );
+  });
+});
+
+describe('sedes de una profesional', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('agrega una sede', async () => {
+    const log = setupWrites();
+
+    await addProfessionalToBranch('p1', 'b2');
+
+    expect(log[0].table).toBe('professional_branches');
+    expect(argsOf(log[0], 'insert')[0]).toEqual({ professional_id: 'p1', branch_id: 'b2' });
+  });
+
+  it('quita solo esa sede', async () => {
+    const log = setupWrites();
+
+    await removeProfessionalFromBranch('p1', 'b2');
+
+    expect(log[0].op).toBe('delete');
+    expect(log[0].calls.filter((call) => call.method === 'eq').map((call) => call.args)).toEqual([
+      ['professional_id', 'p1'],
+      ['branch_id', 'b2'],
+    ]);
+  });
+
+  it('el mensaje de citas pendientes llega tal cual; el de RLS, traducido', async () => {
+    setupWrites({
+      table: 'professional_branches',
+      op: 'delete',
+      message: 'Tiene 2 citas pendientes en esta sede: reprográmalas o cancélalas antes de quitarla.',
+    });
+    await expect(removeProfessionalFromBranch('p1', 'b2')).rejects.toThrow('Tiene 2 citas pendientes en esta sede');
+
+    setupWrites({ table: 'professional_branches', op: 'insert' });
+    await expect(addProfessionalToBranch('p1', 'b2')).rejects.toThrow('No tienes permiso para modificar esta sede.');
+  });
+});
+
+describe('setProfessionalBranchServices (servicios de una sede)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('inserta los nuevos y borra los quitados', async () => {
+    const log = setupWrites();
+
+    await setProfessionalBranchServices('p1', ['v1', 'v3'], ['v1', 'v2']);
+
+    expect(writes(log)).toEqual(['delete:professional_services', 'insert:professional_services']);
+    expect(argsOf(log[0], 'in')).toEqual(['service_id', ['v2']]);
+    expect(argsOf(log[1], 'insert')[0]).toEqual([{ professional_id: 'p1', service_id: 'v3' }]);
+  });
+
+  it('sin cambios no escribe nada', async () => {
+    const log = setupWrites();
+
+    await setProfessionalBranchServices('p1', ['v1'], ['v1']);
+
+    expect(log).toEqual([]);
   });
 });

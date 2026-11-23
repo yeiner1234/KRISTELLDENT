@@ -1,11 +1,17 @@
 import { supabase } from '../lib/supabase';
-import { getManageableBranchIds } from './adminBranchService';
-import type { Professional } from '../types/Professional';
+import { friendlyWriteError } from '../utils/supabaseErrors';
+import type { AdminProfessional, Professional } from '../types/Professional';
 import type { AppRole } from '../types/User';
 
 interface ProfileNameRow {
   full_name: string;
   role: AppRole;
+}
+
+interface ServiceAssignmentRow {
+  service_id: string;
+  branch_id: string | null;
+  active: boolean;
 }
 
 interface ProfessionalRow {
@@ -15,7 +21,8 @@ interface ProfessionalRow {
   profiles?: ProfileNameRow | ProfileNameRow[] | null;
   professional_specialties: { specialty_id: string }[];
   professional_branches: { branch_id: string }[];
-  professional_services: { service_id: string }[];
+  professional_services: ServiceAssignmentRow[];
+  professional_schedules?: { branch_id: string }[];
 }
 
 const SELECT_COLUMNS = `
@@ -23,7 +30,8 @@ const SELECT_COLUMNS = `
   profiles ( full_name, role ),
   professional_specialties ( specialty_id ),
   professional_branches ( branch_id ),
-  professional_services ( service_id )
+  professional_services ( service_id, branch_id, active ),
+  professional_schedules ( branch_id )
 `;
 
 // Lectura pública: anon no puede leer profiles, los nombres llegan por
@@ -32,7 +40,7 @@ const PUBLIC_SELECT_COLUMNS = `
   id, bio, active,
   professional_specialties ( specialty_id ),
   professional_branches ( branch_id ),
-  professional_services ( service_id )
+  professional_services ( service_id, branch_id, active )
 `;
 
 interface PublicProfessionalNameRow {
@@ -54,7 +62,17 @@ function mapRow(row: ProfessionalRow): Professional {
     active: row.active,
     specialtyIds: row.professional_specialties.map((item) => item.specialty_id),
     branchIds: row.professional_branches.map((item) => item.branch_id),
-    serviceIds: row.professional_services.map((item) => item.service_id),
+    serviceIds: row.professional_services.filter((item) => item.active).map((item) => item.service_id),
+  };
+}
+
+function mapAdminRow(row: ProfessionalRow): AdminProfessional {
+  return {
+    ...mapRow(row),
+    assignments: row.professional_services
+      .filter((item) => item.active)
+      .map((item) => ({ serviceId: item.service_id, branchId: item.branch_id })),
+    scheduleBranchIds: [...new Set((row.professional_schedules ?? []).map((item) => item.branch_id))],
   };
 }
 
@@ -84,11 +102,10 @@ export async function getProfessionalsBySpecialty(specialtyId: string): Promise<
   return all.filter((professional) => professional.specialtyIds.includes(specialtyId));
 }
 
-// Un admin_sede solo lee el perfil del personal que comparte sede con él en
-// Equipo (user_branch_access); si la profesional está en su sede solo por
-// professional_branches, el nombre llega vacío y se toma de
-// get_public_professionals (solo profesionales activos).
-export async function getAllProfessionalsForAdmin(): Promise<Professional[]> {
+// Un admin_sede solo lee el perfil del personal que comparte sede con él; si
+// el nombre llega vacío se toma de get_public_professionals (solo
+// profesionales activos).
+export async function getAllProfessionalsForAdmin(): Promise<AdminProfessional[]> {
   const [{ data, error }, { data: names, error: namesError }] = await Promise.all([
     supabase.from('professionals').select(SELECT_COLUMNS),
     supabase.rpc('get_public_professionals'),
@@ -104,7 +121,7 @@ export async function getAllProfessionalsForAdmin(): Promise<Professional[]> {
   const nameById = new Map(((names ?? []) as PublicProfessionalNameRow[]).map((row) => [row.id, row.full_name]));
 
   return ((data ?? []) as unknown as ProfessionalRow[]).map((row) => {
-    const professional = mapRow(row);
+    const professional = mapAdminRow(row);
     return professional.fullName ? professional : { ...professional, fullName: nameById.get(row.id) ?? '' };
   });
 }
@@ -141,137 +158,140 @@ export async function getEligibleProfilesForProfessional(): Promise<EligibleProf
     .map((profile) => ({ id: profile.id, fullName: profile.full_name, email: profile.email, role: profile.role }));
 }
 
-export interface ProfessionalRelationsInput {
+function throwIfError(error: { message: string } | null): void {
+  if (error) {
+    throw new Error(friendlyWriteError(error.message));
+  }
+}
+
+const difference = (list: string[], other: string[]) => list.filter((id) => !other.includes(id));
+
+export interface CreateProfessionalInput {
+  profileId: string;
+  bio: string | null;
   specialtyIds: string[];
   branchIds: string[];
-  serviceIds: string[];
 }
 
-const RELATIONS = [
-  { table: 'professional_specialties', column: 'specialty_id', key: 'specialtyIds' },
-  { table: 'professional_branches', column: 'branch_id', key: 'branchIds' },
-  { table: 'professional_services', column: 'service_id', key: 'serviceIds' },
-] as const;
-
-function throwIfError(results: { error: { message: string } | null }[]): void {
-  for (const result of results) {
-    if (result.error) {
-      throw new Error(result.error.message);
-    }
-  }
-}
-
-async function getCurrentRelationIds(professionalId: string, table: string, column: string): Promise<string[]> {
-  const { data, error } = await supabase.from(table).select(column).eq('professional_id', professionalId);
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return ((data ?? []) as unknown as Record<string, string>[]).map((row) => row[column]);
-}
-
-// Guarda solo la diferencia: inserta lo nuevo y borra lo quitado. Un
-// admin_sede no toca las sedes que no son suyas.
-async function replaceRelations(professionalId: string, input: ProfessionalRelationsInput): Promise<void> {
-  const [currentIds, manageableBranchIds] = await Promise.all([
-    Promise.all(RELATIONS.map((relation) => getCurrentRelationIds(professionalId, relation.table, relation.column))),
-    getManageableBranchIds(),
-  ]);
-
-  const changes = RELATIONS.map((relation, index) => {
-    const current = currentIds[index];
-    const wanted = input[relation.key];
-    const canManage = (id: string) =>
-      relation.table !== 'professional_branches' || manageableBranchIds === null || manageableBranchIds.includes(id);
-
-    return {
-      relation,
-      toAdd: wanted.filter((id) => !current.includes(id) && canManage(id)),
-      toRemove: current.filter((id) => !wanted.includes(id) && canManage(id)),
-    };
-  });
-
-  const removeFrom = (table: string) => {
-    const change = changes.find((item) => item.relation.table === table)!;
-    return change.toRemove.length === 0
-      ? Promise.resolve({ error: null })
-      : supabase
-          .from(table)
-          .delete()
-          .eq('professional_id', professionalId)
-          .in(change.relation.column, change.toRemove);
-  };
-  const addTo = (table: string) => {
-    const change = changes.find((item) => item.relation.table === table)!;
-    return change.toAdd.length === 0
-      ? Promise.resolve({ error: null })
-      : supabase
-          .from(table)
-          .insert(change.toAdd.map((id) => ({ professional_id: professionalId, [change.relation.column]: id })));
-  };
-
-  // El orden importa por dos triggers:
-  // - enforce_specialist_single_specialty cuenta las especialidades después de
-  //   cada insert: las bajas van antes que las altas.
-  // - enforce_service_matches_specialty pide que el servicio sea de una
-  //   especialidad del profesional: los servicios salen antes que su
-  //   especialidad y entran después de ella.
-  throwIfError([await removeFrom('professional_services')]);
-  throwIfError(await Promise.all([removeFrom('professional_specialties'), removeFrom('professional_branches')]));
-  throwIfError(await Promise.all([addTo('professional_specialties'), addTo('professional_branches')]));
-  throwIfError([await addTo('professional_services')]);
-}
-
-// Criterio 1 de la HU: todo profesional queda con al menos una sede y una
-// especialidad (la odontóloga general la deriva de sus servicios). Se valida
-// antes de escribir para no dejar una ficha a medias.
-function validateRelations(input: ProfessionalRelationsInput): void {
+// Ficha para una cuenta que aún no la tiene. Los servicios se eligen después,
+// en la pestaña de cada sede.
+export async function createProfessional(input: CreateProfessionalInput): Promise<void> {
   if (input.branchIds.length === 0) {
     throw new Error('Elige al menos una sede.');
   }
   if (input.specialtyIds.length === 0) {
     throw new Error('Elige una especialidad.');
   }
+
+  throwIfError((await supabase.from('professionals').insert({ id: input.profileId, bio: input.bio })).error);
+  throwIfError(
+    (
+      await supabase
+        .from('professional_specialties')
+        .insert(input.specialtyIds.map((specialtyId) => ({ professional_id: input.profileId, specialty_id: specialtyId })))
+    ).error,
+  );
+  throwIfError(
+    (
+      await supabase
+        .from('professional_branches')
+        .insert(input.branchIds.map((branchId) => ({ professional_id: input.profileId, branch_id: branchId })))
+    ).error,
+  );
 }
 
-export interface CreateProfessionalInput extends ProfessionalRelationsInput {
-  profileId: string;
+export interface ProfessionalProfileInput {
   bio: string | null;
+  specialtyIds: string[];
 }
 
-export async function createProfessional(input: CreateProfessionalInput): Promise<void> {
-  validateRelations(input);
-
-  const { error } = await supabase.from('professionals').insert({ id: input.profileId, bio: input.bio });
-
-  if (error) {
-    throw new Error(error.message);
+// Datos generales: valen para todas sus sedes. Las bajas van antes que las
+// altas: un especialista cambia de especialidad sin chocar con
+// enforce_specialist_single_specialty. Quitar una especialidad que usa en
+// alguna sede lo rechaza la base (prevent_specialty_removal_in_use).
+export async function updateProfessionalProfile(
+  id: string,
+  input: ProfessionalProfileInput,
+  currentSpecialtyIds: string[],
+): Promise<void> {
+  if (input.specialtyIds.length === 0) {
+    throw new Error('Elige una especialidad.');
   }
 
-  await replaceRelations(input.profileId, input);
-}
+  throwIfError((await supabase.from('professionals').update({ bio: input.bio }).eq('id', id)).error);
 
-export interface UpdateProfessionalInput extends ProfessionalRelationsInput {
-  bio: string | null;
-}
+  const toRemove = difference(currentSpecialtyIds, input.specialtyIds);
+  const toAdd = difference(input.specialtyIds, currentSpecialtyIds);
 
-export async function updateProfessional(id: string, input: UpdateProfessionalInput): Promise<void> {
-  validateRelations(input);
-
-  const { error } = await supabase.from('professionals').update({ bio: input.bio }).eq('id', id);
-
-  if (error) {
-    throw new Error(error.message);
+  if (toRemove.length > 0) {
+    throwIfError(
+      (await supabase.from('professional_specialties').delete().eq('professional_id', id).in('specialty_id', toRemove))
+        .error,
+    );
   }
+  if (toAdd.length > 0) {
+    throwIfError(
+      (
+        await supabase
+          .from('professional_specialties')
+          .insert(toAdd.map((specialtyId) => ({ professional_id: id, specialty_id: specialtyId })))
+      ).error,
+    );
+  }
+}
 
-  await replaceRelations(id, input);
+// La sincronización con Equipo (user_branch_access) la hace un trigger.
+export async function addProfessionalToBranch(professionalId: string, branchId: string): Promise<void> {
+  throwIfError(
+    (await supabase.from('professional_branches').insert({ professional_id: professionalId, branch_id: branchId })).error,
+  );
+}
+
+// La base rechaza si tiene citas pendientes ahí; si no, se van también su
+// horario, sus excepciones y sus servicios de esa sede.
+export async function removeProfessionalFromBranch(professionalId: string, branchId: string): Promise<void> {
+  throwIfError(
+    (
+      await supabase
+        .from('professional_branches')
+        .delete()
+        .eq('professional_id', professionalId)
+        .eq('branch_id', branchId)
+    ).error,
+  );
+}
+
+// Servicios que atiende en una sede: cada servicio es de una sola sede, así
+// que la diferencia entre lo elegido y lo actual de esa sede no toca otras.
+export async function setProfessionalBranchServices(
+  professionalId: string,
+  wantedServiceIds: string[],
+  currentServiceIds: string[],
+): Promise<void> {
+  const toRemove = difference(currentServiceIds, wantedServiceIds);
+  const toAdd = difference(wantedServiceIds, currentServiceIds);
+
+  if (toRemove.length > 0) {
+    throwIfError(
+      (await supabase.from('professional_services').delete().eq('professional_id', professionalId).in('service_id', toRemove))
+        .error,
+    );
+  }
+  if (toAdd.length > 0) {
+    throwIfError(
+      (
+        await supabase
+          .from('professional_services')
+          .insert(toAdd.map((serviceId) => ({ professional_id: professionalId, service_id: serviceId })))
+      ).error,
+    );
+  }
 }
 
 export async function setProfessionalActive(id: string, active: boolean): Promise<void> {
   const { error } = await supabase.from('professionals').update({ active }).eq('id', id);
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error(friendlyWriteError(error.message));
   }
 }
