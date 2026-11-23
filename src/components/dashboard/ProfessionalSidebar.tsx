@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { CalendarCheck, CalendarRange, ClipboardList, LayoutDashboard, Users } from 'lucide-react';
+import { CalendarCheck, CalendarRange, ClipboardList, LayoutDashboard, Printer, Users } from 'lucide-react';
 import logo from '../../../imagenes/kristelldent-icon.png';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -10,7 +10,10 @@ const professionalItems = [
   { label: 'Mis citas', to: '/profesional/citas', icon: ClipboardList },
 ];
 
-const technicianItems = [{ label: 'Citas de hoy', to: '/profesional', icon: CalendarCheck, end: true }];
+const technicianItems = [
+  { label: 'Citas de hoy', to: '/profesional', icon: CalendarCheck, end: true },
+  { label: 'Agenda imprimible', to: '/profesional/reportes/agenda', icon: Printer },
+];
 
 function ProfessionalSidebar() {
   const { user } = useAuth();
