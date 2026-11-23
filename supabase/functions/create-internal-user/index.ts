@@ -1,13 +1,20 @@
+// Edge Function: create-internal-user
+//
+// Invita a una cuenta interna. Una persona = una cuenta: para que una
+// profesional atienda en otra sede se le agrega la sede en Profesionales, no
+// se le crea otra cuenta. Nunca crea admin_global (403): esa se crea desde
+// Supabase (README).
+//
+// Especialista y odontóloga general se crean con su ficha (professionals) y
+// sus sedes en professional_branches; el trigger
+// sync_professional_branch_access les da el acceso en user_branch_access.
+// Técnicas y administradoras de sede reciben sus sedes en user_branch_access.
+// Si algo falla, se borra la cuenta entera: no queda nada a medias.
+//
+// La validación vive en logic.ts (probada con Vitest).
+import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
+import { isProfessionalRole, validateCreateUserRequest, type CreateUserPayload } from './logic.ts';
 
-import { createClient } from 'npm:@supabase/supabase-js@2';
- 
-type AppRole = 'admin_global' | 'admin_sede' | 'especialista' | 'odontologa_general' | 'tecnica';
-
-const ALL_ROLES: AppRole[] = ['admin_global', 'admin_sede', 'especialista', 'odontologa_general', 'tecnica'];
-const ROLES_ADMIN_SEDE_CAN_CREATE: AppRole[] = ['especialista', 'odontologa_general', 'tecnica'];
-
-// Una persona = una cuenta: para que una profesional atienda en otra sede se
-// le agrega la sede en Profesionales, no se le crea otra cuenta.
 const EMAIL_TAKEN_MESSAGE =
   'Ese correo ya tiene una cuenta. Para que atienda en otra sede, agrégala en Profesionales.';
 
@@ -16,18 +23,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface CreateUserPayload {
-  email?: string;
-  fullName?: string;
-  role?: AppRole;
-  branchIds?: string[];
-}
-
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+// Borrar el usuario de Auth borra en cascada profiles, professionals,
+// professional_branches y user_branch_access.
+async function rollback(adminClient: SupabaseClient, userId: string): Promise<void> {
+  const { error } = await adminClient.auth.admin.deleteUser(userId);
+  if (error) {
+    console.error('No se pudo deshacer la cuenta a medias', { userId, error });
+  }
 }
 
 Deno.serve(async (req) => {
@@ -74,23 +83,18 @@ Deno.serve(async (req) => {
   // Cliente con privilegios de servidor. Se usa SOLO dentro de esta función.
   const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-  const { data: callerProfile, error: callerProfileError } = await adminClient
-    .from('profiles')
-    .select('role, active')
-    .eq('id', callerAuthUser.id)
-    .maybeSingle();
+  const [{ data: callerProfile, error: callerProfileError }, { data: callerBranches, error: callerBranchesError }] =
+    await Promise.all([
+      adminClient.from('profiles').select('role, active').eq('id', callerAuthUser.id).maybeSingle(),
+      adminClient.from('user_branch_access').select('branch_id').eq('user_id', callerAuthUser.id),
+    ]);
 
   if (callerProfileError || !callerProfile || !callerProfile.active) {
-    console.error('callerProfile lookup failed', {
-      callerId: callerAuthUser.id,
-      callerProfileError,
-      callerProfile,
-    });
+    console.error('callerProfile lookup failed', { callerId: callerAuthUser.id, callerProfileError, callerProfile });
     return jsonResponse({ error: 'Cuenta no autorizada.' }, 403);
   }
-
-  if (callerProfile.role !== 'admin_global' && callerProfile.role !== 'admin_sede') {
-    return jsonResponse({ error: 'No tienes permisos para crear usuarios.' }, 403);
+  if (callerBranchesError) {
+    return jsonResponse({ error: 'No se pudieron verificar tus sedes asignadas.' }, 500);
   }
 
   let payload: CreateUserPayload;
@@ -100,40 +104,14 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'Cuerpo de la solicitud inválido.' }, 400);
   }
 
-  const email = payload.email?.trim().toLowerCase();
-  const fullName = payload.fullName?.trim();
-  const role = payload.role;
-  const branchIds = Array.isArray(payload.branchIds) ? payload.branchIds : [];
-
-  if (!email || !fullName || !role || !ALL_ROLES.includes(role)) {
-    return jsonResponse({ error: 'Datos incompletos o rol inválido.' }, 400);
+  const validation = validateCreateUserRequest(payload ?? {}, {
+    role: callerProfile.role,
+    branchIds: (callerBranches ?? []).map((row) => row.branch_id as string),
+  });
+  if (!validation.ok) {
+    return jsonResponse({ error: validation.error }, validation.status);
   }
-
-  if (role !== 'admin_global' && branchIds.length === 0) {
-    return jsonResponse({ error: 'Debes asignar al menos una sede para este rol.' }, 400);
-  }
-
-  if (callerProfile.role === 'admin_sede') {
-    if (!ROLES_ADMIN_SEDE_CAN_CREATE.includes(role)) {
-      return jsonResponse({ error: 'Un admin de sede solo puede crear especialistas, odontólogas generales o técnicas.' }, 403);
-    }
-
-    const { data: callerBranches, error: callerBranchesError } = await adminClient
-      .from('user_branch_access')
-      .select('branch_id')
-      .eq('user_id', callerAuthUser.id);
-
-    if (callerBranchesError) {
-      return jsonResponse({ error: 'No se pudieron verificar tus sedes asignadas.' }, 500);
-    }
-
-    const allowedBranchIds = new Set((callerBranches ?? []).map((row) => row.branch_id));
-    const hasOutsideAccess = branchIds.some((id) => !allowedBranchIds.has(id));
-
-    if (hasOutsideAccess) {
-      return jsonResponse({ error: 'No puedes asignar sedes que no te pertenecen.' }, 403);
-    }
-  }
+  const { email, fullName, role, branchIds } = validation.value;
 
   const { data: existingProfile, error: existingProfileError } = await adminClient
     .from('profiles')
@@ -174,17 +152,30 @@ Deno.serve(async (req) => {
   });
 
   if (profileError) {
-    await adminClient.auth.admin.deleteUser(newUserId);
+    await rollback(adminClient, newUserId);
     return jsonResponse({ error: `No se pudo crear el perfil: ${profileError.message}` }, 500);
   }
 
-  if (branchIds.length > 0) {
-    const rows = branchIds.map((branchId) => ({ user_id: newUserId, branch_id: branchId }));
-    const { error: branchAccessError } = await adminClient.from('user_branch_access').insert(rows);
+  if (isProfessionalRole(role)) {
+    const { error: professionalError } = await adminClient.from('professionals').insert({ id: newUserId });
+    if (professionalError) {
+      await rollback(adminClient, newUserId);
+      return jsonResponse({ error: `No se pudo crear la ficha profesional: ${professionalError.message}` }, 500);
+    }
 
+    const { error: branchesError } = await adminClient
+      .from('professional_branches')
+      .insert(branchIds.map((branchId) => ({ professional_id: newUserId, branch_id: branchId })));
+    if (branchesError) {
+      await rollback(adminClient, newUserId);
+      return jsonResponse({ error: `No se pudo asignar la(s) sede(s): ${branchesError.message}` }, 500);
+    }
+  } else {
+    const { error: branchAccessError } = await adminClient
+      .from('user_branch_access')
+      .insert(branchIds.map((branchId) => ({ user_id: newUserId, branch_id: branchId })));
     if (branchAccessError) {
-      await adminClient.from('profiles').delete().eq('id', newUserId);
-      await adminClient.auth.admin.deleteUser(newUserId);
+      await rollback(adminClient, newUserId);
       return jsonResponse({ error: `No se pudo asignar la(s) sede(s): ${branchAccessError.message}` }, 500);
     }
   }
