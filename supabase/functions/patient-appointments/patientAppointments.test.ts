@@ -6,6 +6,7 @@ import {
   modificationError,
   normalizeAppointmentCode,
   parseRequest,
+  serviceSnapshot,
   triggerErrorMessage,
 } from './patientAppointments';
 
@@ -147,5 +148,27 @@ describe('canAccessAppointment', () => {
   it('un código limitado solo da acceso a su propia cita', () => {
     expect(canAccessAppointment({ limitedToAppointmentId: 'a1' }, 'a1')).toBe(true);
     expect(canAccessAppointment({ limitedToAppointmentId: 'a1' }, 'a2')).toBe(false);
+  });
+});
+
+describe('serviceSnapshot', () => {
+  it('usa la copia guardada en la cita aunque el servicio haya cambiado después', () => {
+    const row = { service_id: 's1', service_name: 'Limpieza', service_duration_minutes: 30 };
+    const current = new Map([['s1', { name: 'Limpieza profunda', duration_minutes: 45 }]]);
+
+    expect(serviceSnapshot(row, current)).toEqual({ serviceName: 'Limpieza', serviceDuration: 30 });
+  });
+
+  it('cita vieja sin copia: toma el servicio actual', () => {
+    const row = { service_id: 's1', service_name: null, service_duration_minutes: null };
+    const current = new Map([['s1', { name: 'Limpieza', duration_minutes: 40 }]]);
+
+    expect(serviceSnapshot(row, current)).toEqual({ serviceName: 'Limpieza', serviceDuration: 40 });
+  });
+
+  it('cita sin servicio', () => {
+    const row = { service_id: null, service_name: null, service_duration_minutes: null };
+
+    expect(serviceSnapshot(row, new Map())).toEqual({ serviceName: null, serviceDuration: null });
   });
 });

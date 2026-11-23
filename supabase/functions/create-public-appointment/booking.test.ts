@@ -6,6 +6,8 @@ import {
   limaNow,
   missingPatientFields,
   overlapErrorMessage,
+  SERVICE_NOT_OFFERED,
+  serviceOfferError,
   validateBookingPayload,
 } from './booking.ts';
 
@@ -193,5 +195,17 @@ describe('overlapErrorMessage', () => {
 
   it('devuelve null para otros errores', () => {
     expect(overlapErrorMessage({ code: '23505', message: 'duplicate key' })).toBeNull();
+  });
+});
+
+describe('serviceOfferError', () => {
+  it('sin error si is_bookable_service devolvió true', () => {
+    expect(serviceOfferError(true)).toBeNull();
+  });
+
+  it('servicio de otra sede, desactivado o que la profesional no atiende: mensaje claro', () => {
+    expect(serviceOfferError(false)).toBe(SERVICE_NOT_OFFERED);
+    expect(serviceOfferError(null)).toBe(SERVICE_NOT_OFFERED);
+    expect(SERVICE_NOT_OFFERED).toBe('Este servicio no se brinda en esta sede.');
   });
 });

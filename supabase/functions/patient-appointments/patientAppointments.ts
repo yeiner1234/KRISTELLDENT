@@ -137,3 +137,22 @@ export function canAccessAppointment(access: { limitedToAppointmentId: string | 
 export function triggerErrorMessage(error: { code?: string; message?: string }): string | null {
   return error.code === 'P0001' && error.message ? error.message : null;
 }
+
+interface ServiceSnapshotRow {
+  service_id: string | null;
+  service_name: string | null;
+  service_duration_minutes: number | null;
+}
+
+// El historial muestra el servicio tal como se reservó (copia en la cita).
+// Las citas anteriores a esa copia usan el servicio actual.
+export function serviceSnapshot(
+  row: ServiceSnapshotRow,
+  currentServices: Map<string, { name: string; duration_minutes: number }>,
+): { serviceName: string | null; serviceDuration: number | null } {
+  const current = row.service_id ? currentServices.get(row.service_id) : undefined;
+  return {
+    serviceName: row.service_name ?? current?.name ?? null,
+    serviceDuration: row.service_duration_minutes ?? current?.duration_minutes ?? null,
+  };
+}

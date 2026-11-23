@@ -16,7 +16,13 @@
 //
 // La validación vive en patientAppointments.ts (probada con Vitest).
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
-import { addMinutes, limaNow, limaToday, overlapErrorMessage } from '../create-public-appointment/booking.ts';
+import {
+  addMinutes,
+  limaNow,
+  limaToday,
+  overlapErrorMessage,
+  serviceOfferError,
+} from '../create-public-appointment/booking.ts';
 import { sendEmail } from '../_shared/email.ts';
 import { appointmentCodesEmail } from '../_shared/emailTemplates.ts';
 import {
@@ -26,6 +32,7 @@ import {
   RESEND_CODE_MESSAGE,
   modificationError,
   parseRequest,
+  serviceSnapshot,
   triggerErrorMessage,
   type PatientAppointmentsPayload,
 } from './patientAppointments.ts';
@@ -58,6 +65,8 @@ interface AppointmentRow {
   professional_id: string;
   branch_id: string;
   service_id: string | null;
+  service_name: string | null;
+  service_duration_minutes: number | null;
   appointment_date: string;
   start_time: string;
   end_time: string;
@@ -65,7 +74,7 @@ interface AppointmentRow {
 }
 
 const APPOINTMENT_COLUMNS =
-  'id, appointment_code, professional_id, branch_id, service_id, appointment_date, start_time, end_time, status';
+  'id, appointment_code, professional_id, branch_id, service_id, service_name, service_duration_minutes, appointment_date, start_time, end_time, status';
 
 interface PatientAccess {
   patient: { id: string; first_name: string; last_name: string };
@@ -125,10 +134,15 @@ async function withNames(client: SupabaseClient, rows: AppointmentRow[]) {
 
   const branchName = new Map((branches.data ?? []).map((row) => [row.id, row.name as string]));
   const professionalName = new Map((profiles.data ?? []).map((row) => [row.id, row.full_name as string]));
-  const serviceById = new Map((services.data ?? []).map((row) => [row.id, row]));
+  const serviceById = new Map(
+    (services.data ?? []).map((row) => [
+      row.id as string,
+      { name: row.name as string, duration_minutes: row.duration_minutes as number },
+    ]),
+  );
 
   return rows.map((row) => {
-    const service = row.service_id ? serviceById.get(row.service_id) : undefined;
+    const service = serviceSnapshot(row, serviceById);
     return {
       id: row.id,
       code: row.appointment_code,
@@ -141,8 +155,8 @@ async function withNames(client: SupabaseClient, rows: AppointmentRow[]) {
       professionalId: row.professional_id,
       professionalName: professionalName.get(row.professional_id) ?? null,
       serviceId: row.service_id,
-      serviceName: (service?.name as string | undefined) ?? null,
-      serviceDuration: (service?.duration_minutes as number | undefined) ?? null,
+      serviceName: service.serviceName,
+      serviceDuration: service.serviceDuration,
     };
   });
 }
@@ -316,10 +330,19 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: 'No se puede reprogramar a una fecha pasada.' }, 400);
     }
 
-    const [serviceResult, slotsResult] = await Promise.all([
+    const [serviceResult, offerResult, slotsResult] = await Promise.all([
       target.service_id
         ? adminClient.from('services').select('duration_minutes').eq('id', target.service_id).maybeSingle()
         : Promise.resolve({ data: null, error: null }),
+      // Igual que al reservar: el servicio sigue siendo de esa sede, reservable
+      // y atendido por esa profesional.
+      target.service_id
+        ? adminClient.rpc('is_bookable_service', {
+            p_branch_id: target.branch_id,
+            p_service_id: target.service_id,
+            p_professional_id: target.professional_id,
+          })
+        : Promise.resolve({ data: true, error: null }),
       adminClient.rpc('get_available_slots', {
         p_professional_id: target.professional_id,
         p_branch_id: target.branch_id,
@@ -329,7 +352,13 @@ Deno.serve(async (req) => {
       }),
     ]);
     if (serviceResult.error) throw serviceResult.error;
+    if (offerResult.error) throw offerResult.error;
     if (slotsResult.error) throw slotsResult.error;
+
+    const offerError = serviceOfferError(offerResult.data);
+    if (offerError) {
+      return jsonResponse({ error: offerError }, 409);
+    }
 
     const isFree = ((slotsResult.data ?? []) as { slot_start: string }[]).some(
       (slot) => slot.slot_start.slice(0, 5) === request.startTime,

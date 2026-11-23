@@ -202,3 +202,11 @@ export function overlapErrorMessage(error: DbError): string | null {
   }
   return 'Ese horario ya no está disponible. Elige otro.';
 }
+
+export const SERVICE_NOT_OFFERED = 'Este servicio no se brinda en esta sede.';
+
+// Respuesta de la RPC is_bookable_service: el servicio es de esa sede, es
+// reservable y esa profesional lo atiende. Cualquier otra cosa se rechaza.
+export function serviceOfferError(isBookable: unknown): string | null {
+  return isBookable === true ? null : SERVICE_NOT_OFFERED;
+}

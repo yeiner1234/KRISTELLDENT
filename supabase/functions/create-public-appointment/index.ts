@@ -26,6 +26,7 @@ import {
   limaToday,
   missingPatientFields,
   overlapErrorMessage,
+  serviceOfferError,
   validateBookingPayload,
   type CreateAppointmentPayload,
 } from './booking.ts';
@@ -77,13 +78,20 @@ Deno.serve(async (req) => {
 
   // Las lecturas son independientes: van en paralelo para que la reserva se
   // confirme en menos de 3 s. Sede y profesional solo dan nombres al correo.
-  const [serviceResult, slotsResult, patientResult, branchResult, professionalResult] = await Promise.all([
+  const [serviceResult, offerResult, slotsResult, patientResult, branchResult, professionalResult] = await Promise.all([
     adminClient
       .from('services')
       .select('name, duration_minutes')
       .eq('id', booking.serviceId)
       .eq('active', true)
       .maybeSingle(),
+    // El servicio es de la sede elegida, es reservable y esa profesional lo
+    // atiende (un POST directo no se salta la oferta de la sede).
+    adminClient.rpc('is_bookable_service', {
+      p_branch_id: booking.branchId,
+      p_service_id: booking.serviceId,
+      p_professional_id: booking.professionalId,
+    }),
     // get_available_slots ya comprueba que la profesional esté activa,
     // atienda en esa sede y ofrezca ese servicio.
     adminClient.rpc('get_available_slots', {
@@ -98,11 +106,12 @@ Deno.serve(async (req) => {
     adminClient.from('profiles').select('full_name').eq('id', booking.professionalId).maybeSingle(),
   ]);
 
-  if (serviceResult.error || slotsResult.error || patientResult.error) {
+  if (serviceResult.error || offerResult.error || slotsResult.error || patientResult.error) {
     return jsonResponse({ error: 'No se pudo verificar la disponibilidad. Inténtalo de nuevo.' }, 500);
   }
-  if (!serviceResult.data) {
-    return jsonResponse({ error: 'El servicio elegido ya no está disponible.' }, 400);
+  const offerError = serviceOfferError(offerResult.data);
+  if (!serviceResult.data || offerError) {
+    return jsonResponse({ error: offerError ?? 'El servicio elegido ya no está disponible.' }, 400);
   }
 
   const startTime = booking.startTime.slice(0, 5);
@@ -180,6 +189,8 @@ Deno.serve(async (req) => {
       reason: booking.reason,
       status: 'pending',
       code_limited: codeLimited,
+      // service_name, service_price y service_duration_minutes los copia el
+      // trigger appointments_copy_service desde el servicio.
     })
     .select('id, appointment_code, appointment_date, start_time, end_time, status')
     .single();
