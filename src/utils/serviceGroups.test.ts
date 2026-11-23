@@ -8,6 +8,7 @@ const service = (id: string, specialtyId: string): Service => ({
   id,
   name: id,
   specialtyId,
+  branchId: 'b1',
   duration: 30,
   price: 0,
   active: true,

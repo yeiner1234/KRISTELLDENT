@@ -28,12 +28,16 @@ function ServiceStep({ specialtyId, branchId, professionalId, serviceId, onChang
     [professionals, professionalId, specialtyId, branchId],
   );
 
-  // Solo se ofrecen servicios que el/los profesional(es) candidato(s)
-  // realmente tienen asignados — nunca un servicio que nadie puede atender.
+  // Solo se ofrecen servicios de la sede elegida que el/los profesional(es)
+  // candidato(s) realmente tienen asignados — nunca un servicio que nadie
+  // puede atender.
   const availableServices = useMemo(() => {
     const offeredServiceIds = new Set(candidateProfessionals.flatMap((professional) => professional.serviceIds));
-    return services.filter((service) => service.specialtyId === specialtyId && offeredServiceIds.has(service.id));
-  }, [services, candidateProfessionals, specialtyId]);
+    return services.filter(
+      (service) =>
+        service.branchId === branchId && service.specialtyId === specialtyId && offeredServiceIds.has(service.id),
+    );
+  }, [services, candidateProfessionals, specialtyId, branchId]);
 
   return (
     <div>

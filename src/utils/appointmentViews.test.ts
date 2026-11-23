@@ -38,7 +38,7 @@ const professional = (id: string, fullName: string, active = true): Professional
 });
 
 const professionals = [professional('p1', 'Dra. Kristell Vega'), professional('p2', 'Dra. Inés Soto', false)];
-const services: Service[] = [{ id: 's1', name: 'Limpieza', specialtyId: 'x', duration: 30, price: 0, active: true }];
+const services: Service[] = [{ id: 's1', name: 'Limpieza', specialtyId: 'x', branchId: 'b1', duration: 30, price: 0, active: true }];
 
 const appointments = [
   appointment({ id: 'a3', date: '2026-11-17', startTime: '08:00', patientId: 'pt2', professionalId: 'p2', code: 'KD-ZZZ999' }),

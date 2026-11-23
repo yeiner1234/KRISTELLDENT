@@ -5,6 +5,7 @@ interface ServiceRow {
   id: string;
   name: string;
   specialty_id: string;
+  branch_id: string | null;
   duration_minutes: number;
   price: number;
   active: boolean;
@@ -15,13 +16,14 @@ function mapRow(row: ServiceRow): Service {
     id: row.id,
     name: row.name,
     specialtyId: row.specialty_id,
+    branchId: row.branch_id,
     duration: row.duration_minutes,
     price: row.price,
     active: row.active,
   };
 }
 
-const SELECT_COLUMNS = 'id, name, specialty_id, duration_minutes, price, active';
+const SELECT_COLUMNS = 'id, name, specialty_id, branch_id, duration_minutes, price, active';
 
 export async function getServices(): Promise<Service[]> {
   const { data, error } = await supabase
