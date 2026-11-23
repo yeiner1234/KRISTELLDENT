@@ -159,6 +159,26 @@ create trigger enforce_service_matches_specialty
 --      or ps.start_time < bs.open_time
 --      or ps.end_time > bs.close_time
 --   order by pr.full_name, ps.day_of_week, ps.start_time;
+--
+-- 9. Horarios de una misma profesional que se cruzan el mismo día (en
+--    sedes distintas o en la misma). La restricción de exclusión revisa las
+--    filas existentes: si esta consulta devuelve algo, la migración FALLA
+--    en el punto 9 hasta que se corrijan:
+--
+--   select pr.full_name, a.day_of_week,
+--          ba.name as sede_1, a.start_time as inicio_1, a.end_time as fin_1,
+--          bb.name as sede_2, b.start_time as inicio_2, b.end_time as fin_2
+--   from public.professional_schedules a
+--   join public.professional_schedules b
+--     on b.professional_id = a.professional_id
+--    and b.day_of_week = a.day_of_week
+--    and a.id < b.id
+--    and a.start_time < b.end_time
+--    and b.start_time < a.end_time
+--   join public.branches ba on ba.id = a.branch_id
+--   join public.branches bb on bb.id = b.branch_id
+--   left join public.profiles pr on pr.id = a.professional_id
+--   order by pr.full_name, a.day_of_week, a.start_time;
 
 -- --- 8. Horario del profesional dentro del de la sede ------------------------
 create or replace function public.enforce_schedule_within_branch_hours()
@@ -191,3 +211,19 @@ create trigger enforce_schedule_within_branch_hours
   before insert or update on public.professional_schedules
   for each row
   execute function public.enforce_schedule_within_branch_hours();
+
+-- --- 9. Sin cruces de horario entre sedes el mismo día ----------------------
+-- Rangos semiabiertos [inicio, fin): 09:00–13:00 y 13:00–17:00 solo se tocan.
+-- La fecha fija 2000-01-01 solo convierte las horas en timestamps para poder
+-- usar tsrange. btree_gist (para = sobre uuid y smallint) ya existe desde
+-- 20260918210347_availability_engine.sql.
+create extension if not exists btree_gist;
+
+alter table public.professional_schedules drop constraint if exists professional_schedules_no_overlap;
+alter table public.professional_schedules
+  add constraint professional_schedules_no_overlap
+  exclude using gist (
+    professional_id with =,
+    day_of_week with =,
+    tsrange('2000-01-01'::date + start_time, '2000-01-01'::date + end_time) with &&
+  );

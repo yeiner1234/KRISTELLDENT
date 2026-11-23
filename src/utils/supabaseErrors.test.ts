@@ -14,6 +14,12 @@ describe('friendlyWriteError', () => {
     );
   });
 
+  it('traduce el cruce de horarios entre sedes', () => {
+    expect(
+      friendlyWriteError('conflicting key value violates exclusion constraint "professional_schedules_no_overlap"'),
+    ).toBe('Ese horario se cruza con su horario en otra sede.');
+  });
+
   it('deja pasar los demás mensajes tal cual', () => {
     expect(friendlyWriteError('Failed to fetch')).toBe('Failed to fetch');
   });
