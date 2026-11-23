@@ -59,3 +59,36 @@ create trigger prevent_branch_deactivation_with_appointments
   for each row
   when (old.active and not new.active)
   execute function public.prevent_branch_deactivation_with_appointments();
+
+-- --- 3. No desactivar una especialidad con servicios activos ----------------
+create or replace function public.prevent_specialty_deactivation_with_services()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_active integer;
+begin
+  select count(*) into v_active
+  from public.services s
+  where s.specialty_id = new.id
+    and s.active;
+
+  if v_active > 0 then
+    raise exception 'Tiene % servicios activos: desactívalos primero.', v_active
+      using errcode = 'P0001';
+  end if;
+
+  return new;
+end;
+$$;
+
+revoke all on function public.prevent_specialty_deactivation_with_services() from public;
+
+drop trigger if exists prevent_specialty_deactivation_with_services on public.specialties;
+create trigger prevent_specialty_deactivation_with_services
+  before update of active on public.specialties
+  for each row
+  when (old.active and not new.active)
+  execute function public.prevent_specialty_deactivation_with_services();
