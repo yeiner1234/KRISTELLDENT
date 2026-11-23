@@ -29,6 +29,7 @@ import AdminPatientsPage from '../pages/admin/PatientsPage';
 import AdminProfessionalsPage from '../pages/admin/ProfessionalsPage';
 import AdminSpecialtiesPage from '../pages/admin/SpecialtiesPage';
 import AdminServicesPage from '../pages/admin/ServicesPage';
+import AdminOfferOverviewPage from '../pages/admin/OfferOverviewPage';
 import AdminSettingsPage from '../pages/admin/SettingsPage';
 
 import ProfessionalHomePage from '../pages/professional/HomePage';
@@ -70,6 +71,10 @@ function AppRouter() {
               <Route path="profesionales" element={<AdminProfessionalsPage />} />
               <Route path="especialidades" element={<AdminSpecialtiesPage />} />
               <Route path="servicios" element={<AdminServicesPage />} />
+              {/* Supervisión de la oferta de todas las sedes: solo admin_global. */}
+              <Route element={<RoleRoute allowedRoles={['admin_global']} />}>
+                <Route path="oferta" element={<AdminOfferOverviewPage />} />
+              </Route>
               <Route path="configuracion" element={<AdminSettingsPage />} />
               <Route path="reportes/agenda" element={<AgendaReportPage />} />
             </Route>

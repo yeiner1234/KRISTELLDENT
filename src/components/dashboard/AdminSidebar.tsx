@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom';
 import {
   Building2,
   CalendarRange,
+  LayoutGrid,
   CircleHelp,
   ClipboardList,
   LayoutDashboard,
@@ -14,8 +15,19 @@ import {
   Wrench,
 } from 'lucide-react';
 import logo from '../../../imagenes/kristelldent-icon.png';
+import { useAuth } from '../../hooks/useAuth';
+import type { AppRole } from '../../types/User';
 
-const items = [
+interface SidebarItem {
+  label: string;
+  to: string;
+  icon: typeof Building2;
+  end?: boolean;
+  // Sin roles: lo ven admin_global y admin_sede.
+  roles?: AppRole[];
+}
+
+const items: SidebarItem[] = [
   { label: 'Dashboard', to: '/admin', icon: LayoutDashboard, end: true },
   { label: 'Sedes', to: '/admin/sedes', icon: Building2 },
   { label: 'Equipo', to: '/admin/equipo', icon: UsersRound },
@@ -25,11 +37,15 @@ const items = [
   { label: 'Pacientes', to: '/admin/pacientes', icon: Users },
   { label: 'Profesionales', to: '/admin/profesionales', icon: UserRound },
   { label: 'Especialidades', to: '/admin/especialidades', icon: Tags },
-  { label: 'Servicios', to: '/admin/servicios', icon: Wrench },
+  { label: 'Servicios de la sede', to: '/admin/servicios', icon: Wrench },
+  { label: 'Oferta por sede', to: '/admin/oferta', icon: LayoutGrid, roles: ['admin_global'] },
   { label: 'Configuración', to: '/admin/configuracion', icon: Settings2 },
 ];
 
 function AdminSidebar() {
+  const { user } = useAuth();
+  const visibleItems = items.filter((item) => !item.roles || (user && item.roles.includes(user.role)));
+
   return (
     <aside className="flex w-[244px] shrink-0 flex-col gap-[22px] bg-brand-900 p-[20px_14px]">
       <div className="flex items-center gap-2.5 px-1">
@@ -41,7 +57,7 @@ function AdminSidebar() {
       </div>
 
       <nav className="flex flex-col gap-1">
-        {items.map(({ label, to, icon: Icon, end }) => (
+        {visibleItems.map(({ label, to, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}

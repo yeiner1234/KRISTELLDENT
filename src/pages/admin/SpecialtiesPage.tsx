@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { Pencil, Plus, Stethoscope } from 'lucide-react';
+import { Pencil, Plus, Stethoscope, Trash2 } from 'lucide-react';
 import SectionTitle from '../../components/common/SectionTitle';
 import { useAuth } from '../../hooks/useAuth';
 import DataTable, { type DataTableColumn } from '../../components/common/DataTable';
@@ -11,35 +11,40 @@ import Modal from '../../components/common/Modal';
 import FormError from '../../components/common/FormError';
 import Input from '../../components/common/Input';
 import StatusBadge from '../../components/common/StatusBadge';
-import { useProfessionals } from '../../hooks/useProfessionals';
-import { useAdminSpecialties } from '../../hooks/useAdminSpecialties';
+import { useSpecialtiesAdmin } from '../../hooks/useOffer';
 import {
   createSpecialty,
+  deleteSpecialty,
   setSpecialtyActive,
   updateSpecialty,
   type SpecialtyInput,
 } from '../../services/specialtyService';
-import type { Specialty } from '../../types/Specialty';
+import { isSameSpecialtyName, similarSpecialties } from '../../utils/specialtyMatch';
+import type { AdminSpecialty } from '../../types/Offer';
 
 const emptyForm: SpecialtyInput = { name: '', description: '' };
 
+// Lista compartida de especialidades (spec 10.3). Las dos administradoras
+// agregan; solo admin_global renombra, desactiva y borra, porque afecta a
+// todas las sedes.
 function SpecialtiesPage() {
   const { user } = useAuth();
-  // admin_sede ve el catálogo en solo lectura: solo admin_global lo edita.
   const isAdminGlobal = user?.role === 'admin_global';
-  const { professionals, isLoading: isLoadingProfessionals, error: professionalsError } = useProfessionals();
-  const { specialties, isLoading: isLoadingSpecialties, error: specialtiesError, refetch } = useAdminSpecialties();
-  const error = specialtiesError ?? professionalsError;
+  const { data: specialties, isLoading, error, refetch } = useSpecialtiesAdmin();
   const [query, setQuery] = useState('');
-  const isLoading = isLoadingProfessionals || isLoadingSpecialties;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editing, setEditing] = useState<Specialty | null>(null);
+  const [editing, setEditing] = useState<AdminSpecialty | null>(null);
   const [form, setForm] = useState<SpecialtyInput>(emptyForm);
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [togglingId, setTogglingId] = useState<string | null>(null);
-  const [toggleError, setToggleError] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  const otherSpecialties = specialties.filter((specialty) => specialty.id !== editing?.id);
+  const exactDuplicate = otherSpecialties.find((specialty) => isSameSpecialtyName(specialty.name, form.name));
+  const similar = exactDuplicate ? [] : similarSpecialties(form.name, otherSpecialties);
 
   const openCreateModal = () => {
     setEditing(null);
@@ -48,7 +53,7 @@ function SpecialtiesPage() {
     setIsModalOpen(true);
   };
 
-  const openEditModal = (specialty: Specialty) => {
+  const openEditModal = (specialty: AdminSpecialty) => {
     setEditing(specialty);
     setForm({ name: specialty.name, description: specialty.description ?? '' });
     setFormError(null);
@@ -57,19 +62,17 @@ function SpecialtiesPage() {
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
+    if (exactDuplicate) {
+      setFormError('Ya existe esa especialidad: elígela de la lista.');
+      return;
+    }
     setFormError(null);
     setIsSubmitting(true);
-
-    const input: SpecialtyInput = {
-      name: form.name.trim(),
-      description: form.description?.trim() ? form.description.trim() : null,
-    };
-
     try {
       if (editing) {
-        await updateSpecialty(editing.id, input);
+        await updateSpecialty(editing.id, form);
       } else {
-        await createSpecialty(input);
+        await createSpecialty(form);
       }
       setIsModalOpen(false);
       refetch();
@@ -80,58 +83,89 @@ function SpecialtiesPage() {
     }
   };
 
-  const handleToggleActive = async (specialty: Specialty) => {
-    setTogglingId(specialty.id);
-    setToggleError(null);
+  const runAction = async (id: string, action: () => Promise<unknown>) => {
+    setBusyId(id);
+    setActionError(null);
     try {
-      await setSpecialtyActive(specialty.id, !specialty.active);
+      await action();
+      setConfirmDeleteId(null);
       refetch();
     } catch (err) {
-      setToggleError(err instanceof Error ? err.message : 'No se pudo actualizar la especialidad.');
+      setActionError(err instanceof Error ? err.message : 'No se pudo actualizar la especialidad.');
     } finally {
-      setTogglingId(null);
+      setBusyId(null);
     }
   };
 
-  const allColumns: DataTableColumn<Specialty>[] = [
-    { key: 'name', header: 'Especialidad', render: (row) => row.name },
+  const columns: DataTableColumn<AdminSpecialty>[] = [
+    { key: 'name', header: 'Especialidad', render: (row) => <span className="font-medium">{row.name}</span> },
     {
       key: 'description',
       header: 'Descripción',
-      render: (row) => <span className="block min-w-[200px] max-w-[360px] whitespace-normal">{row.description ?? '—'}</span>,
+      render: (row) => <span className="block min-w-[160px] max-w-[300px] whitespace-normal">{row.description ?? '—'}</span>,
     },
     {
-      key: 'professionals',
-      header: 'Profesionales',
-      render: (row) => professionals.filter((professional) => professional.specialtyIds.includes(row.id)).length,
+      key: 'branches',
+      header: 'Sedes que la ofrecen',
+      render: (row) => (row.branchNames.length > 0 ? row.branchNames.join(', ') : '—'),
     },
+    { key: 'createdBy', header: 'Agregada por', render: (row) => row.createdByName ?? '—' },
     {
       key: 'status',
       header: 'Estado',
       render: (row) => <StatusBadge label={row.active ? 'Activa' : 'Inactiva'} tone={row.active ? 'adm-active' : 'adm-inactive'} />,
     },
-    {
-      key: 'actions',
-      header: '',
-      render: (row) => (
-        <div className="flex gap-1.5">
-          <Button type="button" variant="admin-outline" size="xs" icon={<Pencil size={13} />} onClick={() => openEditModal(row)}>
-            Editar
-          </Button>
-          <Button
-            type="button"
-            variant={row.active ? 'admin-danger' : 'admin-outline'}
-            size="xs"
-            disabled={togglingId === row.id}
-            onClick={() => handleToggleActive(row)}
-          >
-            {togglingId === row.id ? 'Guardando…' : row.active ? 'Desactivar' : 'Activar'}
-          </Button>
-        </div>
-      ),
-    },
+    ...(isAdminGlobal
+      ? [
+          {
+            key: 'actions',
+            header: '',
+            render: (row: AdminSpecialty) =>
+              confirmDeleteId === row.id ? (
+                <div className="flex gap-1.5">
+                  <Button
+                    type="button"
+                    variant="admin-danger"
+                    size="xs"
+                    disabled={busyId === row.id}
+                    onClick={() => runAction(row.id, () => deleteSpecialty(row.id))}
+                  >
+                    Sí, borrar
+                  </Button>
+                  <Button type="button" variant="admin-outline" size="xs" onClick={() => setConfirmDeleteId(null)}>
+                    No
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex gap-1.5">
+                  <Button type="button" variant="admin-outline" size="xs" icon={<Pencil size={13} />} onClick={() => openEditModal(row)}>
+                    Editar
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={row.active ? 'admin-danger' : 'admin-outline'}
+                    size="xs"
+                    disabled={busyId === row.id}
+                    onClick={() => runAction(row.id, () => setSpecialtyActive(row.id, !row.active))}
+                  >
+                    {busyId === row.id ? 'Guardando…' : row.active ? 'Desactivar' : 'Activar'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="admin-outline"
+                    size="xs"
+                    icon={<Trash2 size={13} />}
+                    aria-label={`Borrar ${row.name}`}
+                    onClick={() => setConfirmDeleteId(row.id)}
+                  >
+                    Borrar
+                  </Button>
+                </div>
+              ),
+          },
+        ]
+      : []),
   ];
-  const columns = isAdminGlobal ? allColumns : allColumns.filter((column) => column.key !== 'actions');
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -143,12 +177,14 @@ function SpecialtiesPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <SectionTitle title="Especialidades" align="left" />
-        {isAdminGlobal && (
-          <Button type="button" variant="admin-solid" size="sm" icon={<Plus size={16} />} onClick={openCreateModal}>
-            Nueva especialidad
-          </Button>
-        )}
+        <Button type="button" variant="admin-solid" size="sm" icon={<Plus size={16} />} onClick={openCreateModal}>
+          Agregar especialidad
+        </Button>
       </div>
+
+      <p className="text-[13px] text-adm-ink-400">
+        Lista compartida por todas las sedes. {isAdminGlobal ? '' : 'Para renombrar o desactivar una especialidad, pídelo a la administración general.'}
+      </p>
 
       <div className="flex flex-wrap items-center gap-2.5 rounded-[14px] border border-adm-line-card bg-white p-4">
         <SearchInput
@@ -159,7 +195,7 @@ function SpecialtiesPage() {
         />
       </div>
 
-      <FormError message={toggleError} />
+      <FormError message={actionError} />
 
       {isLoading ? (
         <div className="flex justify-center py-10">
@@ -168,7 +204,7 @@ function SpecialtiesPage() {
       ) : error ? (
         <EmptyState icon={Stethoscope} title="No se pudieron cargar las especialidades" description={error} />
       ) : filtered.length === 0 ? (
-        <EmptyState icon={Stethoscope} title="No hay especialidades registradas" description="Aún no se han creado especialidades." />
+        <EmptyState icon={Stethoscope} title="No hay especialidades registradas" description="Aún no se han agregado especialidades." />
       ) : (
         <DataTable columns={columns} rows={filtered} getRowId={(row) => row.id} />
       )}
@@ -176,7 +212,7 @@ function SpecialtiesPage() {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editing ? 'Editar especialidad' : 'Nueva especialidad'}
+        title={editing ? 'Editar especialidad' : 'Agregar especialidad'}
         footer={
           <>
             <Button type="button" variant="admin-outline" onClick={() => setIsModalOpen(false)}>
@@ -189,20 +225,30 @@ function SpecialtiesPage() {
         }
       >
         <form id="especialidad-form" onSubmit={handleSubmit} className="flex flex-col gap-4 py-2">
-          {formError && (
-            <p className="rounded-[10px] border border-adm-status-cancelled-border bg-adm-status-cancelled-bg px-3.5 py-2.5 text-sm font-medium text-adm-danger-text">
-              {formError}
-            </p>
-          )}
+          <FormError message={formError} />
 
           <Input
             label="Nombre"
             name="name"
             variant="admin"
             value={form.name}
-            onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+            onChange={(event) => {
+              setForm((current) => ({ ...current, name: event.target.value }));
+              setFormError(null);
+            }}
             required
           />
+          {exactDuplicate && (
+            <p className="text-[13px] font-medium text-adm-danger-text">
+              Ya existe "{exactDuplicate.name}": elígela de la lista en lugar de crearla.
+            </p>
+          )}
+          {similar.length > 0 && (
+            <p className="text-[13px] text-adm-ink-700">
+              ¿Quisiste decir {similar.map((specialty) => `"${specialty.name}"`).join(' o ')}? Si es la misma, no la
+              agregues: ya está en la lista.
+            </p>
+          )}
           <Input
             label="Descripción (opcional)"
             name="description"
