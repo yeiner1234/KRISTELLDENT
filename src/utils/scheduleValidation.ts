@@ -79,3 +79,24 @@ export function validateWithinBranchHours(entries: WeeklyEntry[], branchSchedule
   }
   return `${DAY_LABELS[firstDay]}: El horario del profesional debe estar dentro del horario de la sede.`;
 }
+
+export interface OtherBranchRange extends WeeklyEntry {
+  branchName: string;
+}
+
+// Caso límite 2: la misma profesional no puede estar en dos sedes a la vez.
+// La base lo exige con professional_schedules_no_overlap; aquí se arma un
+// mensaje que dice con qué sede y rango choca.
+export function findCrossBranchOverlap(entries: WeeklyEntry[], otherBranches: OtherBranchRange[]): string | null {
+  for (const entry of entries) {
+    const clash = otherBranches.find(
+      (other) =>
+        other.dayOfWeek === entry.dayOfWeek && entry.startTime < other.endTime && other.startTime < entry.endTime,
+    );
+    if (clash) {
+      const day = DAY_LABELS[clash.dayOfWeek].toLowerCase();
+      return `Ese horario se cruza con su horario en ${clash.branchName} (${day} ${clash.startTime}–${clash.endTime}).`;
+    }
+  }
+  return null;
+}

@@ -3,6 +3,7 @@ import {
   rangesOutsideBranchHours,
   validateDayRanges,
   validateWeeklySchedule,
+  findCrossBranchOverlap,
   validateWithinBranchHours,
 } from './scheduleValidation';
 
@@ -81,5 +82,27 @@ describe('validateWithinBranchHours', () => {
     expect(validateWithinBranchHours([{ dayOfWeek: 2, startTime: '09:00', endTime: '10:00' }], branchSchedule)).toBe(
       'Martes: El horario del profesional debe estar dentro del horario de la sede.',
     );
+  });
+});
+
+describe('findCrossBranchOverlap', () => {
+  const otherBranches = [{ branchName: 'Bagua', dayOfWeek: 1, startTime: '09:00', endTime: '13:00' }];
+
+  it('nombra la sede, el día y el rango con el que choca', () => {
+    expect(findCrossBranchOverlap([{ dayOfWeek: 1, startTime: '12:00', endTime: '16:00' }], otherBranches)).toBe(
+      'Ese horario se cruza con su horario en Bagua (lunes 09:00–13:00).',
+    );
+  });
+
+  it('acepta rangos que solo se tocan o están en otro día', () => {
+    expect(
+      findCrossBranchOverlap(
+        [
+          { dayOfWeek: 1, startTime: '13:00', endTime: '17:00' },
+          { dayOfWeek: 2, startTime: '09:00', endTime: '13:00' },
+        ],
+        otherBranches,
+      ),
+    ).toBeNull();
   });
 });

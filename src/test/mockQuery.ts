@@ -10,7 +10,7 @@ export interface QueryResult {
   error?: { message: string; code?: string } | null;
 }
 
-const CHAIN_METHODS = ['select', 'insert', 'update', 'delete', 'eq', 'in', 'is', 'gte', 'order', 'single', 'maybeSingle'] as const;
+const CHAIN_METHODS = ['select', 'insert', 'update', 'delete', 'eq', 'neq', 'in', 'is', 'gte', 'order', 'single', 'maybeSingle'] as const;
 
 type ChainMethod = (typeof CHAIN_METHODS)[number];
 

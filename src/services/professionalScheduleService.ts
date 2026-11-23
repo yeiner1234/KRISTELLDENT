@@ -1,11 +1,22 @@
 import { supabase } from '../lib/supabase';
 import { friendlyWriteError } from '../utils/supabaseErrors';
-import { validateWeeklySchedule, validateWithinBranchHours } from '../utils/scheduleValidation';
+import {
+  findCrossBranchOverlap,
+  validateWeeklySchedule,
+  validateWithinBranchHours,
+} from '../utils/scheduleValidation';
 
 interface BranchScheduleRow {
   day_of_week: number;
   open_time: string;
   close_time: string;
+}
+
+interface OtherBranchScheduleRow {
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  branches: { name: string } | { name: string }[] | null;
 }
 
 interface ProfessionalScheduleRow {
@@ -83,6 +94,34 @@ export async function setProfessionalSchedule(
     );
     if (outsideError) {
       throw new Error(outsideError);
+    }
+
+    // Los horarios son de lectura pública: se ven también los de las sedes
+    // que este admin no administra.
+    const { data: others, error: othersError } = await supabase
+      .from('professional_schedules')
+      .select('day_of_week, start_time, end_time, branches ( name )')
+      .eq('professional_id', professionalId)
+      .neq('branch_id', branchId);
+
+    if (othersError) {
+      throw new Error(friendlyWriteError(othersError.message));
+    }
+
+    const overlapError = findCrossBranchOverlap(
+      entries,
+      ((others ?? []) as unknown as OtherBranchScheduleRow[]).map((row) => {
+        const branch = Array.isArray(row.branches) ? row.branches[0] : row.branches;
+        return {
+          branchName: branch?.name ?? 'otra sede',
+          dayOfWeek: row.day_of_week,
+          startTime: toHHMM(row.start_time),
+          endTime: toHHMM(row.end_time),
+        };
+      }),
+    );
+    if (overlapError) {
+      throw new Error(overlapError);
     }
   }
 
