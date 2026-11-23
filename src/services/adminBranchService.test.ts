@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { supabase } from '../lib/supabase';
 import { mockQuery } from '../test/mockQuery';
-import { getManageableBranchIds } from './adminBranchService';
+import { getManageableBranchIds, setBranchActive } from './adminBranchService';
 
 vi.mock('../lib/supabase', () => ({
   supabase: {
@@ -31,5 +31,31 @@ describe('getManageableBranchIds', () => {
     );
 
     await expect(getManageableBranchIds()).resolves.toEqual(['b1', 'b2']);
+  });
+});
+
+describe('setBranchActive', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('muestra tal cual el mensaje del trigger de citas pendientes', async () => {
+    vi.mocked(supabase.from).mockReturnValue(
+      mockQuery({ error: { message: 'No se puede desactivar: la sede tiene 2 citas pendientes.' } }) as never,
+    );
+
+    await expect(setBranchActive('b1', false)).rejects.toThrow('No se puede desactivar: la sede tiene 2 citas pendientes.');
+  });
+
+  it('traduce la sede vieja sin región', async () => {
+    vi.mocked(supabase.from).mockReturnValue(
+      mockQuery({
+        error: { message: 'new row for relation "branches" violates check constraint "branches_region_required"' },
+      }) as never,
+    );
+
+    await expect(setBranchActive('b1', false)).rejects.toThrow(
+      'La sede no tiene región: edítala y agrégala antes de cambiarla.',
+    );
   });
 });

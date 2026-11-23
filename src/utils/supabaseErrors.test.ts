@@ -20,6 +20,12 @@ describe('friendlyWriteError', () => {
     ).toBe('Ese horario se cruza con su horario en otra sede.');
   });
 
+  it('traduce la sede sin región', () => {
+    expect(
+      friendlyWriteError('new row for relation "branches" violates check constraint "branches_region_required"'),
+    ).toBe('La sede no tiene región: edítala y agrégala antes de cambiarla.');
+  });
+
   it('deja pasar los demás mensajes tal cual', () => {
     expect(friendlyWriteError('Failed to fetch')).toBe('Failed to fetch');
   });

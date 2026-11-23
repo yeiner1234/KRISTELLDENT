@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { friendlyWriteError } from '../utils/supabaseErrors';
 
 export interface BranchRecord {
   id: string;
@@ -82,7 +83,7 @@ export async function createBranch(input: BranchInput): Promise<BranchRecord> {
   const { data, error } = await supabase.from('branches').insert(toRow(input)).select(SELECT_COLUMNS).single();
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error(friendlyWriteError(error.message));
   }
 
   return mapRow(data);
@@ -97,7 +98,7 @@ export async function updateBranch(id: string, input: BranchInput): Promise<Bran
     .single();
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error(friendlyWriteError(error.message));
   }
 
   return mapRow(data);
@@ -112,7 +113,7 @@ export async function setBranchActive(id: string, active: boolean): Promise<Bran
     .single();
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error(friendlyWriteError(error.message));
   }
 
   return mapRow(data);

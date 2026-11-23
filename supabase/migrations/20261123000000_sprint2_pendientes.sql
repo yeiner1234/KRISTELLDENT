@@ -2,8 +2,19 @@
 -- Sprint 2 — Criterios pendientes de sedes, especialidades, profesionales y
 -- horarios
 -- =============================================================================
--- 1. Región obligatoria en branches (NOT VALID: las sedes viejas sin región
---    siguen, pero no se pueden guardar así otra vez).
+-- 1. Región obligatoria en branches. NOT VALID: no revisa las sedes viejas
+--    al crearse, pero cualquier UPDATE de una sede sin región (editarla,
+--    activarla o desactivarla) sí la exige; el panel lo explica.
+-- 2. No desactivar una sede con citas pendientes de hoy en adelante.
+-- 3. No desactivar una especialidad con servicios activos.
+-- 6. professional_services solo acepta servicios de una especialidad que el
+--    profesional tiene.
+-- 8. professional_schedules debe caber en branch_schedules de esa sede y día.
+-- 9. Restricción de exclusión: una profesional no tiene dos rangos que se
+--    crucen el mismo día, en ninguna sede.
+--
+-- ANTES DE APLICARLA corre las consultas de revisión de los puntos 8 y 9
+-- (más abajo): si hay cruces de horario, el punto 9 hace fallar la migración.
 --
 -- Los triggers son SECURITY DEFINER (como enforce_specialist_single_specialty):
 -- cuentan filas que la RLS de quien llama puede no dejarle ver.
