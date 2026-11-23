@@ -57,7 +57,7 @@ export function validateWeeklySchedule(entries: WeeklyEntry[]): string | null {
 }
 
 // Días con algún rango fuera del horario de la sede (o con la sede cerrada).
-// Es solo un aviso: get_available_slots recorta esas horas por su cuenta.
+// Marca en el modal los días que impiden guardar.
 export function rangesOutsideBranchHours(entries: WeeklyEntry[], branchSchedule: BranchDayHours[]): number[] {
   const days = new Set<number>();
   for (const entry of entries) {
@@ -67,4 +67,15 @@ export function rangesOutsideBranchHours(entries: WeeklyEntry[], branchSchedule:
     }
   }
   return [...days].sort((a, b) => a - b);
+}
+
+// Criterio 2 de la HU de horarios: el horario del profesional cabe dentro del
+// de la sede ese día. La base lo exige también (trigger
+// enforce_schedule_within_branch_hours).
+export function validateWithinBranchHours(entries: WeeklyEntry[], branchSchedule: BranchDayHours[]): string | null {
+  const [firstDay] = rangesOutsideBranchHours(entries, branchSchedule);
+  if (firstDay === undefined) {
+    return null;
+  }
+  return `${DAY_LABELS[firstDay]}: El horario del profesional debe estar dentro del horario de la sede.`;
 }

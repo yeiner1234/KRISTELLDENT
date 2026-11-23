@@ -136,3 +136,58 @@ create trigger enforce_service_matches_specialty
   before insert or update on public.professional_services
   for each row
   execute function public.enforce_service_matches_specialty();
+
+-- =============================================================================
+-- ANTES DE APLICAR LOS PUNTOS 8 Y 9: revisa los horarios actuales.
+-- =============================================================================
+-- Corre estas consultas solas en el SQL Editor. Si devuelven filas, corrige
+-- esos horarios desde el panel (Profesionales → Horario) y vuelve a correrlas
+-- hasta que salgan vacías. Después pega esta migración completa.
+--
+-- 8. Horarios de profesionales fuera del horario de su sede (o en un día en
+--    que la sede está cerrada). El trigger solo revisa altas y cambios, así
+--    que estas filas no rompen la migración, pero quedarían incoherentes:
+--
+--   select pr.full_name, b.name as sede, ps.day_of_week,
+--          ps.start_time, ps.end_time, bs.open_time, bs.close_time
+--   from public.professional_schedules ps
+--   join public.branches b on b.id = ps.branch_id
+--   left join public.profiles pr on pr.id = ps.professional_id
+--   left join public.branch_schedules bs
+--     on bs.branch_id = ps.branch_id and bs.day_of_week = ps.day_of_week
+--   where bs.id is null
+--      or ps.start_time < bs.open_time
+--      or ps.end_time > bs.close_time
+--   order by pr.full_name, ps.day_of_week, ps.start_time;
+
+-- --- 8. Horario del profesional dentro del de la sede ------------------------
+create or replace function public.enforce_schedule_within_branch_hours()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not exists (
+    select 1
+    from public.branch_schedules bs
+    where bs.branch_id = new.branch_id
+      and bs.day_of_week = new.day_of_week
+      and new.start_time >= bs.open_time
+      and new.end_time <= bs.close_time
+  ) then
+    raise exception 'El horario del profesional debe estar dentro del horario de la sede.'
+      using errcode = 'P0001';
+  end if;
+
+  return new;
+end;
+$$;
+
+revoke all on function public.enforce_schedule_within_branch_hours() from public;
+
+drop trigger if exists enforce_schedule_within_branch_hours on public.professional_schedules;
+create trigger enforce_schedule_within_branch_hours
+  before insert or update on public.professional_schedules
+  for each row
+  execute function public.enforce_schedule_within_branch_hours();

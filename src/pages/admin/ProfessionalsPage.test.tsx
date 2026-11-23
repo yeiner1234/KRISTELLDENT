@@ -111,6 +111,40 @@ describe('ProfessionalsPage — modal Horario', () => {
   });
 });
 
+describe('ProfessionalsPage — horario dentro del de la sede', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    Element.prototype.scrollIntoView = vi.fn();
+  });
+
+  it('no guarda un bloque que empieza antes de que abra la sede', async () => {
+    vi.mocked(getBranchScheduleForAdmin).mockResolvedValue([{ dayOfWeek: 1, openTime: '08:00', closeTime: '14:00' }]);
+    vi.mocked(getProfessionalScheduleForAdmin).mockResolvedValue([{ dayOfWeek: 1, startTime: '07:00', endTime: '12:00' }]);
+    const { user, dialog } = await openSchedule();
+
+    await user.click(screen.getByRole('button', { name: 'Guardar horario' }));
+
+    expect(within(dialog).getByRole('alert')).toHaveTextContent(
+      'Lunes: El horario del profesional debe estar dentro del horario de la sede.',
+    );
+    expect(setProfessionalSchedule).not.toHaveBeenCalled();
+  });
+
+  it('no deja guardar si no se pudo cargar el horario de la sede', async () => {
+    vi.mocked(getBranchScheduleForAdmin).mockRejectedValue(new Error('sin red'));
+    vi.mocked(getProfessionalScheduleForAdmin).mockResolvedValue([]);
+    render(
+      <MemoryRouter>
+        <ProfessionalsPage />
+      </MemoryRouter>,
+    );
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Horario' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('sin red');
+    expect(screen.getByRole('button', { name: 'Guardar horario' })).toBeDisabled();
+  });
+});
+
 describe('ProfessionalsPage — formulario', () => {
   beforeEach(() => {
     vi.clearAllMocks();

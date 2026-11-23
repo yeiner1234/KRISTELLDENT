@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { rangesOutsideBranchHours, validateDayRanges, validateWeeklySchedule } from './scheduleValidation';
+import {
+  rangesOutsideBranchHours,
+  validateDayRanges,
+  validateWeeklySchedule,
+  validateWithinBranchHours,
+} from './scheduleValidation';
 
 describe('validateDayRanges', () => {
   it('rechaza un rango cuyo fin no es posterior al inicio', () => {
@@ -56,5 +61,25 @@ describe('rangesOutsideBranchHours', () => {
 
   it('no marca rangos dentro del horario de la sede', () => {
     expect(rangesOutsideBranchHours([{ dayOfWeek: 1, startTime: '08:00', endTime: '14:00' }], branchSchedule)).toEqual([]);
+  });
+});
+
+describe('validateWithinBranchHours', () => {
+  const branchSchedule = [{ dayOfWeek: 1, openTime: '08:00', closeTime: '14:00' }];
+
+  it('acepta un horario dentro del de la sede', () => {
+    expect(validateWithinBranchHours([{ dayOfWeek: 1, startTime: '08:00', endTime: '14:00' }], branchSchedule)).toBeNull();
+  });
+
+  it('rechaza un rango que empieza antes de que abra la sede', () => {
+    expect(validateWithinBranchHours([{ dayOfWeek: 1, startTime: '07:00', endTime: '12:00' }], branchSchedule)).toBe(
+      'Lunes: El horario del profesional debe estar dentro del horario de la sede.',
+    );
+  });
+
+  it('rechaza un día en que la sede está cerrada', () => {
+    expect(validateWithinBranchHours([{ dayOfWeek: 2, startTime: '09:00', endTime: '10:00' }], branchSchedule)).toBe(
+      'Martes: El horario del profesional debe estar dentro del horario de la sede.',
+    );
   });
 });

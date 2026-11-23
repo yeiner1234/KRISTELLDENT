@@ -27,7 +27,12 @@ import {
   type ProfessionalScheduleEntry,
 } from '../../services/professionalScheduleService';
 import { getBranchScheduleForAdmin, type BranchScheduleEntry } from '../../services/branchScheduleService';
-import { DAY_LABELS, rangesOutsideBranchHours, validateWeeklySchedule } from '../../utils/scheduleValidation';
+import {
+  DAY_LABELS,
+  rangesOutsideBranchHours,
+  validateWeeklySchedule,
+  validateWithinBranchHours,
+} from '../../utils/scheduleValidation';
 import { activeBranchesOf } from '../../utils/professionalBranches';
 import type { Professional } from '../../types/Professional';
 
@@ -91,6 +96,9 @@ function ProfessionalsPage() {
   const [scheduleBranchId, setScheduleBranchId] = useState('');
   const [scheduleForm, setScheduleForm] = useState<DayBlocksState[]>(emptyScheduleForm());
   const [isLoadingSchedule, setIsLoadingSchedule] = useState(false);
+  // Sin el horario de la sede (o el de la profesional) no se puede validar ni
+  // guardar: se evita pisar el horario real con un formulario vacío.
+  const [scheduleLoadFailed, setScheduleLoadFailed] = useState(false);
   const [scheduleError, setScheduleError] = useState<string | null>(null);
   const [isSavingSchedule, setIsSavingSchedule] = useState(false);
   const [branchHours, setBranchHours] = useState<BranchScheduleEntry[]>([]);
@@ -231,13 +239,11 @@ function ProfessionalsPage() {
     }
     setIsLoadingSchedule(true);
     setScheduleError(null);
+    setScheduleLoadFailed(false);
     setBranchHours([]);
-    // El horario de la sede solo alimenta el aviso: si falla, no bloquea.
-    getBranchScheduleForAdmin(branchId)
-      .then(setBranchHours)
-      .catch(() => setBranchHours([]));
-    getProfessionalScheduleForAdmin(professionalId, branchId)
-      .then((entries) => {
+    Promise.all([getBranchScheduleForAdmin(branchId), getProfessionalScheduleForAdmin(professionalId, branchId)])
+      .then(([hours, entries]) => {
+        setBranchHours(hours);
         const next = emptyScheduleForm();
         for (const entry of entries) {
           next[entry.dayOfWeek] = {
@@ -247,7 +253,10 @@ function ProfessionalsPage() {
         }
         setScheduleForm(next);
       })
-      .catch((err) => setScheduleError(err instanceof Error ? err.message : 'No se pudo cargar el horario.'))
+      .catch((err) => {
+        setScheduleLoadFailed(true);
+        setScheduleError(err instanceof Error ? err.message : 'No se pudo cargar el horario.');
+      })
       .finally(() => setIsLoadingSchedule(false));
   };
 
@@ -328,7 +337,8 @@ function ProfessionalsPage() {
     event.preventDefault();
     if (!scheduleProfessional || !scheduleBranchId) return;
 
-    const validationError = validateWeeklySchedule(scheduleEntries);
+    const validationError =
+      validateWeeklySchedule(scheduleEntries) ?? validateWithinBranchHours(scheduleEntries, branchHours);
     if (validationError) {
       setScheduleError(validationError);
       return;
@@ -620,7 +630,12 @@ function ProfessionalsPage() {
               <Button type="button" variant="admin-outline" onClick={() => setScheduleProfessional(null)}>
                 Cancelar
               </Button>
-              <Button type="submit" form="horario-profesional-form" variant="admin-solid" disabled={isSavingSchedule || !scheduleBranchId}>
+              <Button
+                type="submit"
+                form="horario-profesional-form"
+                variant="admin-solid"
+                disabled={isSavingSchedule || isLoadingSchedule || scheduleLoadFailed || !scheduleBranchId}
+              >
                 {isSavingSchedule ? 'Guardando…' : 'Guardar horario'}
               </Button>
             </>
@@ -749,8 +764,8 @@ function ProfessionalsPage() {
                       )}
 
                       {day.open && daysOutsideBranchHours.includes(dayIndex) && (
-                        <p className="basis-full pl-[23px] text-[12.5px] text-amber-700">
-                          Fuera del horario de la sede: esas horas no se ofrecerán a los pacientes.
+                        <p className="basis-full pl-[23px] text-[12.5px] text-adm-danger-text">
+                          Fuera del horario de la sede: ajústalo para poder guardar.
                         </p>
                       )}
                     </div>

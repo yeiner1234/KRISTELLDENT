@@ -1,6 +1,12 @@
 import { supabase } from '../lib/supabase';
 import { friendlyWriteError } from '../utils/supabaseErrors';
-import { validateWeeklySchedule } from '../utils/scheduleValidation';
+import { validateWeeklySchedule, validateWithinBranchHours } from '../utils/scheduleValidation';
+
+interface BranchScheduleRow {
+  day_of_week: number;
+  open_time: string;
+  close_time: string;
+}
 
 interface ProfessionalScheduleRow {
   day_of_week: number;
@@ -44,9 +50,9 @@ export async function getProfessionalScheduleForAdmin(
 }
 
 // Reemplaza el horario del profesional en ESA sede (las demás sedes no se tocan).
-// Supabase no da transacciones desde el cliente: se valida todo antes de
-// borrar y, si el insert falla, se reinserta el horario anterior para no
-// dejar a la profesional sin horario.
+// Supabase no da transacciones desde el cliente: se valida todo (rangos y
+// horario de la sede) antes de borrar y, si el insert falla, se reinserta el
+// horario anterior para no dejar a la profesional sin horario.
 export async function setProfessionalSchedule(
   professionalId: string,
   branchId: string,
@@ -55,6 +61,29 @@ export async function setProfessionalSchedule(
   const validationError = validateWeeklySchedule(entries);
   if (validationError) {
     throw new Error(validationError);
+  }
+
+  if (entries.length > 0) {
+    const { data: branchHours, error: branchError } = await supabase
+      .from('branch_schedules')
+      .select('day_of_week, open_time, close_time')
+      .eq('branch_id', branchId);
+
+    if (branchError) {
+      throw new Error(friendlyWriteError(branchError.message));
+    }
+
+    const outsideError = validateWithinBranchHours(
+      entries,
+      ((branchHours ?? []) as BranchScheduleRow[]).map((row) => ({
+        dayOfWeek: row.day_of_week,
+        openTime: toHHMM(row.open_time),
+        closeTime: toHHMM(row.close_time),
+      })),
+    );
+    if (outsideError) {
+      throw new Error(outsideError);
+    }
   }
 
   const { data: previous, error: readError } = await supabase
