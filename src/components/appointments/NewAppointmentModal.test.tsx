@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import NewAppointmentModal from './NewAppointmentModal';
 import { createPublicAppointment } from '../../services/appointmentService';
@@ -24,9 +24,12 @@ vi.mock('./AdminSlotPicker', () => ({
 
 const branches = [{ id: 'b1', name: 'Sede Centro', active: true }] as Branch[];
 const professionals = [
-  { id: 'p1', fullName: 'Ana Ríos', active: true, branchIds: ['b1'], serviceIds: ['s1'], specialtyIds: [] },
+  { id: 'p1', fullName: 'Ana Ríos', active: true, branchIds: ['b1'], serviceIds: ['s1', 's2'], specialtyIds: [] },
 ] as unknown as Professional[];
-const services = [{ id: 's1', name: 'Limpieza', duration: 30, active: true }] as Service[];
+const services = [
+  { id: 's1', name: 'Limpieza', branchId: 'b1', duration: 30, active: true },
+  { id: 's2', name: 'Limpieza de otra sede', branchId: 'b2', duration: 30, active: true },
+] as Service[];
 
 const existingPatient = {
   id: 'pt1',
@@ -67,6 +70,16 @@ async function fillForm(user: ReturnType<typeof userEvent.setup>, overrides: { e
 describe('NewAppointmentModal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('solo ofrece los servicios de la sede elegida', async () => {
+    const user = userEvent.setup();
+    renderModal();
+    await user.selectOptions(screen.getByLabelText('Sede'), 'b1');
+    await user.selectOptions(screen.getByLabelText('Profesional'), 'p1');
+
+    const options = within(screen.getByLabelText('Servicio')).getAllByRole('option').map((option) => option.textContent);
+    expect(options).toEqual(['Selecciona un servicio', 'Limpieza (30 min)']);
   });
 
   it('no envía si el correo no es válido', async () => {

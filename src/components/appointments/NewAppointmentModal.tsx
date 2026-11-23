@@ -61,9 +61,14 @@ function NewAppointmentModal({
     [professionals, branchId],
   );
   const professional = professionals.find((item) => item.id === professionalId);
+  // Cada servicio es de una sede: solo los de la sede elegida que esta
+  // profesional atiende (el servidor lo valida igual con is_bookable_service).
   const professionalServices = useMemo(
-    () => services.filter((service) => service.active && professional?.serviceIds.includes(service.id)),
-    [services, professional],
+    () =>
+      services.filter(
+        (service) => service.active && service.branchId === branchId && professional?.serviceIds.includes(service.id),
+      ),
+    [services, professional, branchId],
   );
 
   // El servidor no sobrescribe los datos de un DNI ya registrado (solo
