@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import TodayAppointmentsPage from './TodayAppointmentsPage';
 import { setAppointmentStatus } from '../../services/appointmentService';
 import type { Appointment } from '../../types/Appointment';
+import { PanelBranchContext, type PanelBranchContextValue } from '../../context/panelBranchContext';
 
 const refetch = vi.fn();
 
@@ -107,5 +108,40 @@ describe('TodayAppointmentsPage (técnica)', () => {
     await userEvent.click(within(rowOf('KD-AAA111')).getByRole('button', { name: 'Marcar llegada' }));
 
     expect(await screen.findByText('Una cita cancelada no puede pasar a en sala.')).toBeInTheDocument();
+  });
+});
+
+describe('TodayAppointmentsPage — sede del panel', () => {
+  const renderWithBranch = (selectedBranchId: string) => {
+    const value: PanelBranchContextValue = {
+      branches: [
+        { id: 'b1', name: 'Bagua' },
+        { id: 'b2', name: 'Jaén' },
+      ],
+      selectedBranchId,
+      setSelectedBranchId: vi.fn(),
+      branchName: (id) => (id === 'b1' ? 'Bagua' : 'Jaén'),
+      isLoading: false,
+      inPanel: true,
+    };
+    render(
+      <PanelBranchContext.Provider value={value}>
+        <TodayAppointmentsPage />
+      </PanelBranchContext.Provider>,
+    );
+  };
+
+  it('muestra la sede de cada cita', () => {
+    renderWithBranch('b1');
+
+    expect(within(rowOf('KD-AAA111')).getByLabelText('Sede: Bagua')).toBeInTheDocument();
+    expect(screen.getAllByTestId('today-appointment')).toHaveLength(4);
+  });
+
+  it('con otra sede elegida no muestra las citas de Bagua', () => {
+    renderWithBranch('b2');
+
+    expect(screen.queryAllByTestId('today-appointment')).toHaveLength(0);
+    expect(screen.getByText('Sin citas hoy')).toBeInTheDocument();
   });
 });

@@ -1,8 +1,11 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AgendaReportPage from './AgendaReportPage';
 import type { Appointment } from '../../types/Appointment';
+import { PanelBranchContext, type PanelBranchContextValue } from '../../context/panelBranchContext';
+
+const access = vi.hoisted(() => ({ branchIds: ['bagua'] }));
 
 const appointment = (overrides: Partial<Appointment>): Appointment => ({
   id: 'a1',
@@ -81,7 +84,7 @@ vi.mock('../../hooks/useBranches', () => ({
   }),
 }));
 vi.mock('../../hooks/useManageableBranchIds', () => ({
-  useManageableBranchIds: () => ({ branchIds: ['bagua'], isLoading: false, error: null }),
+  useManageableBranchIds: () => ({ branchIds: access.branchIds, isLoading: false, error: null }),
 }));
 vi.mock('../../hooks/useBranchWeeklyHours', () => ({
   useBranchWeeklyHours: () => ({ hours: { thu: { open: '08:00', close: '18:00' } }, isLoading: false, error: null }),
@@ -138,5 +141,39 @@ describe('AgendaReportPage', () => {
     // Borrar la fecha no deja la hoja sin fecha.
     fireEvent.change(dateInput, { target: { value: '' } });
     expect(screen.getByText('Viernes 16 oct 2026')).toBeInTheDocument();
+  });
+});
+
+describe('AgendaReportPage — en el panel profesional', () => {
+  afterEach(() => {
+    access.branchIds = ['bagua'];
+  });
+
+  it('su selector "Sede" es el del panel: abre en la sede elegida y al cambiarlo cambia el del panel', async () => {
+    access.branchIds = ['bagua', 'jaen'];
+    const setSelectedBranchId = vi.fn();
+    const value: PanelBranchContextValue = {
+      branches: [
+        { id: 'bagua', name: 'Bagua' },
+        { id: 'jaen', name: 'Jaén' },
+      ],
+      selectedBranchId: 'jaen',
+      setSelectedBranchId,
+      branchName: (id) => id,
+      isLoading: false,
+      inPanel: true,
+    };
+    const user = userEvent.setup();
+    render(
+      <PanelBranchContext.Provider value={value}>
+        <AgendaReportPage />
+      </PanelBranchContext.Provider>,
+    );
+
+    expect(screen.getByLabelText('Sede')).toHaveValue('jaen');
+    expect(screen.getByText('AGE-JAE-2026-1015')).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText('Sede'), 'bagua');
+    expect(setSelectedBranchId).toHaveBeenCalledWith('bagua');
   });
 });

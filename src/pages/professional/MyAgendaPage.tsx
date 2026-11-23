@@ -10,6 +10,8 @@ import { useMyAppointments } from '../../hooks/useAppointments';
 import { useAppointmentDetail } from '../../hooks/useAppointmentDetail';
 import { useAllPatients } from '../../hooks/usePatients';
 import { formatFullName } from '../../utils/format';
+import { usePanelBranch } from '../../hooks/usePanelBranch';
+import { filterByPanelBranch } from '../../utils/panelBranch';
 
 function MyAgendaPage() {
   const { user } = useAuth();
@@ -19,6 +21,11 @@ function MyAgendaPage() {
   const error = appointmentsError ?? patientsError;
   const { selected, open, close, handleAction, statusAction } = useAppointmentDetail(refetch);
   const isLoading = isLoadingAppointments || isLoadingPatients;
+  const { selectedBranchId, branchName } = usePanelBranch();
+  const branchAppointments = useMemo(
+    () => filterByPanelBranch(appointments, selectedBranchId),
+    [appointments, selectedBranchId],
+  );
 
   const patientById = useMemo(() => new Map(patients.map((patient) => [patient.id, patient])), [patients]);
 
@@ -43,9 +50,11 @@ function MyAgendaPage() {
         <EmptyState icon={CalendarX2} title="No se pudieron cargar tus citas" description={error} />
       ) : (
         <AgendaGrid
-          appointments={appointments}
+          appointments={branchAppointments}
           resolveTitle={(appointment) => patientLabel(appointment.patientId)}
-          resolveSubtitle={(appointment) => appointment.reason}
+          resolveSubtitle={(appointment) =>
+            [appointment.reason, branchName(appointment.branchId)].filter(Boolean).join(' · ')
+          }
           onSelect={open}
           headerRight={<span className="text-[13px] text-adm-ink-300">Solo tus citas</span>}
         />
@@ -57,6 +66,7 @@ function MyAgendaPage() {
         // Las citas de esta pantalla son siempre de la profesional con sesión.
         professionalName={user?.name}
         patientLabel={selected ? patientLabel(selected.patientId) : undefined}
+        branchName={selected ? branchName(selected.branchId) : undefined}
         onClose={close}
         onAction={handleAction}
         busy={statusAction.pendingId !== null}

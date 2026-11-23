@@ -9,13 +9,20 @@ import { useAllPatients } from '../../hooks/usePatients';
 import { useAuth } from '../../hooks/useAuth';
 import { useMyAppointments } from '../../hooks/useAppointments';
 import { patientsOfAppointments } from '../../utils/appointmentViews';
+import { usePanelBranch } from '../../hooks/usePanelBranch';
+import { filterByPanelBranch } from '../../utils/panelBranch';
 
 function MyPatientsPage() {
   const { user } = useAuth();
   const { patients: visiblePatients, isLoading: isLoadingPatients, error: patientsError } = useAllPatients();
   const { appointments, isLoading: isLoadingAppointments, error: appointmentsError } = useMyAppointments(user?.id);
-  // Solo los pacientes de sus propias citas (criterio 2 de HU12).
-  const patients = useMemo(() => patientsOfAppointments(visiblePatients, appointments), [visiblePatients, appointments]);
+  const { selectedBranchId } = usePanelBranch();
+  // Solo los pacientes de sus propias citas (criterio 2 de HU12), en la sede
+  // elegida arriba.
+  const patients = useMemo(
+    () => patientsOfAppointments(visiblePatients, filterByPanelBranch(appointments, selectedBranchId)),
+    [visiblePatients, appointments, selectedBranchId],
+  );
   const isLoading = isLoadingPatients || isLoadingAppointments;
   const error = patientsError ?? appointmentsError;
   const [query, setQuery] = useState('');
@@ -33,7 +40,9 @@ function MyPatientsPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <SectionTitle title="Mis pacientes" align="left" />
-        <span className="text-[13px] text-adm-ink-300">{filteredPatients.length} pacientes</span>
+        <span className="text-[13px] text-adm-ink-300">
+          {filteredPatients.length} {filteredPatients.length === 1 ? 'paciente' : 'pacientes'}
+        </span>
       </div>
 
       <SearchInput

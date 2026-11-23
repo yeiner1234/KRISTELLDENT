@@ -5,6 +5,7 @@ import AppointmentStatus from '../../components/appointments/AppointmentStatus';
 import EmptyState from '../../components/common/EmptyState';
 import Spinner from '../../components/common/Spinner';
 import AppointmentActionButtons from '../../components/appointments/AppointmentActionButtons';
+import BranchTag from '../../components/appointments/BranchTag';
 import { useAuth } from '../../hooks/useAuth';
 import { useMyAppointments } from '../../hooks/useAppointments';
 import { useAppointmentStatusAction } from '../../hooks/useAppointmentStatusAction';
@@ -13,6 +14,8 @@ import type { Appointment } from '../../types/Appointment';
 import { useAllPatients } from '../../hooks/usePatients';
 import { formatFullName } from '../../utils/format';
 import { getTodayIsoDate } from '../../utils/date';
+import { filterByPanelBranch } from '../../utils/panelBranch';
+import { usePanelBranch } from '../../hooks/usePanelBranch';
 
 function minutesBetween(startTime: string, endTime: string): number {
   const [startHour, startMinute] = startTime.split(':').map(Number);
@@ -35,7 +38,11 @@ const statusBarClasses: Record<string, string> = {
 function DashboardPage() {
   const { user } = useAuth();
   const role = user?.role ?? 'especialista';
-  const { appointments, isLoading: isLoadingAppointments, error: appointmentsError, refetch } = useMyAppointments(user?.id);
+  const { appointments: allAppointments, isLoading: isLoadingAppointments, error: appointmentsError, refetch } =
+    useMyAppointments(user?.id);
+  // El selector "Sede" del panel filtra también las cifras.
+  const { selectedBranchId, branchName } = usePanelBranch();
+  const appointments = filterByPanelBranch(allAppointments, selectedBranchId);
   const statusAction = useAppointmentStatusAction(refetch);
 
   const handleAction = (appointment: Appointment, action: AppointmentAction) => {
@@ -93,7 +100,7 @@ function DashboardPage() {
           </span>
           <span className="text-[19px] font-semibold tracking-[-0.01em]">{patientName(nextAppointment.patientId)}</span>
           <span className="text-sm" style={{ color: 'rgba(255,255,255,0.86)' }}>
-            {nextAppointment.startTime} · {nextAppointment.reason || 'Consulta'}
+            {nextAppointment.startTime} · {nextAppointment.reason || 'Consulta'} · {branchName(nextAppointment.branchId)}
           </span>
         </div>
       )}
@@ -127,6 +134,7 @@ function DashboardPage() {
                   <span className="text-sm font-medium text-adm-ink-700">{patientName(appointment.patientId)}</span>
                   <span className="text-[13px] text-adm-ink-400">{appointment.reason || 'Consulta'}</span>
                 </div>
+                <BranchTag branchId={appointment.branchId} />
                 <AppointmentStatus status={appointment.status} theme="admin" />
                 <AppointmentActionButtons
                   appointment={appointment}
