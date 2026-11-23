@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { supabase } from '../lib/supabase';
 import { findCall, mockQuery, type QueryCall } from '../test/mockQuery';
-import { getProfessionals, updateProfessional } from './professionalService';
+import { createProfessional, getProfessionals, updateProfessional } from './professionalService';
 
 vi.mock('../lib/supabase', () => ({
   supabase: {
@@ -196,5 +196,29 @@ describe('updateProfessional (relaciones por diferencia)', () => {
     setupRelations({ role: 'admin_global', current, failOn: { table: 'professional_services', op: 'delete' } });
 
     await expect(updateProfessional('p1', input)).rejects.toThrow('new row violates row-level security policy');
+  });
+});
+
+describe('createProfessional / updateProfessional (sede y especialidad obligatorias)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('sin sedes no escribe nada', async () => {
+    await expect(updateProfessional('p1', { ...input, branchIds: [] })).rejects.toThrow('Elige al menos una sede.');
+    await expect(createProfessional({ profileId: 'p1', ...input, branchIds: [] })).rejects.toThrow(
+      'Elige al menos una sede.',
+    );
+
+    expect(supabase.from).not.toHaveBeenCalled();
+  });
+
+  it('sin especialidad no escribe nada', async () => {
+    await expect(updateProfessional('p1', { ...input, specialtyIds: [] })).rejects.toThrow('Elige una especialidad.');
+    await expect(createProfessional({ profileId: 'p1', ...input, specialtyIds: [] })).rejects.toThrow(
+      'Elige una especialidad.',
+    );
+
+    expect(supabase.from).not.toHaveBeenCalled();
   });
 });

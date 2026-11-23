@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import ProfessionalsPage from './ProfessionalsPage';
 import { getProfessionalScheduleForAdmin, setProfessionalSchedule } from '../../services/professionalScheduleService';
 import { getBranchScheduleForAdmin } from '../../services/branchScheduleService';
+import { updateProfessional } from '../../services/professionalService';
 import type { Professional } from '../../types/Professional';
 
 const anali: Professional = {
@@ -36,7 +37,9 @@ vi.mock('../../hooks/useAdminProfessionals', () => ({
   useAdminProfessionals: () => ({ professionals: [anali], isLoading: false, error: null, refetch: vi.fn() }),
 }));
 vi.mock('../../hooks/useAdminSpecialties', () => ({
-  useAdminSpecialties: () => ({ specialties: [], isLoading: false, error: null, refetch: vi.fn() }),
+  useAdminSpecialties: () => ({
+    specialties: [{ id: 'endo', name: 'Endodoncia', description: null, active: true }],
+    isLoading: false, error: null, refetch: vi.fn() }),
 }));
 vi.mock('../../hooks/useAdminServices', () => ({
   useAdminServices: () => ({ services: [], isLoading: false, error: null, refetch: vi.fn() }),
@@ -102,5 +105,35 @@ describe('ProfessionalsPage — modal Horario', () => {
 
     await user.click(within(dialog).getAllByRole('button', { name: 'Quitar bloque' })[1]);
     expect(within(dialog).queryByRole('alert')).not.toBeInTheDocument();
+  });
+});
+
+describe('ProfessionalsPage — formulario', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    Element.prototype.scrollIntoView = vi.fn();
+  });
+
+  async function openEdit() {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <ProfessionalsPage />
+      </MemoryRouter>,
+    );
+    await user.click(screen.getByRole('button', { name: 'Editar' }));
+    const dialog = await screen.findByRole('dialog');
+    return { user, dialog };
+  }
+
+  it('no guarda un especialista sin sede activa', async () => {
+    const { user, dialog } = await openEdit();
+
+    // Bagua está inactiva: quitar Chachapoyas deja al especialista sin sede activa.
+    await user.click(within(dialog).getByLabelText('Chachapoyas'));
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    expect(within(dialog).getByText('Elige al menos una sede activa.')).toBeInTheDocument();
+    expect(updateProfessional).not.toHaveBeenCalled();
   });
 });

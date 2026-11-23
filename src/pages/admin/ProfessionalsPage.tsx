@@ -164,6 +164,14 @@ function ProfessionalsPage() {
       setFormError('Selecciona la cuenta del profesional.');
       return;
     }
+    if (!form.branchIds.some((branchId) => activeBranches.some((branch) => branch.id === branchId))) {
+      setFormError('Elige al menos una sede activa.');
+      return;
+    }
+    if (!isGeneralDentist && form.specialtyIds.length === 0) {
+      setFormError('Elige una especialidad.');
+      return;
+    }
     if (!isGeneralDentist && form.specialtyIds.length > 1) {
       setFormError('Un especialista solo puede tener una especialidad. Elige una.');
       return;

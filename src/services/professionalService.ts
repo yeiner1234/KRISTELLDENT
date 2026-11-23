@@ -206,12 +206,26 @@ async function replaceRelations(professionalId: string, input: ProfessionalRelat
   );
 }
 
+// Criterio 1 de la HU: todo profesional queda con al menos una sede y una
+// especialidad (la odontóloga general la deriva de sus servicios). Se valida
+// antes de escribir para no dejar una ficha a medias.
+function validateRelations(input: ProfessionalRelationsInput): void {
+  if (input.branchIds.length === 0) {
+    throw new Error('Elige al menos una sede.');
+  }
+  if (input.specialtyIds.length === 0) {
+    throw new Error('Elige una especialidad.');
+  }
+}
+
 export interface CreateProfessionalInput extends ProfessionalRelationsInput {
   profileId: string;
   bio: string | null;
 }
 
 export async function createProfessional(input: CreateProfessionalInput): Promise<void> {
+  validateRelations(input);
+
   const { error } = await supabase.from('professionals').insert({ id: input.profileId, bio: input.bio });
 
   if (error) {
@@ -226,6 +240,8 @@ export interface UpdateProfessionalInput extends ProfessionalRelationsInput {
 }
 
 export async function updateProfessional(id: string, input: UpdateProfessionalInput): Promise<void> {
+  validateRelations(input);
+
   const { error } = await supabase.from('professionals').update({ bio: input.bio }).eq('id', id);
 
   if (error) {
