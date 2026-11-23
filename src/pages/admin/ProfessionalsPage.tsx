@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { MapPinPlus, Plus, UserRound } from 'lucide-react';
 import SectionTitle from '../../components/common/SectionTitle';
 import SearchInput from '../../components/common/SearchInput';
@@ -47,7 +48,12 @@ function ProfessionalsPage() {
   const [query, setQuery] = useState('');
   const [specialtyFilter, setSpecialtyFilter] = useState('');
   const [branchFilter, setBranchFilter] = useState('');
-  const [modal, setModal] = useState<OpenModal | null>(null);
+  // "Ver ficha" desde Equipo llega con ?ficha=<id>.
+  const [searchParams] = useSearchParams();
+  const [modal, setModal] = useState<OpenModal | null>(() => {
+    const fichaId = searchParams.get('ficha');
+    return fichaId ? { kind: 'profile', professionalId: fichaId } : null;
+  });
   const [modalKey, setModalKey] = useState(0);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [toggleError, setToggleError] = useState<string | null>(null);

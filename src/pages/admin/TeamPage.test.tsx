@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import TeamPage from './TeamPage';
-import { inviteInternalUser } from '../../services/teamService';
+import { inviteInternalUser, setMemberBranches } from '../../services/teamService';
 import type { TeamMember } from '../../services/teamService';
 
 const members: TeamMember[] = [
@@ -12,6 +13,7 @@ const members: TeamMember[] = [
     email: 'ana@kristell.pe',
     role: 'especialista',
     active: true,
+    branchIds: ['bagua', 'jaen'],
     branchNames: ['Bagua', 'Jaén'],
     branchesFromProfessionals: true,
   },
@@ -21,41 +23,120 @@ const members: TeamMember[] = [
     email: 'tere@kristell.pe',
     role: 'tecnica',
     active: true,
+    branchIds: ['jaen'],
     branchNames: ['Jaén'],
     branchesFromProfessionals: false,
   },
 ];
 
+const access = vi.hoisted(() => ({ role: 'admin_global', branchIds: null as string[] | null }));
+
+const branch = (id: string, name: string) => ({
+  id,
+  name,
+  address: '',
+  region: null,
+  googleMapsAddress: null,
+  phone: null,
+  lat: null,
+  lng: null,
+  active: true,
+  createdAt: '',
+  updatedAt: '',
+});
+
 vi.mock('../../hooks/useAuth', () => ({
-  useAuth: () => ({ user: { id: 'admin', role: 'admin_global' } }),
+  useAuth: () => ({ user: { id: 'admin', role: access.role } }),
 }));
 vi.mock('../../hooks/useTeamMembers', () => ({
   useTeamMembers: () => ({ members, isLoading: false, error: null, refetch: vi.fn() }),
 }));
 vi.mock('../../hooks/useAdminBranches', () => ({
-  useAdminBranches: () => ({ branches: [], isLoading: false, error: null, refetch: vi.fn() }),
+  useAdminBranches: () => ({
+    branches: [branch('bagua', 'Bagua'), branch('jaen', 'Jaén')],
+    isLoading: false,
+    error: null,
+    refetch: vi.fn(),
+  }),
+}));
+vi.mock('../../hooks/useManageableBranchIds', () => ({
+  useManageableBranchIds: () => ({ branchIds: access.branchIds, isLoading: false, error: null }),
 }));
 vi.mock('../../services/teamService', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../services/teamService')>()),
   inviteInternalUser: vi.fn(),
+  setMemberBranches: vi.fn(),
   setProfileActive: vi.fn(),
 }));
+
+function renderPage() {
+  const user = userEvent.setup();
+  render(
+    <MemoryRouter>
+      <TeamPage />
+    </MemoryRouter>,
+  );
+  return user;
+}
+
+function cardOf(name: string): HTMLElement {
+  return screen.getByText(name).closest('div.rounded-\\[14px\\]') as HTMLElement;
+}
 
 describe('TeamPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Element.prototype.scrollIntoView = vi.fn();
+    access.role = 'admin_global';
+    access.branchIds = null;
   });
 
-  it('para una profesional indica que sus sedes se asignan en Profesionales', () => {
-    render(<TeamPage />);
+  it('una profesional muestra sus sedes en solo lectura con "Ver ficha"', () => {
+    renderPage();
 
-    expect(screen.getByText('Bagua, Jaén')).toBeInTheDocument();
-    expect(screen.getAllByText('Se asignan en Profesionales')).toHaveLength(1);
+    const card = cardOf('ANali');
+    expect(within(card).getByText('Bagua, Jaén')).toBeInTheDocument();
+    expect(within(card).getByText('Se asignan en Profesionales')).toBeInTheDocument();
+    expect(within(card).getByRole('link', { name: 'Ver ficha' })).toHaveAttribute('href', '/admin/profesionales?ficha=ana');
+    expect(within(card).queryByRole('button', { name: 'Editar sedes' })).not.toBeInTheDocument();
+  });
+
+  it('las sedes de una técnica se editan en Equipo', async () => {
+    const user = renderPage();
+
+    await user.click(within(cardOf('Tere')).getByRole('button', { name: 'Editar sedes' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('checkbox', { name: 'Bagua' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Guardar sedes' }));
+
+    expect(setMemberBranches).toHaveBeenCalledWith('tere', ['jaen', 'bagua'], ['jaen']);
+  });
+
+  it('admin_sede solo cambia sus sedes de una técnica', async () => {
+    access.role = 'admin_sede';
+    access.branchIds = ['jaen'];
+    const user = renderPage();
+
+    await user.click(within(cardOf('Tere')).getByRole('button', { name: 'Editar sedes' }));
+    const dialog = await screen.findByRole('dialog');
+
+    expect(within(dialog).getByRole('checkbox', { name: /Bagua/ })).toBeDisabled();
+    expect(within(dialog).getByRole('checkbox', { name: 'Jaén' })).toBeEnabled();
+  });
+
+  it('no ofrece crear una administradora global', async () => {
+    const user = renderPage();
+
+    await user.click(screen.getByRole('button', { name: 'Invitar usuario' }));
+    const dialog = await screen.findByRole('dialog');
+    const roles = within(within(dialog).getByLabelText('Rol')).getAllByRole('option').map((option) => option.textContent);
+
+    expect(roles).not.toContain('Administrador global');
+    expect(roles).toContain('Administrador de sede');
   });
 
   it('no invita un correo que ya tiene cuenta', async () => {
-    const user = userEvent.setup();
-    render(<TeamPage />);
+    const user = renderPage();
 
     await user.click(screen.getByRole('button', { name: 'Invitar usuario' }));
     const dialog = await screen.findByRole('dialog');

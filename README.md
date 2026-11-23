@@ -41,8 +41,8 @@ npm run lint     # oxlint
 | Rol | Entra a | Qué ve y puede hacer |
 | --- | --- | --- |
 | Sin sesión (paciente) | `/`, `/reservar`, `/consultar-citas`, `/mis-citas` | Ver sedes, especialidades y profesionales; reservar una cita; con DNI + código, ver sus citas y reprogramar o cancelar las pendientes o confirmadas de hoy en adelante. |
-| `admin_global` | `/admin` | Todo: sedes (crear, editar, activar), equipo (crear usuarios, activar/desactivar), profesionales y sus horarios, especialidades, servicios, agenda y citas de todas las sedes (con filtro de sede). |
-| `admin_sede` | `/admin` | Solo sus sedes: agenda y citas de su sede (confirmar, marcar llegada, atendida, reprogramar, cancelar, nueva cita), horario y feriados de su sede, horarios de sus profesionales. Especialidades y servicios en solo lectura; no crea ni desactiva sedes ni usuarios. |
+| `admin_global` | `/admin` | Todo: sedes (crear, editar, activar), equipo (crear usuarios, activar/desactivar, sedes de técnicas y administradoras), profesionales y sus horarios, especialidades (agregar, renombrar, desactivar, borrar), servicios de cualquier sede, "Oferta por sede", agenda y citas de todas las sedes. No se crea otra admin_global desde la app (ver "Crear una administradora global"). |
+| `admin_sede` | `/admin` | Solo sus sedes: sus servicios (crear, editar, activar, con su precio y duración), agrega especialidades a la lista compartida, suma a su sede profesionales que ya atienden en otra, decide qué atiende cada una en su sede, horarios, ausencias y feriados de su sede, sedes de sus técnicas, agenda y citas de su sede. Ve en solo lectura lo de otras sedes; no renombra ni desactiva especialidades, no cambia la especialidad de una especialista y no desactiva fichas completas. |
 | `especialista` y `odontologa_general` | `/profesional` | Solo sus citas: dashboard, "Mi agenda", "Mis citas" y "Mis pacientes". Puede confirmar, cancelar y marcar como atendida una cita En sala. |
 | `tecnica` | `/profesional` | "Citas de hoy" de su sede, ordenadas por hora, con el botón "Marcar llegada" (la cita pasa a En sala). |
 
@@ -66,11 +66,29 @@ npx supabase db push
 
 > Antes de usar `db push` el historial remoto debe coincidir con los archivos: revisa `npx supabase migration list`. Si las migraciones aplicadas a mano aparecen como pendientes, márcalas con `npx supabase migration repair --status applied <versión>`; si no, `db push` intentará aplicarlas otra vez.
 
+### Crear una administradora global
+
+La app nunca crea cuentas `admin_global` (la pantalla no lo ofrece y `create-internal-user` responde 403). Para crear una:
+
+1. **Authentication → Users → Add user → Send invitation** (o **Create new user**) con su correo. Copia el **User UID** que aparece en la lista.
+2. En **SQL Editor**, con ese UID, su nombre y su correo:
+
+```sql
+insert into public.profiles (id, full_name, email, role, active)
+values ('<USER_UID>', 'Nombre Apellido', 'correo@dominio.com', 'admin_global', true)
+on conflict (id) do update
+set role = 'admin_global', active = true, full_name = excluded.full_name;
+```
+
+3. Comprueba: `select id, full_name, role, active from public.profiles where role = 'admin_global';`
+
+Para quitarle el rol a una admin_global hay que dejar otra activa: la base no deja desactivar ni cambiar el rol de la última (trigger `protect_admin_global`), y nadie puede desactivar su propia cuenta.
+
 ### Edge Functions
 
 | Función | Para qué | Quién la llama |
 | --- | --- | --- |
-| `create-internal-user` | Crear cuentas del personal e invitarlas por correo. | Un admin con sesión (la función comprueba su rol). |
+| `create-internal-user` | Crear cuentas del personal e invitarlas por correo. A especialistas y odontólogas generales les crea también su ficha y sus sedes. Nunca crea `admin_global`. | Un admin con sesión (la función comprueba su rol). |
 | `create-public-appointment` | Reservar una cita (paciente o admin). Valida datos y horario libre y devuelve el código. | Público. |
 | `patient-appointments` | Ver, cancelar y reprogramar con DNI + código; reenviar los códigos al correo registrado. | Público. |
 

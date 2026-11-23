@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { AppRole } from '../types/User';
+import { friendlyWriteError } from '../utils/supabaseErrors';
 import { PROFESSIONAL_ROLES } from './professionalService';
 
 export interface TeamMember {
@@ -8,6 +9,7 @@ export interface TeamMember {
   email: string;
   role: AppRole;
   active: boolean;
+  branchIds: string[];
   branchNames: string[];
   // true para especialista y odontóloga general: sus sedes se asignan en
   // Profesionales (professional_branches) y un trigger las copia a Equipo.
@@ -26,17 +28,31 @@ type BranchNameJoin = { name: string } | { name: string }[] | null;
 
 interface AccessRow {
   user_id: string;
+  branch_id: string;
   branches: BranchNameJoin;
 }
 
 interface ProfessionalBranchRow {
   professional_id: string;
+  branch_id: string;
   branches: BranchNameJoin;
+}
+
+interface MemberBranches {
+  ids: string[];
+  names: string[];
 }
 
 function branchNamesOf(join: BranchNameJoin): string[] {
   if (Array.isArray(join)) return join.map((branch) => branch.name);
   return join ? [join.name] : [];
+}
+
+function addBranch(map: Map<string, MemberBranches>, userId: string, branchId: string, join: BranchNameJoin): void {
+  const entry = map.get(userId) ?? { ids: [], names: [] };
+  entry.ids.push(branchId);
+  entry.names.push(...branchNamesOf(join));
+  map.set(userId, entry);
 }
 
 export const EMAIL_TAKEN_MESSAGE =
@@ -55,12 +71,12 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
   const rows = (profiles ?? []) as ProfileRow[];
   const ids = rows.map((row) => row.id);
 
-  const branchNamesByUser = new Map<string, string[]>();
+  const branchesByUser = new Map<string, MemberBranches>();
 
   if (ids.length > 0) {
     const { data: accessRows, error: accessError } = await supabase
       .from('user_branch_access')
-      .select('user_id, branches(name)')
+      .select('user_id, branch_id, branches(name)')
       .in('user_id', ids);
 
     if (accessError) {
@@ -68,20 +84,18 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
     }
 
     for (const row of (accessRows ?? []) as unknown as AccessRow[]) {
-      const list = branchNamesByUser.get(row.user_id) ?? [];
-      list.push(...branchNamesOf(row.branches));
-      branchNamesByUser.set(row.user_id, list);
+      addBranch(branchesByUser, row.user_id, row.branch_id, row.branches);
     }
   }
 
   // Las profesionales muestran sus sedes de Profesionales, que es la fuente.
   const professionalIds = rows.filter((row) => PROFESSIONAL_ROLES.includes(row.role)).map((row) => row.id);
-  const professionalBranchNames = new Map<string, string[]>();
+  const professionalBranches = new Map<string, MemberBranches>();
 
   if (professionalIds.length > 0) {
     const { data: professionalRows, error: professionalError } = await supabase
       .from('professional_branches')
-      .select('professional_id, branches(name)')
+      .select('professional_id, branch_id, branches(name)')
       .in('professional_id', professionalIds);
 
     if (professionalError) {
@@ -89,23 +103,43 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
     }
 
     for (const row of (professionalRows ?? []) as unknown as ProfessionalBranchRow[]) {
-      const list = professionalBranchNames.get(row.professional_id) ?? [];
-      list.push(...branchNamesOf(row.branches));
-      professionalBranchNames.set(row.professional_id, list);
+      addBranch(professionalBranches, row.professional_id, row.branch_id, row.branches);
     }
   }
 
-  return rows.map((row) => ({
-    id: row.id,
-    fullName: row.full_name,
-    email: row.email,
-    role: row.role,
-    active: row.active,
-    branchNames: PROFESSIONAL_ROLES.includes(row.role)
-      ? (professionalBranchNames.get(row.id) ?? [])
-      : (branchNamesByUser.get(row.id) ?? []),
-    branchesFromProfessionals: PROFESSIONAL_ROLES.includes(row.role),
-  }));
+  return rows.map((row) => {
+    const isProfessional = PROFESSIONAL_ROLES.includes(row.role);
+    const branches = (isProfessional ? professionalBranches : branchesByUser).get(row.id) ?? { ids: [], names: [] };
+    return {
+      id: row.id,
+      fullName: row.full_name,
+      email: row.email,
+      role: row.role,
+      active: row.active,
+      branchIds: branches.ids,
+      branchNames: branches.names,
+      branchesFromProfessionals: isProfessional,
+    };
+  });
+}
+
+// Sedes de una técnica o administradora de sede (Equipo). Las de una
+// profesional se asignan en Profesionales. La RLS deja a admin_sede tocar
+// solo sus sedes y solo de técnicas.
+export async function setMemberBranches(userId: string, wantedIds: string[], currentIds: string[]): Promise<void> {
+  const toRemove = currentIds.filter((id) => !wantedIds.includes(id));
+  const toAdd = wantedIds.filter((id) => !currentIds.includes(id));
+
+  if (toRemove.length > 0) {
+    const { error } = await supabase.from('user_branch_access').delete().eq('user_id', userId).in('branch_id', toRemove);
+    if (error) throw new Error(friendlyWriteError(error.message));
+  }
+  if (toAdd.length > 0) {
+    const { error } = await supabase
+      .from('user_branch_access')
+      .insert(toAdd.map((branchId) => ({ user_id: userId, branch_id: branchId })));
+    if (error) throw new Error(friendlyWriteError(error.message));
+  }
 }
 
 // Un perfil profesional desactivado tampoco debe ofrecerse en la reserva: su

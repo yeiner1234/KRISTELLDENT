@@ -345,6 +345,18 @@ describe('ProfessionalsPage — agregar profesional a mi sede', () => {
   });
 });
 
+describe('ProfessionalsPage — ficha desde Equipo', () => {
+  it('?ficha=<id> abre la ficha de esa profesional', async () => {
+    render(
+      <MemoryRouter initialEntries={['/admin/profesionales?ficha=anali']}>
+        <ProfessionalsPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('dialog')).toHaveTextContent('Ficha — ANali');
+  });
+});
+
 describe('ProfessionalsPage — filtros', () => {
   it('filtra por sede', async () => {
     const user = renderPage();

@@ -1,5 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { Mail, Plus, UsersRound } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Mail, MapPin, Plus, UsersRound } from 'lucide-react';
 import SectionTitle from '../../components/common/SectionTitle';
 import Button from '../../components/common/Button';
 import EmptyState from '../../components/common/EmptyState';
@@ -8,10 +9,18 @@ import Modal from '../../components/common/Modal';
 import Input from '../../components/common/Input';
 import Select from '../../components/common/Select';
 import StatusBadge from '../../components/common/StatusBadge';
+import FormError from '../../components/common/FormError';
+import MemberBranchesModal from '../../components/team/MemberBranchesModal';
 import { useAuth } from '../../hooks/useAuth';
 import { useTeamMembers } from '../../hooks/useTeamMembers';
 import { useAdminBranches } from '../../hooks/useAdminBranches';
-import { EMAIL_TAKEN_MESSAGE, inviteInternalUser, setProfileActive } from '../../services/teamService';
+import { useManageableBranchIds } from '../../hooks/useManageableBranchIds';
+import {
+  EMAIL_TAKEN_MESSAGE,
+  inviteInternalUser,
+  setProfileActive,
+  type TeamMember,
+} from '../../services/teamService';
 import { PROFESSIONAL_ROLES } from '../../services/professionalService';
 import type { AppRole } from '../../types/User';
 
@@ -23,7 +32,8 @@ const roleLabels: Record<AppRole, string> = {
   tecnica: 'Técnica',
 };
 
-const rolesAdminGlobalCanCreate: AppRole[] = ['admin_global', 'admin_sede', 'especialista', 'odontologa_general', 'tecnica'];
+// admin_global no se crea desde la app: se crea desde Supabase (README).
+const rolesAdminGlobalCanCreate: AppRole[] = ['admin_sede', 'especialista', 'odontologa_general', 'tecnica'];
 const rolesAdminSedeCanCreate: AppRole[] = ['especialista', 'odontologa_general', 'tecnica'];
 
 interface FormState {
@@ -37,6 +47,16 @@ function TeamPage() {
   const { user } = useAuth();
   const isAdminGlobal = user?.role === 'admin_global';
   const assignableRoles = isAdminGlobal ? rolesAdminGlobalCanCreate : rolesAdminSedeCanCreate;
+  // null = admin_global (todas las sedes).
+  const { branchIds: manageableBranchIds } = useManageableBranchIds();
+  const canManageBranch = (branchId: string) => manageableBranchIds === null || manageableBranchIds.includes(branchId);
+  // Sedes editables en Equipo: técnicas y administradoras de sede (admin_global);
+  // solo técnicas (admin_sede). Las de una profesional van en Profesionales.
+  const canEditBranches = (member: TeamMember) =>
+    !member.branchesFromProfessionals &&
+    (member.role === 'tecnica' || (isAdminGlobal && member.role === 'admin_sede'));
+  const [editingBranches, setEditingBranches] = useState<TeamMember | null>(null);
+  const [toggleError, setToggleError] = useState<string | null>(null);
 
   const { members, isLoading, error, refetch } = useTeamMembers();
   const { branches, isLoading: isLoadingBranches, error: branchesError } = useAdminBranches();
@@ -103,15 +123,19 @@ function TeamPage() {
 
   const handleToggleActive = async (memberId: string, nextActive: boolean) => {
     setTogglingId(memberId);
+    setToggleError(null);
     try {
       await setProfileActive(memberId, nextActive);
       refetch();
+    } catch (err) {
+      setToggleError(err instanceof Error ? err.message : 'No se pudo actualizar la cuenta.');
     } finally {
       setTogglingId(null);
     }
   };
 
-  const needsBranches = form.role !== 'admin_global';
+  // Una admin_sede solo invita en sus sedes.
+  const invitableBranches = activeBranches.filter((branch) => canManageBranch(branch.id));
 
   return (
     <div className="flex flex-col gap-6">
@@ -127,6 +151,8 @@ function TeamPage() {
           {successMessage}
         </p>
       )}
+
+      <FormError message={toggleError} />
 
       {isLoading ? (
         <div className="flex justify-center py-10">
@@ -163,16 +189,36 @@ function TeamPage() {
               </div>
 
               {member.branchesFromProfessionals ? (
-                <div className="flex flex-col gap-0.5">
+                <div className="flex flex-col gap-1">
                   <p className="text-[13px] text-adm-ink-400">
                     {member.branchNames.length > 0 ? member.branchNames.join(', ') : 'Sin sedes todavía'}
                   </p>
                   <p className="text-[12px] italic text-adm-ink-300">Se asignan en Profesionales</p>
+                  <Link
+                    to={`/admin/profesionales?ficha=${member.id}`}
+                    className="text-[13px] font-medium text-adm-accent-deep hover:underline"
+                  >
+                    Ver ficha
+                  </Link>
                 </div>
               ) : (
-                member.branchNames.length > 0 && (
-                  <p className="text-[13px] text-adm-ink-400">{member.branchNames.join(', ')}</p>
-                )
+                <div className="flex flex-col gap-1">
+                  {member.branchNames.length > 0 && (
+                    <p className="text-[13px] text-adm-ink-400">{member.branchNames.join(', ')}</p>
+                  )}
+                  {canEditBranches(member) && (
+                    <Button
+                      type="button"
+                      variant="admin-outline"
+                      size="xs"
+                      icon={<MapPin size={13} />}
+                      className="self-start"
+                      onClick={() => setEditingBranches(member)}
+                    >
+                      Editar sedes
+                    </Button>
+                  )}
+                </div>
               )}
 
               {isAdminGlobal && member.id !== user?.id && (
@@ -240,25 +286,26 @@ function TeamPage() {
             options={assignableRoles.map((role) => ({ value: role, label: roleLabels[role] }))}
           />
 
-          {needsBranches && (
+          {(
             <div className="flex flex-col gap-1.5">
               <span className="text-sm font-medium text-adm-ink-700">
-                {PROFESSIONAL_ROLES.includes(form.role) ? 'Sede inicial' : 'Sedes asignadas'}
+                {PROFESSIONAL_ROLES.includes(form.role) ? 'Sedes donde atiende' : 'Sedes asignadas'}
               </span>
               {PROFESSIONAL_ROLES.includes(form.role) && (
                 <p className="text-xs leading-relaxed text-adm-ink-400">
-                  Después, las sedes donde atiende se asignan en Profesionales.
+                  Se crea con su ficha en estas sedes. Después, sus servicios, horario y otras sedes se asignan en
+                  Profesionales.
                 </p>
               )}
               {isLoadingBranches ? (
                 <Spinner size={20} />
               ) : branchesError ? (
                 <p className="text-sm text-adm-danger-text">{branchesError}</p>
-              ) : activeBranches.length === 0 ? (
+              ) : invitableBranches.length === 0 ? (
                 <p className="text-sm text-adm-ink-400">No hay sedes activas registradas todavía.</p>
               ) : (
                 <div className="flex flex-col gap-1.5 rounded-[10px] border border-adm-line-field p-3">
-                  {activeBranches.map((branch) => (
+                  {invitableBranches.map((branch) => (
                     <label key={branch.id} className="flex items-center gap-2 text-sm text-adm-ink-700">
                       <input
                         type="checkbox"
@@ -280,6 +327,19 @@ function TeamPage() {
           </p>
         </form>
       </Modal>
+
+      {editingBranches && (
+        <MemberBranchesModal
+          member={editingBranches}
+          branches={branches}
+          canManageBranch={canManageBranch}
+          onClose={() => setEditingBranches(null)}
+          onSaved={() => {
+            setEditingBranches(null);
+            refetch();
+          }}
+        />
+      )}
     </div>
   );
 }

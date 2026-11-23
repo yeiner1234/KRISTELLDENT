@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { supabase } from '../lib/supabase';
 import { findCall, mockQuery, type MockQuery } from '../test/mockQuery';
-import { getTeamMembers, inviteInternalUser, setProfileActive } from './teamService';
+import { getTeamMembers, inviteInternalUser, setMemberBranches, setProfileActive } from './teamService';
 
 vi.mock('../lib/supabase', () => ({
   supabase: {
@@ -73,14 +73,14 @@ describe('getTeamMembers', () => {
       }),
       user_branch_access: mockQuery({
         data: [
-          { user_id: 'ana', branches: { name: 'Bagua' } },
-          { user_id: 'tec', branches: { name: 'Jaén' } },
+          { user_id: 'ana', branch_id: 'bagua', branches: { name: 'Bagua' } },
+          { user_id: 'tec', branch_id: 'jaen', branches: { name: 'Jaén' } },
         ],
       }),
       professional_branches: mockQuery({
         data: [
-          { professional_id: 'ana', branches: { name: 'Bagua' } },
-          { professional_id: 'ana', branches: { name: 'Jaén' } },
+          { professional_id: 'ana', branch_id: 'bagua', branches: { name: 'Bagua' } },
+          { professional_id: 'ana', branch_id: 'jaen', branches: { name: 'Jaén' } },
         ],
       }),
     };
@@ -93,6 +93,38 @@ describe('getTeamMembers', () => {
       ['Tere', ['Jaén'], false],
     ]);
     expect(findCall(queries.professional_branches, 'in')?.args).toEqual(['professional_id', ['ana']]);
+    expect(members.map((member) => member.branchIds)).toEqual([['bagua', 'jaen'], ['jaen']]);
+  });
+});
+
+describe('setMemberBranches (sedes de técnicas y administradoras en Equipo)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('agrega y quita solo lo que cambió', async () => {
+    const tables: { table: string; query: MockQuery }[] = [];
+    vi.mocked(supabase.from).mockImplementation((table: string) => {
+      const query = mockQuery({});
+      tables.push({ table, query });
+      return query as never;
+    });
+
+    await setMemberBranches('tec', ['jaen', 'bagua'], ['jaen', 'chacha']);
+
+    const [removal, addition] = tables.map((entry) => entry.query);
+    expect(findCall(removal, 'delete')).toBeDefined();
+    expect(findCall(removal, 'in')?.args).toEqual(['branch_id', ['chacha']]);
+    expect(findCall(addition, 'insert')?.args[0]).toEqual([{ user_id: 'tec', branch_id: 'bagua' }]);
+    expect(tables.every((entry) => entry.table === 'user_branch_access')).toBe(true);
+  });
+
+  it('el rechazo de RLS (sede ajena) se explica', async () => {
+    vi.mocked(supabase.from).mockReturnValue(
+      mockQuery({ error: { message: 'new row violates row-level security policy for table "user_branch_access"' } }) as never,
+    );
+
+    await expect(setMemberBranches('tec', ['bagua'], [])).rejects.toThrow('No tienes permiso para modificar esta sede.');
   });
 });
 
