@@ -6,6 +6,11 @@ type AppRole = 'admin_global' | 'admin_sede' | 'especialista' | 'odontologa_gene
 const ALL_ROLES: AppRole[] = ['admin_global', 'admin_sede', 'especialista', 'odontologa_general', 'tecnica'];
 const ROLES_ADMIN_SEDE_CAN_CREATE: AppRole[] = ['especialista', 'odontologa_general', 'tecnica'];
 
+// Una persona = una cuenta: para que una profesional atienda en otra sede se
+// le agrega la sede en Profesionales, no se le crea otra cuenta.
+const EMAIL_TAKEN_MESSAGE =
+  'Ese correo ya tiene una cuenta. Para que atienda en otra sede, agrégala en Profesionales.';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -130,6 +135,19 @@ Deno.serve(async (req) => {
     }
   }
 
+  const { data: existingProfile, error: existingProfileError } = await adminClient
+    .from('profiles')
+    .select('id')
+    .eq('email', email)
+    .maybeSingle();
+
+  if (existingProfileError) {
+    return jsonResponse({ error: 'No se pudo verificar el correo.' }, 500);
+  }
+  if (existingProfile) {
+    return jsonResponse({ error: EMAIL_TAKEN_MESSAGE }, 409);
+  }
+
   // Se invita en vez de crear con contraseña: la persona la define ella
   // misma vía el correo que le llega, nadie más la conoce ni la transmite.
   const siteUrl = Deno.env.get('SITE_URL') ?? 'http://localhost:5173';
@@ -138,6 +156,10 @@ Deno.serve(async (req) => {
   });
 
   if (inviteError || !invited.user) {
+    // Auth puede tener el correo aunque no tenga perfil (o con otras mayúsculas).
+    if (inviteError?.message?.toLowerCase().includes('already been registered')) {
+      return jsonResponse({ error: EMAIL_TAKEN_MESSAGE }, 409);
+    }
     return jsonResponse({ error: inviteError?.message ?? 'No se pudo crear la cuenta.' }, 400);
   }
 

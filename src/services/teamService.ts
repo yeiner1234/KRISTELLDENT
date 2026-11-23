@@ -9,6 +9,9 @@ export interface TeamMember {
   role: AppRole;
   active: boolean;
   branchNames: string[];
+  // true para especialista y odontóloga general: sus sedes se asignan en
+  // Profesionales (professional_branches) y un trigger las copia a Equipo.
+  branchesFromProfessionals: boolean;
 }
 
 interface ProfileRow {
@@ -19,10 +22,25 @@ interface ProfileRow {
   active: boolean;
 }
 
+type BranchNameJoin = { name: string } | { name: string }[] | null;
+
 interface AccessRow {
   user_id: string;
-  branches: { name: string } | { name: string }[] | null;
+  branches: BranchNameJoin;
 }
+
+interface ProfessionalBranchRow {
+  professional_id: string;
+  branches: BranchNameJoin;
+}
+
+function branchNamesOf(join: BranchNameJoin): string[] {
+  if (Array.isArray(join)) return join.map((branch) => branch.name);
+  return join ? [join.name] : [];
+}
+
+export const EMAIL_TAKEN_MESSAGE =
+  'Ese correo ya tiene una cuenta. Para que atienda en otra sede, agrégala en Profesionales.';
 
 export async function getTeamMembers(): Promise<TeamMember[]> {
   const { data: profiles, error: profilesError } = await supabase
@@ -50,14 +68,30 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
     }
 
     for (const row of (accessRows ?? []) as unknown as AccessRow[]) {
-      const names = Array.isArray(row.branches)
-        ? row.branches.map((branch) => branch.name)
-        : row.branches
-          ? [row.branches.name]
-          : [];
       const list = branchNamesByUser.get(row.user_id) ?? [];
-      list.push(...names);
+      list.push(...branchNamesOf(row.branches));
       branchNamesByUser.set(row.user_id, list);
+    }
+  }
+
+  // Las profesionales muestran sus sedes de Profesionales, que es la fuente.
+  const professionalIds = rows.filter((row) => PROFESSIONAL_ROLES.includes(row.role)).map((row) => row.id);
+  const professionalBranchNames = new Map<string, string[]>();
+
+  if (professionalIds.length > 0) {
+    const { data: professionalRows, error: professionalError } = await supabase
+      .from('professional_branches')
+      .select('professional_id, branches(name)')
+      .in('professional_id', professionalIds);
+
+    if (professionalError) {
+      throw new Error(professionalError.message);
+    }
+
+    for (const row of (professionalRows ?? []) as unknown as ProfessionalBranchRow[]) {
+      const list = professionalBranchNames.get(row.professional_id) ?? [];
+      list.push(...branchNamesOf(row.branches));
+      professionalBranchNames.set(row.professional_id, list);
     }
   }
 
@@ -67,7 +101,10 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
     email: row.email,
     role: row.role,
     active: row.active,
-    branchNames: branchNamesByUser.get(row.id) ?? [],
+    branchNames: PROFESSIONAL_ROLES.includes(row.role)
+      ? (professionalBranchNames.get(row.id) ?? [])
+      : (branchNamesByUser.get(row.id) ?? []),
+    branchesFromProfessionals: PROFESSIONAL_ROLES.includes(row.role),
   }));
 }
 
@@ -123,6 +160,11 @@ export async function inviteInternalUser(input: InviteInternalUserInput): Promis
 
   if (error) {
     const message = await extractFunctionErrorMessage(error);
+    // Mismo texto que devuelve create-internal-user; se traduce también aquí
+    // el error de Auth por si la función desplegada es la anterior.
+    if (message?.toLowerCase().includes('already been registered')) {
+      throw new Error(EMAIL_TAKEN_MESSAGE);
+    }
     throw new Error(message ?? 'No se pudo crear el usuario.');
   }
 
