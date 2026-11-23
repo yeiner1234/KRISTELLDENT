@@ -3,7 +3,6 @@ import { ClipboardList, Pencil, Plus } from 'lucide-react';
 import SectionTitle from '../../components/common/SectionTitle';
 import { useAuth } from '../../hooks/useAuth';
 import DataTable, { type DataTableColumn } from '../../components/common/DataTable';
-import Badge from '../../components/common/Badge';
 import EmptyState from '../../components/common/EmptyState';
 import Spinner from '../../components/common/Spinner';
 import SearchInput from '../../components/common/SearchInput';
@@ -17,6 +16,7 @@ import { useAdminServices } from '../../hooks/useAdminServices';
 import { useAdminSpecialties } from '../../hooks/useAdminSpecialties';
 import { createService, setServiceActive, updateService, type ServiceInput } from '../../services/serviceService';
 import { formatCurrency } from '../../utils/format';
+import { groupServicesBySpecialty } from '../../utils/serviceGroups';
 import type { Service } from '../../types/Service';
 
 function emptyForm(defaultSpecialtyId: string): ServiceInput {
@@ -99,13 +99,6 @@ function ServicesPage() {
 
   const allColumns: DataTableColumn<Service>[] = [
     { key: 'name', header: 'Servicio', render: (row) => row.name },
-    {
-      key: 'specialty',
-      header: 'Especialidad',
-      render: (row) => (
-        <Badge tone="brand">{specialties.find((specialty) => specialty.id === row.specialtyId)?.name ?? '—'}</Badge>
-      ),
-    },
     { key: 'duration', header: 'Duración', render: (row) => `${row.duration} min` },
     { key: 'price', header: 'Precio', render: (row) => formatCurrency(row.price) },
     {
@@ -142,6 +135,9 @@ function ServicesPage() {
       .filter((service) => (specialtyId ? service.specialtyId === specialtyId : true))
       .filter((service) => (term ? service.name.toLowerCase().includes(term) : true));
   }, [query, specialtyId, services]);
+
+  // Agrupa lo que ya pasó el filtro y la búsqueda.
+  const groups = useMemo(() => groupServicesBySpecialty(filtered, specialties), [filtered, specialties]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -183,7 +179,19 @@ function ServicesPage() {
       ) : filtered.length === 0 ? (
         <EmptyState icon={ClipboardList} title="No hay servicios registrados" description="Aún no se han creado servicios." />
       ) : (
-        <DataTable columns={columns} rows={filtered} getRowId={(row) => row.id} />
+        <div className="flex flex-col gap-6">
+          {groups.map((group) => (
+            <section key={group.key} className="flex flex-col gap-2.5">
+              <h2 className="flex items-baseline gap-2 text-[15px] font-semibold text-adm-ink-700">
+                {group.title}
+                <span className="text-[13px] font-normal text-adm-ink-400">
+                  {group.services.length} {group.services.length === 1 ? 'servicio' : 'servicios'}
+                </span>
+              </h2>
+              <DataTable columns={columns} rows={group.services} getRowId={(row) => row.id} />
+            </section>
+          ))}
+        </div>
       )}
 
       <Modal
