@@ -6,7 +6,7 @@ describe('getPanelSectionTitle', () => {
     expect(getPanelSectionTitle('/admin', 'admin_global')).toBe('Dashboard');
     expect(getPanelSectionTitle('/admin/citas', 'admin_sede')).toBe('Citas');
     expect(getPanelSectionTitle('/admin/servicios', 'admin_sede')).toBe('Servicios de la sede');
-    expect(getPanelSectionTitle('/admin/reportes/agenda', 'admin_global')).toBe('Agenda imprimible');
+    expect(getPanelSectionTitle('/admin/reportes/agenda', 'admin_global')).toBe('Agenda de citas');
   });
 
   it('ignora la barra final', () => {

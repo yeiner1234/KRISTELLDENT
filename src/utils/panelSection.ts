@@ -8,7 +8,7 @@ const SECTION_TITLES: Record<string, string> = {
   '/admin/equipo': 'Equipo',
   '/admin/agenda': 'Agenda',
   '/admin/citas': 'Citas',
-  '/admin/reportes/agenda': 'Agenda imprimible',
+  '/admin/reportes/agenda': 'Agenda de citas',
   '/admin/pacientes': 'Pacientes',
   '/admin/profesionales': 'Profesionales',
   '/admin/especialidades': 'Especialidades',
@@ -20,7 +20,7 @@ const SECTION_TITLES: Record<string, string> = {
   '/profesional/citas': 'Mis citas',
   '/profesional/agenda-sede': 'Agenda',
   '/profesional/pacientes-sede': 'Pacientes',
-  '/profesional/reportes/agenda': 'Agenda imprimible',
+  '/profesional/reportes/agenda': 'Agenda de citas',
 };
 
 export function getPanelSectionTitle(pathname: string, role: AppRole | undefined): string | null {

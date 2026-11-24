@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom';
 import { CalendarRange, ClipboardList, LayoutDashboard, Printer, Users } from 'lucide-react';
 import logo from '../../../imagenes/kristelldent-icon.png';
 import { useAuth } from '../../hooks/useAuth';
+import SidebarNavGroup from './SidebarNavGroup';
 
 const professionalItems = [
   { label: 'Dashboard', to: '/profesional', icon: LayoutDashboard, end: true },
@@ -14,12 +15,15 @@ const technicianItems = [
   { label: 'Citas', to: '/profesional', icon: ClipboardList, end: true },
   { label: 'Agenda', to: '/profesional/agenda-sede', icon: CalendarRange },
   { label: 'Pacientes', to: '/profesional/pacientes-sede', icon: Users },
-  { label: 'Agenda imprimible', to: '/profesional/reportes/agenda', icon: Printer },
 ];
+
+// Imprimibles: solo la técnica (la especialista y la odontóloga general no tienen).
+const technicianPrintables = [{ label: 'Agenda de citas', to: '/profesional/reportes/agenda' }];
 
 function ProfessionalSidebar() {
   const { user } = useAuth();
-  const items = user?.role === 'tecnica' ? technicianItems : professionalItems;
+  const isTechnician = user?.role === 'tecnica';
+  const items = isTechnician ? technicianItems : professionalItems;
   const initials = user?.name ? user.name.slice(0, 2).toUpperCase() : 'PR';
 
   return (
@@ -45,6 +49,7 @@ function ProfessionalSidebar() {
             {label}
           </NavLink>
         ))}
+        {isTechnician && <SidebarNavGroup label="Imprimibles" icon={Printer} links={technicianPrintables} />}
       </nav>
 
       <div className="mt-auto flex items-center gap-2.5 border-t border-white/[0.12] px-2 pt-3">

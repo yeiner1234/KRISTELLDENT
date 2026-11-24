@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import logo from '../../../imagenes/kristelldent-icon.png';
 import { useAuth } from '../../hooks/useAuth';
+import SidebarNavGroup, { type SidebarGroupLink } from './SidebarNavGroup';
 import type { AppRole } from '../../types/User';
 
 interface SidebarItem {
@@ -27,13 +28,22 @@ interface SidebarItem {
   roles?: AppRole[];
 }
 
-const items: SidebarItem[] = [
+// Sección que se despliega con sus opciones (ver SidebarNavGroup).
+interface SidebarGroup {
+  label: string;
+  icon: typeof Building2;
+  links: SidebarGroupLink[];
+}
+
+type SidebarEntry = SidebarItem | SidebarGroup;
+
+const items: SidebarEntry[] = [
   { label: 'Dashboard', to: '/admin', icon: LayoutDashboard, end: true },
   { label: 'Sedes', to: '/admin/sedes', icon: Building2 },
   { label: 'Equipo', to: '/admin/equipo', icon: UsersRound },
   { label: 'Agenda', to: '/admin/agenda', icon: CalendarRange },
   { label: 'Citas', to: '/admin/citas', icon: ClipboardList },
-  { label: 'Agenda imprimible', to: '/admin/reportes/agenda', icon: Printer },
+  { label: 'Imprimibles', icon: Printer, links: [{ label: 'Agenda de citas', to: '/admin/reportes/agenda' }] },
   { label: 'Pacientes', to: '/admin/pacientes', icon: Users },
   { label: 'Profesionales', to: '/admin/profesionales', icon: UserRound },
   { label: 'Especialidades', to: '/admin/especialidades', icon: Tags },
@@ -44,7 +54,7 @@ const items: SidebarItem[] = [
 
 function AdminSidebar() {
   const { user } = useAuth();
-  const visibleItems = items.filter((item) => !item.roles || (user && item.roles.includes(user.role)));
+  const visibleItems = items.filter((item) => !('roles' in item) || !item.roles || (user && item.roles.includes(user.role)));
 
   return (
     <aside className="flex w-[244px] shrink-0 flex-col gap-[22px] bg-brand-900 p-[20px_14px]">
@@ -57,21 +67,27 @@ function AdminSidebar() {
       </div>
 
       <nav className="flex flex-col gap-1">
-        {visibleItems.map(({ label, to, icon: Icon, end }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={end}
-            className={({ isActive }) =>
-              `flex h-10 items-center gap-2.5 rounded-[9px] px-[11px] text-sm transition-colors duration-[140ms] ${
-                isActive ? 'bg-brand-600 font-medium text-white' : 'text-[#93a8b0] hover:bg-white/5'
-              }`
-            }
-          >
-            <Icon size={18} strokeWidth={1.75} />
-            {label}
-          </NavLink>
-        ))}
+        {visibleItems.map((item) => {
+          if ('links' in item) {
+            return <SidebarNavGroup key={item.label} label={item.label} icon={item.icon} links={item.links} />;
+          }
+          const { label, to, icon: Icon, end } = item;
+          return (
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              className={({ isActive }) =>
+                `flex h-10 items-center gap-2.5 rounded-[9px] px-[11px] text-sm transition-colors duration-[140ms] ${
+                  isActive ? 'bg-brand-600 font-medium text-white' : 'text-[#93a8b0] hover:bg-white/5'
+                }`
+              }
+            >
+              <Icon size={18} strokeWidth={1.75} />
+              {label}
+            </NavLink>
+          );
+        })}
       </nav>
 
       <div className="mt-auto flex flex-col gap-2 rounded-xl bg-white/[0.06] p-3.5">
