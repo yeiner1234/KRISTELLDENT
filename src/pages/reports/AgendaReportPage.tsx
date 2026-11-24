@@ -120,7 +120,8 @@ function AgendaReportPage() {
 
   return (
     <div className="agenda-report flex flex-col gap-5">
-      <div className="agenda-toolbar flex flex-wrap items-end gap-3 rounded-[14px] border border-adm-line-card bg-white p-4">
+      {/* En celular cada filtro ocupa todo el ancho; la hoja se desplaza en su contenedor. */}
+      <div className="agenda-toolbar flex flex-wrap items-end gap-3 rounded-[14px] border border-adm-line-card bg-white p-4 [&>*]:w-full sm:[&>*]:w-auto">
         <Input
           label="Fecha"
           type="date"
