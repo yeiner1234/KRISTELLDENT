@@ -36,6 +36,8 @@ import ProfessionalHomePage from '../pages/professional/HomePage';
 import ProfessionalMyAgendaPage from '../pages/professional/MyAgendaPage';
 import ProfessionalMyPatientsPage from '../pages/professional/MyPatientsPage';
 import ProfessionalMyAppointmentsPage from '../pages/professional/MyAppointmentsPage';
+import ProfessionalBranchAgendaPage from '../pages/professional/BranchAgendaPage';
+import ProfessionalBranchPatientsPage from '../pages/professional/BranchPatientsPage';
 
 import AgendaReportPage from '../pages/reports/AgendaReportPage';
 
@@ -83,14 +85,16 @@ function AppRouter() {
           <Route element={<RoleRoute allowedRoles={['especialista', 'odontologa_general', 'tecnica']} />}>
             <Route path="/profesional" element={<ProfessionalLayout />}>
               <Route index element={<ProfessionalHomePage />} />
-              {/* La técnica solo tiene "Citas de hoy": si entra aquí, vuelve a /profesional. */}
+              {/* Si la técnica entra aquí, vuelve a /profesional (sus citas). */}
               <Route element={<RoleRoute allowedRoles={PROFESSIONAL_ROLES} />}>
                 <Route path="agenda" element={<ProfessionalMyAgendaPage />} />
                 <Route path="pacientes" element={<ProfessionalMyPatientsPage />} />
                 <Route path="citas" element={<ProfessionalMyAppointmentsPage />} />
               </Route>
-              {/* La agenda imprimible es solo de la técnica: la especialista no la ve. */}
+              {/* Agenda y pacientes de la sede, y la agenda imprimible: solo la técnica. */}
               <Route element={<RoleRoute allowedRoles={['tecnica']} />}>
+                <Route path="agenda-sede" element={<ProfessionalBranchAgendaPage />} />
+                <Route path="pacientes-sede" element={<ProfessionalBranchPatientsPage />} />
                 <Route path="reportes/agenda" element={<AgendaReportPage />} />
               </Route>
             </Route>

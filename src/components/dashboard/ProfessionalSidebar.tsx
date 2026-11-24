@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { CalendarCheck, CalendarRange, ClipboardList, LayoutDashboard, Printer, Users } from 'lucide-react';
+import { CalendarRange, ClipboardList, LayoutDashboard, Printer, Users } from 'lucide-react';
 import logo from '../../../imagenes/kristelldent-icon.png';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -11,7 +11,9 @@ const professionalItems = [
 ];
 
 const technicianItems = [
-  { label: 'Citas de hoy', to: '/profesional', icon: CalendarCheck, end: true },
+  { label: 'Citas', to: '/profesional', icon: ClipboardList, end: true },
+  { label: 'Agenda', to: '/profesional/agenda-sede', icon: CalendarRange },
+  { label: 'Pacientes', to: '/profesional/pacientes-sede', icon: Users },
   { label: 'Agenda imprimible', to: '/profesional/reportes/agenda', icon: Printer },
 ];
 

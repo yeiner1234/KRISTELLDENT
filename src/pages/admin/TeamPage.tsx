@@ -1,6 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
-import { Mail, MapPin, Plus, UsersRound } from 'lucide-react';
+import { ArrowRight, Mail, MapPin, Plus, Power, UsersRound } from 'lucide-react';
 import SectionTitle from '../../components/common/SectionTitle';
 import Button from '../../components/common/Button';
 import EmptyState from '../../components/common/EmptyState';
@@ -183,101 +182,116 @@ function TeamPage() {
           {members.map((member) => (
             <div
               key={member.id}
-              className="flex flex-col gap-3 rounded-[14px] border border-adm-line-card bg-white p-5 shadow-soft"
+              className="flex flex-col rounded-[14px] border border-adm-line-card bg-white p-5 shadow-soft"
             >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex min-w-0 flex-col">
+              <div className="flex flex-1 flex-col gap-3">
+                <div className="flex min-w-0 flex-col gap-0.5">
                   <p className="truncate text-[15.5px] font-semibold text-adm-ink-700">{member.fullName}</p>
-                  <p className="flex items-center gap-1.5 truncate text-[13px] text-adm-ink-400">
-                    <Mail size={13} />
-                    {member.email}
+                  <p className="flex min-w-0 items-center gap-1.5 text-[13px] text-adm-ink-400">
+                    <Mail size={13} className="shrink-0" />
+                    <span className="truncate">{member.email}</span>
                   </p>
                 </div>
-              </div>
 
-              <div className="flex flex-wrap items-center gap-1.5">
-                <StatusBadge label={roleLabels[member.role]} tone="brand" />
-                <StatusBadge label={member.active ? 'Activo' : 'Inactivo'} tone={member.active ? 'adm-active' : 'adm-inactive'} />
-              </div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <StatusBadge label={roleLabels[member.role]} tone="brand" />
+                  <StatusBadge label={member.active ? 'Activo' : 'Inactivo'} tone={member.active ? 'adm-active' : 'adm-inactive'} />
+                </div>
 
-              {member.branchesFromProfessionals ? (
-                <div className="flex flex-col gap-1">
-                  <p className="text-[13px] text-adm-ink-400">
-                    {member.branchNames.length > 0
-                      ? member.branchNames
-                          .map((name, index) =>
-                            member.inactiveBranchIds.includes(member.branchIds[index]) ? `${name} (desactivada)` : name,
-                          )
-                          .join(', ')
-                      : 'Sin sedes todavía'}
-                  </p>
-                  <p className="text-[12px] italic text-adm-ink-300">Se asignan en Profesionales</p>
-                  <Link
-                    to={`/admin/profesionales?ficha=${member.id}`}
-                    className="text-[13px] font-medium text-adm-accent-deep hover:underline"
-                  >
-                    Ver ficha
-                  </Link>
+                <div className="flex items-start gap-1.5">
+                  <MapPin size={13} className="mt-[3px] shrink-0 text-adm-ink-300" />
+                  <div className="flex flex-col gap-0.5">
+                    <p className="text-[13px] leading-snug text-adm-ink-400">
+                      {member.branchNames.length === 0
+                        ? 'Sin sedes todavía'
+                        : member.branchesFromProfessionals
+                          ? member.branchNames
+                              .map((name, index) =>
+                                member.inactiveBranchIds.includes(member.branchIds[index]) ? `${name} (desactivada)` : name,
+                              )
+                              .join(', ')
+                          : member.branchNames.join(', ')}
+                    </p>
+                    {member.branchesFromProfessionals && (
+                      <p className="text-[12px] italic text-adm-ink-300">Se asignan en Profesionales</p>
+                    )}
+                  </div>
                 </div>
-              ) : (
-                <div className="flex flex-col gap-1">
-                  {member.branchNames.length > 0 && (
-                    <p className="text-[13px] text-adm-ink-400">{member.branchNames.join(', ')}</p>
-                  )}
-                  {canEditBranches(member) && (
-                    <Button
-                      type="button"
-                      variant="admin-outline"
-                      size="xs"
-                      icon={<MapPin size={13} />}
-                      className="self-start"
-                      onClick={() => setEditingBranches(member)}
-                    >
-                      Editar sedes
-                    </Button>
-                  )}
-                </div>
-              )}
+              </div>
 
               {(() => {
                 const action = actionFor(member);
-                if (action.kind === 'none') return null;
                 const isBusy = togglingId === member.id;
-                if (action.kind === 'branch') {
-                  const branchName = branches.find((branch) => branch.id === action.branchId)?.name ?? 'tu sede';
-                  return (
-                    <div className="flex flex-col gap-1.5 border-t border-adm-line-div pt-3">
-                      <Button
-                        type="button"
-                        variant={action.active ? 'admin-danger' : 'admin-outline'}
-                        size="xs"
-                        className="w-full"
-                        disabled={isBusy}
-                        onClick={() => handleToggleActive(member.id, !action.active, action.branchId)}
-                      >
-                        {isBusy ? 'Guardando…' : `${action.active ? 'Desactivar' : 'Activar'} en ${branchName}`}
-                      </Button>
-                      <p className="text-[12px] text-adm-ink-400">
-                        {action.active
-                          ? `Atiende en varias sedes: solo deja de salir en la reserva de ${branchName}.`
-                          : `Desactivada en ${branchName}: no sale en su reserva. Conserva su horario y servicios.`}
-                      </p>
-                    </div>
-                  );
-                }
-                return (
-                  <div className="flex flex-col gap-1.5 border-t border-adm-line-div pt-3">
+                const branchName =
+                  action.kind === 'branch'
+                    ? (branches.find((branch) => branch.id === action.branchId)?.name ?? 'tu sede')
+                    : '';
+
+                const secondary = member.branchesFromProfessionals ? (
+                  <Button
+                    to={`/admin/profesionales?ficha=${member.id}`}
+                    variant="admin-outline"
+                    size="sm"
+                    icon={<ArrowRight size={14} />}
+                    className="w-full"
+                  >
+                    Ver ficha
+                  </Button>
+                ) : canEditBranches(member) ? (
+                  <Button
+                    type="button"
+                    variant="admin-outline"
+                    size="sm"
+                    icon={<MapPin size={14} />}
+                    className="w-full"
+                    onClick={() => setEditingBranches(member)}
+                  >
+                    Editar sedes
+                  </Button>
+                ) : null;
+
+                const toggle =
+                  action.kind === 'branch' ? (
+                    <Button
+                      type="button"
+                      variant={action.active ? 'admin-danger' : 'admin-outline'}
+                      size="sm"
+                      icon={<Power size={14} />}
+                      className="w-full"
+                      disabled={isBusy}
+                      onClick={() => handleToggleActive(member.id, !action.active, action.branchId)}
+                    >
+                      {isBusy ? 'Guardando…' : `${action.active ? 'Desactivar' : 'Activar'} en ${branchName}`}
+                    </Button>
+                  ) : action.kind === 'account' ? (
                     <Button
                       type="button"
                       variant={member.active ? 'admin-danger' : 'admin-outline'}
-                      size="xs"
+                      size="sm"
+                      icon={<Power size={14} />}
                       className="w-full"
                       disabled={isBusy || action.blockedReason !== null}
                       onClick={() => handleToggleActive(member.id, !member.active)}
                     >
                       {isBusy ? 'Guardando…' : member.active ? 'Desactivar' : 'Activar'}
                     </Button>
-                    {action.blockedReason && <p className="text-[12px] text-adm-ink-400">{action.blockedReason}</p>}
+                  ) : null;
+
+                const hint =
+                  action.kind === 'branch'
+                    ? action.active
+                      ? `Atiende en varias sedes: solo deja de salir en la reserva de ${branchName}.`
+                      : `Desactivada en ${branchName}: no sale en su reserva. Conserva su horario y servicios.`
+                    : action.kind === 'account'
+                      ? action.blockedReason
+                      : null;
+
+                if (!secondary && !toggle) return null;
+                return (
+                  <div className="mt-4 flex flex-col gap-2 border-t border-adm-line-div pt-4">
+                    {secondary}
+                    {toggle}
+                    {hint && <p className="text-[12px] leading-snug text-adm-ink-400">{hint}</p>}
                   </div>
                 );
               })()}

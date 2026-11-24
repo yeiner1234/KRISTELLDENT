@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import ServicesPage from './ServicesPage';
 import { createService } from '../../services/serviceService';
+import { createSpecialty } from '../../services/specialtyService';
 import type { ServiceOfferStatus } from '../../types/Offer';
 
 const access = vi.hoisted(() => ({ branchIds: ['jaen'] as string[] | null }));
@@ -37,6 +38,7 @@ const row = (overrides: Partial<ServiceOfferStatus>): ServiceOfferStatus => ({
   ...overrides,
 });
 
+const specialtiesRefetch = vi.hoisted(() => vi.fn());
 const offer = vi.hoisted(() => ({ rows: [] as ServiceOfferStatus[], requested: [] as (string | null)[] }));
 
 vi.mock('../../hooks/useAdminBranches', () => ({
@@ -58,7 +60,7 @@ vi.mock('../../hooks/useAdminSpecialties', () => ({
     ],
     isLoading: false,
     error: null,
-    refetch: vi.fn(),
+    refetch: specialtiesRefetch,
   }),
 }));
 vi.mock('../../hooks/useOffer', () => ({
@@ -171,5 +173,31 @@ describe('ServicesPage — servicios de la sede', () => {
     await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
     expect(await within(dialog).findByRole('alert')).toHaveTextContent('Esta sede ya tiene un servicio con ese nombre.');
+  });
+
+  it('agrega una especialidad nueva desde el formulario y crea el servicio con ella', async () => {
+    vi.mocked(createSpecialty).mockResolvedValue({ id: 'perio', name: 'Periodoncia', description: null, active: true });
+    vi.mocked(createService).mockResolvedValue({} as never);
+    const user = renderPage();
+
+    await user.click(screen.getByRole('button', { name: 'Nuevo servicio' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.type(within(dialog).getByLabelText('Nombre del servicio'), 'Limpieza profunda');
+    await user.type(within(dialog).getByLabelText('Buscar especialidad'), 'Periodoncia');
+    await user.click(within(dialog).getByRole('button', { name: 'Agregar especialidad "Periodoncia"' }));
+
+    expect(createSpecialty).toHaveBeenCalledWith({ name: 'Periodoncia', description: null });
+    expect(specialtiesRefetch).toHaveBeenCalled();
+
+    await user.type(within(dialog).getByLabelText('Precio (S/)'), '120');
+    await user.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    expect(createService).toHaveBeenCalledWith({
+      branchId: 'jaen',
+      name: 'Limpieza profunda',
+      specialtyId: 'perio',
+      price: 120,
+      duration: 30,
+    });
   });
 });
