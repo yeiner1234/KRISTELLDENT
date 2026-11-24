@@ -22,7 +22,7 @@ function SettingsPage() {
             { value: 'europe-madrid', label: 'Europa/Madrid' },
           ]}
         />
-        <Button type="submit" variant="admin-solid" className="w-fit">
+        <Button type="submit" variant="admin-solid" className="w-full sm:w-fit">
           Guardar cambios
         </Button>
       </form>

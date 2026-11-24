@@ -281,7 +281,7 @@ function ProfessionalScheduleModal({
                 const day = scheduleForm[dayIndex];
                 const branchDay = branchHours.find((item) => item.dayOfWeek === dayIndex);
                 const timeClass =
-                  'h-8 rounded-[8px] border border-adm-line-field bg-adm-surface-input px-1.5 text-sm text-adm-ink-700 outline-none focus:border-brand-600';
+                  'h-11 rounded-[8px] border border-adm-line-field bg-adm-surface-input px-1.5 text-base text-adm-ink-700 outline-none focus:border-brand-600 sm:h-8 sm:text-sm';
                 // Una fila por día: nombre, bloques y "+ Bloque"; pasa a otra
                 // línea solo si no cabe. Un día sin marcar es solo su nombre.
                 return (
@@ -326,7 +326,7 @@ function ProfessionalScheduleModal({
                             type="button"
                             aria-label="Quitar bloque"
                             onClick={() => removeScheduleBlock(dayIndex, blockIndex)}
-                            className="flex h-8 w-7 items-center justify-center rounded-[8px] text-adm-ink-300 transition-colors hover:bg-adm-status-cancelled-bg hover:text-adm-danger-text"
+                            className="flex h-11 w-11 items-center justify-center rounded-[8px] text-adm-ink-300 sm:h-8 sm:w-7 transition-colors hover:bg-adm-status-cancelled-bg hover:text-adm-danger-text"
                           >
                             <Trash2 size={14} />
                           </button>
@@ -337,7 +337,7 @@ function ProfessionalScheduleModal({
                       <button
                         type="button"
                         onClick={() => addScheduleBlock(dayIndex)}
-                        className="text-[13px] font-medium text-adm-accent-deep hover:underline"
+                        className="min-h-11 text-sm font-medium text-adm-accent-deep hover:underline sm:min-h-0 sm:text-[13px]"
                       >
                         + Bloque
                       </button>

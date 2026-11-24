@@ -92,7 +92,7 @@ function DashboardPage() {
       <ActivityChart appointments={appointments} />
 
       <div>
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <SectionTitle title="Próximas citas" align="left" />
           <Button to="/admin/citas" variant="admin-outline" size="sm">
             Ver todas

@@ -138,9 +138,9 @@ function AddProfessionalToBranchModal({ branches, onClose, onAdded, onCreateNew 
                     {available.length === 0 ? (
                       <p className="text-[12.5px] italic text-adm-ink-300">Ya atiende en tus sedes.</p>
                     ) : (
-                      <div className="flex items-end gap-2">
+                      <div className="flex flex-wrap items-end gap-2">
                         {available.length > 1 && (
-                          <div className="w-[200px]">
+                          <div className="w-full sm:w-[200px]">
                             <Select
                               label={`Sede para ${professional.fullName}`}
                               hideLabel

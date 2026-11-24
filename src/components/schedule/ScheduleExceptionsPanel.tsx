@@ -46,7 +46,7 @@ const emptyForm: ExceptionFormState = {
 const errorBoxClass =
   'rounded-[10px] border border-adm-status-cancelled-border bg-adm-status-cancelled-bg px-3.5 py-2.5 text-sm font-medium text-adm-danger-text';
 const timeInputClass =
-  'h-9 rounded-[8px] border border-adm-line-field bg-adm-surface-input px-2 text-sm text-adm-ink-700 outline-none focus:border-brand-600';
+  'h-11 rounded-[8px] border border-adm-line-field bg-adm-surface-input px-2 text-base text-adm-ink-700 outline-none focus:border-brand-600 sm:h-9 sm:text-sm';
 
 function ScheduleExceptionsPanel(props: ScheduleExceptionsPanelProps) {
   const isProfessional = props.mode === 'professional';
@@ -188,7 +188,7 @@ function ScheduleExceptionsPanel(props: ScheduleExceptionsPanelProps) {
                     type="button"
                     aria-label="Borrar"
                     onClick={() => setConfirmingId(item.id)}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] text-adm-ink-300 transition-colors hover:bg-adm-status-cancelled-bg hover:text-adm-danger-text"
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[8px] text-adm-ink-300 sm:h-9 sm:w-9 transition-colors hover:bg-adm-status-cancelled-bg hover:text-adm-danger-text"
                   >
                     <Trash2 size={15} />
                   </button>

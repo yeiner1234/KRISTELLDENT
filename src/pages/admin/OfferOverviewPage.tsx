@@ -145,10 +145,11 @@ function OfferOverviewPage() {
     { key: 'duration', header: 'Duración', render: (row) => `${row.duration} min` },
     {
       key: 'assign',
+      mobile: 'actions',
       header: 'Asignar a una sede',
       render: (row) => (
         <div className="flex items-end gap-1.5">
-          <div className="w-[170px]">
+          <div className="min-w-0 flex-1 sm:w-[170px] sm:min-w-auto sm:flex-initial">
             <Select
               label={`Sede para ${row.name}`}
               hideLabel
