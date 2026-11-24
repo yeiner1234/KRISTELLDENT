@@ -6,6 +6,7 @@ import Button from '../../components/common/Button';
 import Spinner from '../../components/common/Spinner';
 import {
   clearPasswordRecoveryFlow,
+  getPasswordLinkFlow,
   isPasswordRecoveryExpired,
   supabase,
   waitForPasswordRecoveryFlow,
@@ -49,7 +50,13 @@ function UpdatePasswordPage() {
       const session = data.session;
       let isValidRecovery = session !== null && isRecoveryFlow;
 
-      if (isValidRecovery && isPasswordRecoveryExpired(session?.user.recovery_sent_at)) {
+      // El límite de 30 minutos es del enlace de recuperar contraseña. El de
+      // la invitación lo vence Supabase: si llegó una sesión, era válido.
+      if (
+        isValidRecovery &&
+        getPasswordLinkFlow() === 'recovery' &&
+        isPasswordRecoveryExpired(session?.user.recovery_sent_at)
+      ) {
         isValidRecovery = false;
         clearPasswordRecoveryFlow();
         await supabase.auth.signOut();
@@ -92,7 +99,10 @@ function UpdatePasswordPage() {
     try {
       // The page may have stayed open past the link's lifetime.
       const { data } = await supabase.auth.getSession();
-      if (!data.session || isPasswordRecoveryExpired(data.session.user.recovery_sent_at)) {
+      if (
+        !data.session ||
+        (getPasswordLinkFlow() === 'recovery' && isPasswordRecoveryExpired(data.session.user.recovery_sent_at))
+      ) {
         clearPasswordRecoveryFlow();
         await supabase.auth.signOut();
         throw new Error('El enlace expiró. Solicita uno nuevo.');
