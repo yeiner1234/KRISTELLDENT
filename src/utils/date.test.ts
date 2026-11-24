@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { addDaysToIsoDate, getAgendaWeekStart, getLimaNowTime, getTodayIsoDate } from './date';
+import { addDaysToIsoDate, getAgendaWeekStart, getLimaNowTime, getTodayIsoDate, shiftAgendaDay } from './date';
 
 describe('getTodayIsoDate', () => {
   afterEach(() => {
@@ -58,5 +58,20 @@ describe('getAgendaWeekStart', () => {
     expect(getAgendaWeekStart('2026-11-16')).toBe('2026-11-16');
     expect(getAgendaWeekStart('2026-11-18')).toBe('2026-11-16');
     expect(getAgendaWeekStart('2026-11-21')).toBe('2026-11-16');
+  });
+});
+
+describe('shiftAgendaDay', () => {
+  it('se mueve dentro de la semana (lunes a sábado)', () => {
+    expect(shiftAgendaDay('2026-11-23', 2, 1)).toEqual({ weekStart: '2026-11-23', dayIndex: 3 });
+    expect(shiftAgendaDay('2026-11-23', 2, -1)).toEqual({ weekStart: '2026-11-23', dayIndex: 1 });
+  });
+
+  it('pasado el sábado va al lunes de la semana siguiente', () => {
+    expect(shiftAgendaDay('2026-11-23', 5, 1)).toEqual({ weekStart: '2026-11-30', dayIndex: 0 });
+  });
+
+  it('antes del lunes va al sábado de la semana anterior', () => {
+    expect(shiftAgendaDay('2026-11-23', 0, -1)).toEqual({ weekStart: '2026-11-16', dayIndex: 5 });
   });
 });

@@ -65,3 +65,20 @@ export function getAgendaWeekStart(todayIso: string): string {
   const dayOfWeek = parseIsoDateUtc(todayIso).getUTCDay();
   return addDaysToIsoDate(todayIso, dayOfWeek === 0 ? 1 : 1 - dayOfWeek);
 }
+
+// Agenda en celular (un día a la vez, de lunes a sábado): mueve el día
+// elegido y cambia de semana al pasar del sábado o antes del lunes.
+export function shiftAgendaDay(
+  weekStart: string,
+  dayIndex: number,
+  delta: 1 | -1,
+): { weekStart: string; dayIndex: number } {
+  const next = dayIndex + delta;
+  if (next > 5) {
+    return { weekStart: addDaysToIsoDate(weekStart, 7), dayIndex: 0 };
+  }
+  if (next < 0) {
+    return { weekStart: addDaysToIsoDate(weekStart, -7), dayIndex: 5 };
+  }
+  return { weekStart, dayIndex: next };
+}
