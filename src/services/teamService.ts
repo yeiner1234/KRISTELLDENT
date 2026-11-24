@@ -144,25 +144,16 @@ export async function setMemberBranches(userId: string, wantedIds: string[], cur
 
 // Un perfil profesional desactivado tampoco debe ofrecerse en la reserva: su
 // ficha en professionals sigue el mismo estado.
+// La base (set_account_active, 20261124001000) revisa quién puede y cambia la
+// cuenta y, si es profesional, también su ficha.
 export async function setProfileActive(id: string, active: boolean): Promise<void> {
-  const { data, error } = await supabase.from('profiles').update({ active }).eq('id', id).select('role').maybeSingle();
+  const { error } = await supabase.rpc('set_account_active', { p_user_id: id, p_active: active });
 
   if (error) {
-    throw new Error(error.message);
-  }
-  // 0 filas: la RLS solo deja actualizar perfiles a una admin_global activa.
-  if (!data) {
-    throw new Error(
-      'No se pudo cambiar la cuenta: solo una administradora global activa puede activar o desactivar cuentas.',
-    );
-  }
-
-  if (PROFESSIONAL_ROLES.includes((data as { role: AppRole }).role)) {
-    const { error: professionalError } = await supabase.from('professionals').update({ active }).eq('id', id);
-
-    if (professionalError) {
-      throw new Error(professionalError.message);
+    if (error.message.includes('set_account_active')) {
+      throw new Error('Falta aplicar la migración 20261124001000_admin_sede_activa_cuentas.sql.');
     }
+    throw new Error(error.message);
   }
 }
 

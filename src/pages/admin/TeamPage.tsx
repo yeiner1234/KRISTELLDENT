@@ -21,6 +21,7 @@ import {
   setProfileActive,
   type TeamMember,
 } from '../../services/teamService';
+import { accountToggle } from '../../utils/teamAccounts';
 import { PROFESSIONAL_ROLES } from '../../services/professionalService';
 import type { AppRole } from '../../types/User';
 
@@ -55,6 +56,8 @@ function TeamPage() {
   const canEditBranches = (member: TeamMember) =>
     !member.branchesFromProfessionals &&
     (member.role === 'tecnica' || (isAdminGlobal && member.role === 'admin_sede'));
+  const toggles = (member: TeamMember) =>
+    accountToggle(member, { isAdminGlobal, myBranchIds: manageableBranchIds, selfId: user?.id });
   const [editingBranches, setEditingBranches] = useState<TeamMember | null>(null);
   const [toggleError, setToggleError] = useState<string | null>(null);
 
@@ -227,18 +230,21 @@ function TeamPage() {
                 </div>
               )}
 
-              {isAdminGlobal && member.id !== user?.id && (
-                <div className="border-t border-adm-line-div pt-3">
+              {toggles(member).show && (
+                <div className="flex flex-col gap-1.5 border-t border-adm-line-div pt-3">
                   <Button
                     type="button"
                     variant={member.active ? 'admin-danger' : 'admin-outline'}
                     size="xs"
                     className="w-full"
-                    disabled={togglingId === member.id}
+                    disabled={togglingId === member.id || toggles(member).blockedReason !== null}
                     onClick={() => handleToggleActive(member.id, !member.active)}
                   >
                     {togglingId === member.id ? 'Guardando…' : member.active ? 'Desactivar' : 'Activar'}
                   </Button>
+                  {toggles(member).blockedReason && (
+                    <p className="text-[12px] text-adm-ink-400">{toggles(member).blockedReason}</p>
+                  )}
                 </div>
               )}
             </div>

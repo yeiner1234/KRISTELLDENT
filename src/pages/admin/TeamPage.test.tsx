@@ -3,7 +3,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import TeamPage from './TeamPage';
-import { inviteInternalUser, setMemberBranches } from '../../services/teamService';
+import { inviteInternalUser, setMemberBranches, setProfileActive } from '../../services/teamService';
 import type { TeamMember } from '../../services/teamService';
 
 const members: TeamMember[] = [
@@ -122,6 +122,27 @@ describe('TeamPage', () => {
 
     expect(within(dialog).getByRole('checkbox', { name: /Bagua/ })).toBeDisabled();
     expect(within(dialog).getByRole('checkbox', { name: 'Jaén' })).toBeEnabled();
+  });
+
+  it('admin_sede desactiva a una técnica de su sede, pero no a quien también atiende en otra sede', async () => {
+    access.role = 'admin_sede';
+    access.branchIds = ['jaen'];
+    const user = renderPage();
+
+    const cardOf = (name: string) => {
+      let node: HTMLElement | null = screen.getByText(name);
+      while (node && !within(node).queryByRole('button', { name: /^(Activar|Desactivar)$/ })) node = node.parentElement;
+      return node as HTMLElement;
+    };
+
+    const anali = cardOf('ANali');
+    expect(within(anali).getByRole('button', { name: 'Desactivar' })).toBeDisabled();
+    expect(
+      within(anali).getByText('Atiende también en otra sede: solo la administración general puede desactivar su cuenta.'),
+    ).toBeInTheDocument();
+
+    await user.click(within(cardOf('Tere')).getByRole('button', { name: 'Desactivar' }));
+    expect(setProfileActive).toHaveBeenCalledWith('tere', false);
   });
 
   it('no ofrece crear una administradora global', async () => {

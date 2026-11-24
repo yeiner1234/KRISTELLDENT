@@ -6,65 +6,44 @@ import { getTeamMembers, inviteInternalUser, setMemberBranches, setProfileActive
 vi.mock('../lib/supabase', () => ({
   supabase: {
     from: vi.fn(),
+    rpc: vi.fn(),
     functions: { invoke: vi.fn() },
   },
 }));
-
-function setup(role: string, profileError: { message: string } | null = null): Record<string, MockQuery> {
-  const queries: Record<string, MockQuery> = {
-    profiles: mockQuery({ data: { role }, error: profileError }),
-    professionals: mockQuery({}),
-  };
-  vi.mocked(supabase.from).mockImplementation((table: string) => queries[table] as never);
-  return queries;
-}
 
 describe('setProfileActive', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('al desactivar una odontóloga general también desactiva su ficha profesional', async () => {
-    const queries = setup('odontologa_general');
+  // La base (set_account_active) revisa el permiso y cambia cuenta y ficha juntas.
+  it('llama a set_account_active con la persona y el estado', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: null } as never);
 
     await setProfileActive('u1', false);
 
-    expect(findCall(queries.profiles, 'update')?.args[0]).toEqual({ active: false });
-    expect(findCall(queries.professionals, 'update')?.args[0]).toEqual({ active: false });
-    expect(findCall(queries.professionals, 'eq')?.args).toEqual(['id', 'u1']);
+    expect(supabase.rpc).toHaveBeenCalledWith('set_account_active', { p_user_id: 'u1', p_active: false });
+    expect(supabase.from).not.toHaveBeenCalled();
   });
 
-  it('al activar una especialista también activa su ficha profesional', async () => {
-    const queries = setup('especialista');
+  it('muestra el mensaje de la base tal cual', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: null,
+      error: { message: 'Atiende también en otra sede: solo la administración general puede desactivar su cuenta.' },
+    } as never);
 
-    await setProfileActive('u1', true);
-
-    expect(findCall(queries.professionals, 'update')?.args[0]).toEqual({ active: true });
+    await expect(setProfileActive('u1', false)).rejects.toThrow('Atiende también en otra sede');
   });
 
-  it('no toca professionals si el rol no es profesional', async () => {
-    setup('tecnica');
+  it('sin la migración nueva da un mensaje claro', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: null,
+      error: { message: 'Could not find the function public.set_account_active(p_active, p_user_id) in the schema cache' },
+    } as never);
 
-    await setProfileActive('u1', false);
-
-    expect(supabase.from).not.toHaveBeenCalledWith('professionals');
-  });
-
-  it('si la base no cambia ninguna fila (sin permiso) da un mensaje claro', async () => {
-    const queries: Record<string, MockQuery> = { profiles: mockQuery({ data: null }), professionals: mockQuery({}) };
-    vi.mocked(supabase.from).mockImplementation((table: string) => queries[table] as never);
-
-    await expect(setProfileActive('u1', false)).rejects.toThrow(
-      'No se pudo cambiar la cuenta: solo una administradora global activa puede activar o desactivar cuentas.',
+    await expect(setProfileActive('u1', true)).rejects.toThrow(
+      'Falta aplicar la migración 20261124001000_admin_sede_activa_cuentas.sql.',
     );
-    expect(supabase.from).not.toHaveBeenCalledWith('professionals');
-  });
-
-  it('propaga el error de Supabase', async () => {
-    setup('especialista', { message: 'permission denied for table profiles' });
-
-    await expect(setProfileActive('u1', false)).rejects.toThrow('permission denied for table profiles');
-    expect(supabase.from).not.toHaveBeenCalledWith('professionals');
   });
 });
 
