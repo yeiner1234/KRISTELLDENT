@@ -20,10 +20,16 @@ function MemberBranchesModal({ member, branches, canManageBranch, onClose, onSav
   const [isSaving, setIsSaving] = useState(false);
 
   const visible = branches.filter((branch) => branch.active || member.branchIds.includes(branch.id));
+  // Una administradora de sede administra una sola sede.
+  const isSingleBranch = member.role === 'admin_sede';
 
   const handleSave = async () => {
     if (selected.length === 0) {
       setError('Deja al menos una sede.');
+      return;
+    }
+    if (isSingleBranch && selected.length > 1) {
+      setError('Una administradora de sede administra una sola sede: elige solo una.');
       return;
     }
     setError(null);
@@ -62,13 +68,18 @@ function MemberBranchesModal({ member, branches, canManageBranch, onClose, onSav
             return (
               <label key={branch.id} className="flex items-center gap-2 text-sm text-adm-ink-700">
                 <input
-                  type="checkbox"
+                  type={isSingleBranch ? 'radio' : 'checkbox'}
+                  name="sedes-miembro"
                   className="h-[15px] w-[15px] accent-brand-600"
                   disabled={!editable}
                   checked={selected.includes(branch.id)}
                   onChange={() =>
                     setSelected((current) =>
-                      current.includes(branch.id) ? current.filter((id) => id !== branch.id) : [...current, branch.id],
+                      isSingleBranch
+                        ? [branch.id]
+                        : current.includes(branch.id)
+                          ? current.filter((id) => id !== branch.id)
+                          : [...current, branch.id],
                     )
                   }
                 />

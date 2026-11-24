@@ -11,6 +11,8 @@ const PROFESSIONAL_ROLES: AppRole[] = ['especialista', 'odontologa_general'];
 export const ADMIN_GLOBAL_FORBIDDEN =
   'Una administradora global no se crea desde la app: se crea desde Supabase (ver README).';
 
+export const ADMIN_SEDE_SINGLE_BRANCH = 'Una administradora de sede administra una sola sede: elige solo una.';
+
 export interface CreateUserPayload {
   email?: unknown;
   fullName?: unknown;
@@ -59,6 +61,10 @@ export function validateCreateUserRequest(payload: CreateUserPayload, caller: Ca
   }
   if (branchIds.length === 0) {
     return { ok: false, status: 400, error: 'Debes asignar al menos una sede para este rol.' };
+  }
+
+  if (role === 'admin_sede' && branchIds.length > 1) {
+    return { ok: false, status: 400, error: ADMIN_SEDE_SINGLE_BRANCH };
   }
 
   if (caller.role === 'admin_sede') {

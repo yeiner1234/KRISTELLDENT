@@ -135,6 +135,25 @@ describe('TeamPage', () => {
     expect(roles).toContain('Administrador de sede');
   });
 
+  it('una administradora de sede se invita con una sola sede', async () => {
+    vi.mocked(inviteInternalUser).mockResolvedValue({ id: 'nueva' });
+    const user = renderPage();
+
+    await user.click(screen.getByRole('button', { name: 'Invitar usuario' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.selectOptions(within(dialog).getByLabelText('Rol'), 'admin_sede');
+    await user.type(within(dialog).getByLabelText('Nombre completo'), 'Admin Jaén');
+    await user.type(within(dialog).getByLabelText('Correo electrónico'), 'jaen@kristell.pe');
+
+    expect(within(dialog).getByText('Sede que administra')).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('radio', { name: 'Bagua' }));
+    await user.click(within(dialog).getByRole('radio', { name: 'Jaén' }));
+    expect(within(dialog).getByRole('radio', { name: 'Bagua' })).not.toBeChecked();
+    await user.click(screen.getByRole('button', { name: 'Enviar invitación' }));
+
+    expect(inviteInternalUser).toHaveBeenCalledWith(expect.objectContaining({ role: 'admin_sede', branchIds: ['jaen'] }));
+  });
+
   it('no invita un correo que ya tiene cuenta', async () => {
     const user = renderPage();
 

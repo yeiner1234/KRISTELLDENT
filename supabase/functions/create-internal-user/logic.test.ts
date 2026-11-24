@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ADMIN_GLOBAL_FORBIDDEN, isProfessionalRole, validateCreateUserRequest } from './logic.ts';
+import { ADMIN_GLOBAL_FORBIDDEN, ADMIN_SEDE_SINGLE_BRANCH, isProfessionalRole, validateCreateUserRequest } from './logic.ts';
 
 const payload = { email: ' Ana@Kristell.PE ', fullName: ' Ana Ríos ', role: 'especialista', branchIds: ['jaen'] };
 
@@ -51,6 +51,16 @@ describe('validateCreateUserRequest', () => {
 
   it('solo admin_global y admin_sede crean cuentas', () => {
     expect(validateCreateUserRequest(payload, { role: 'tecnica', branchIds: ['jaen'] })).toMatchObject({ ok: false, status: 403 });
+  });
+
+  it('una administradora de sede administra una sola sede', () => {
+    const caller = { role: 'admin_global', branchIds: [] };
+    expect(validateCreateUserRequest({ ...payload, role: 'admin_sede', branchIds: ['jaen', 'bagua'] }, caller)).toEqual({
+      ok: false,
+      status: 400,
+      error: ADMIN_SEDE_SINGLE_BRANCH,
+    });
+    expect(validateCreateUserRequest({ ...payload, role: 'admin_sede', branchIds: ['jaen'] }, caller)).toMatchObject({ ok: true });
   });
 
   it('quita sedes repetidas', () => {

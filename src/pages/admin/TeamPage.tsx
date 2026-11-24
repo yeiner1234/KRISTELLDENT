@@ -81,12 +81,18 @@ function TeamPage() {
     setIsModalOpen(true);
   };
 
+  // Una administradora de sede administra una sola sede: se elige con radio.
+  const isSingleBranchRole = form.role === 'admin_sede';
+
   const toggleBranch = (branchId: string) => {
     setForm((current) => ({
       ...current,
-      branchIds: current.branchIds.includes(branchId)
-        ? current.branchIds.filter((id) => id !== branchId)
-        : [...current.branchIds, branchId],
+      branchIds:
+        current.role === 'admin_sede'
+          ? [branchId]
+          : current.branchIds.includes(branchId)
+            ? current.branchIds.filter((id) => id !== branchId)
+            : [...current.branchIds, branchId],
     }));
   };
 
@@ -282,14 +288,26 @@ function TeamPage() {
           <Select
             label="Rol"
             value={form.role}
-            onChange={(event) => setForm((current) => ({ ...current, role: event.target.value as AppRole }))}
+            onChange={(event) => {
+              const role = event.target.value as AppRole;
+              // Al pasar a administradora de sede queda como mucho una sede.
+              setForm((current) => ({
+                ...current,
+                role,
+                branchIds: role === 'admin_sede' ? current.branchIds.slice(0, 1) : current.branchIds,
+              }));
+            }}
             options={assignableRoles.map((role) => ({ value: role, label: roleLabels[role] }))}
           />
 
           {(
             <div className="flex flex-col gap-1.5">
               <span className="text-sm font-medium text-adm-ink-700">
-                {PROFESSIONAL_ROLES.includes(form.role) ? 'Sedes donde atiende' : 'Sedes asignadas'}
+                {PROFESSIONAL_ROLES.includes(form.role)
+                  ? 'Sedes donde atiende'
+                  : isSingleBranchRole
+                    ? 'Sede que administra'
+                    : 'Sedes asignadas'}
               </span>
               {PROFESSIONAL_ROLES.includes(form.role) && (
                 <p className="text-xs leading-relaxed text-adm-ink-400">
@@ -308,7 +326,8 @@ function TeamPage() {
                   {invitableBranches.map((branch) => (
                     <label key={branch.id} className="flex items-center gap-2 text-sm text-adm-ink-700">
                       <input
-                        type="checkbox"
+                        type={isSingleBranchRole ? 'radio' : 'checkbox'}
+                        name="equipo-sede"
                         className="h-[15px] w-[15px] accent-brand-600"
                         checked={form.branchIds.includes(branch.id)}
                         onChange={() => toggleBranch(branch.id)}
