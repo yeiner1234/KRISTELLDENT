@@ -5,6 +5,7 @@ import Button from '../common/Button';
 import Select from '../common/Select';
 import Spinner from '../common/Spinner';
 import FormError from '../common/FormError';
+import InfoCallout from '../common/InfoCallout';
 import { searchProfessionalsDirectory } from '../../services/offerService';
 import { addProfessionalToBranch } from '../../services/professionalService';
 import type { DirectoryProfessional } from '../../types/Offer';
@@ -97,15 +98,9 @@ function AddProfessionalToBranchModal({ branches, onClose, onAdded, onCreateNew 
       }
     >
       <div className="flex flex-col gap-4 py-3">
-        <div className="flex items-start gap-3 rounded-[12px] bg-brand-50 p-3.5">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-brand-600 shadow-soft">
-            <UserPlus size={18} />
-          </span>
-          <p className="text-sm leading-[1.5] text-adm-ink-700">
-            <span className="font-semibold text-brand-900">Suma a una profesional que ya trabaja en la clínica.</span> Búscala por
-            su nombre y elige la sede donde también atenderá.
-          </p>
-        </div>
+        <InfoCallout icon={UserPlus} title="Suma a una profesional que ya trabaja en la clínica.">
+          Búscala por su nombre y elige la sede donde también atenderá.
+        </InfoCallout>
 
         <form onSubmit={handleSearch} className="flex flex-col gap-2 sm:flex-row sm:items-end">
           <div className="flex min-w-0 flex-1 flex-col gap-1.5">

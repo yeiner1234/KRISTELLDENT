@@ -267,6 +267,7 @@ function ProfessionalsPage() {
           specialties={specialties}
           branches={myActiveBranches}
           onClose={() => setModal(null)}
+          onAddExisting={() => open({ kind: 'add' })}
           onCreated={() => {
             setModal(null);
             refetch();
