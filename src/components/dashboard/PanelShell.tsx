@@ -52,11 +52,12 @@ function PanelShell({ sidebar, heading, variant, mainClassName, children }: Pane
         />
       )}
 
+      {/* En celular el fondo oscuro cubre lo que no cabe del sidebar en pantallas bajas (con scroll). */}
       <div
         id="panel-menu"
         data-open={isMenuOpen}
         onClick={handleMenuClick}
-        className={`fixed inset-y-0 left-0 z-50 flex overflow-y-auto transition-[translate,visibility] duration-200 lg:visible lg:static lg:z-auto lg:translate-x-0 lg:overflow-visible lg:transition-none ${
+        className={`fixed inset-y-0 left-0 z-50 flex overflow-y-auto bg-brand-900 transition-[translate,visibility] duration-200 lg:visible lg:static lg:z-auto lg:translate-x-0 lg:overflow-visible lg:bg-transparent lg:transition-none ${
           isMenuOpen ? 'visible translate-x-0' : 'invisible -translate-x-full'
         }`}
       >
