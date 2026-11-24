@@ -13,10 +13,10 @@ function Input({ label, error, id, variant = 'public', className = '', ...rest }
 
   const fieldClasses =
     variant === 'admin'
-      ? `h-[42px] rounded-[10px] border bg-adm-surface-input px-3.5 text-sm text-adm-ink-700 outline-none transition-colors focus:border-brand-600 focus:bg-white focus:ring-2 focus:ring-adm-accent-ring read-only:cursor-not-allowed read-only:border-dashed read-only:bg-adm-line-faint read-only:text-adm-ink-400 read-only:focus:bg-adm-line-faint ${
+      ? `h-[42px] min-h-11 rounded-[10px] border bg-adm-surface-input px-3.5 text-base text-adm-ink-700 outline-none transition-colors focus:border-brand-600 focus:bg-white focus:ring-2 focus:ring-adm-accent-ring sm:min-h-0 sm:text-sm read-only:cursor-not-allowed read-only:border-dashed read-only:bg-adm-line-faint read-only:text-adm-ink-400 read-only:focus:bg-adm-line-faint ${
           error ? 'border-adm-danger-text' : 'border-adm-line-field'
         }`
-      : `rounded-xl border px-4 py-2.5 text-sm text-brand-900 outline-none transition-colors focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 ${
+      : `min-h-11 rounded-xl border px-4 py-2.5 text-base text-brand-900 outline-none transition-colors focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 sm:min-h-0 sm:text-sm ${
           error ? 'border-rose-400' : 'border-border'
         }`;
 

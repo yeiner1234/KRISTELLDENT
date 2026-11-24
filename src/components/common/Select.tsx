@@ -24,7 +24,7 @@ function Select({ label, options, error, id, hideLabel = false, className = '', 
       </label>
       <select
         id={selectId}
-        className={`h-[42px] rounded-[10px] border bg-adm-surface-input px-3.5 text-sm text-adm-ink-700 outline-none transition-colors focus:border-brand-600 focus:bg-white focus:ring-2 focus:ring-adm-accent-ring ${
+        className={`h-[42px] min-h-11 rounded-[10px] border bg-adm-surface-input px-3.5 text-base sm:min-h-0 sm:text-sm text-adm-ink-700 outline-none transition-colors focus:border-brand-600 focus:bg-white focus:ring-2 focus:ring-adm-accent-ring ${
           error ? 'border-adm-danger-text' : 'border-adm-line-field'
         } ${className}`}
         {...rest}

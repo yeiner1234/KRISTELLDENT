@@ -8,7 +8,7 @@ interface SearchInputProps extends InputHTMLAttributes<HTMLInputElement> {
 function SearchInput({ wrapperClassName = '', className = '', placeholder = 'Buscar...', ...rest }: SearchInputProps) {
   return (
     <div
-      className={`flex h-9 items-center gap-2 rounded-[9px] border border-adm-line-control bg-adm-surface-hover px-3 text-[13px] text-adm-ink-700 transition-colors focus-within:border-brand-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-adm-accent-ring ${wrapperClassName}`}
+      className={`flex h-9 min-h-11 items-center gap-2 rounded-[9px] border border-adm-line-control bg-adm-surface-hover px-3 text-base text-adm-ink-700 sm:min-h-0 sm:text-[13px] transition-colors focus-within:border-brand-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-adm-accent-ring ${wrapperClassName}`}
     >
       <Search size={16} className="shrink-0 text-adm-ink-200" strokeWidth={1.75} />
       <input

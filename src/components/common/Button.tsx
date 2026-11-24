@@ -15,8 +15,9 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant | AdminButtonVariant;
 }
 
+// En celular, al menos 44 px de alto para el dedo; desde sm, el alto de cada tamaño.
 const sharedClasses =
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50';
+  'min-h-11 sm:min-h-0 inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50';
 
 const publicVariantClasses: Record<ButtonVariant, string> = {
   primary: 'bg-brand-600 text-white hover:bg-brand-700',
