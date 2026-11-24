@@ -1,18 +1,17 @@
 import { Outlet } from 'react-router-dom';
 import AdminSidebar from '../components/dashboard/AdminSidebar';
-import DashboardHeader from '../components/dashboard/DashboardHeader';
+import PanelShell from '../components/dashboard/PanelShell';
 
 function AdminLayout() {
   return (
-    <div className="flex min-h-screen bg-adm-surface-app">
-      <AdminSidebar />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <DashboardHeader heading="Panel administrativo" variant="admin" />
-        <main className="flex-1 p-[26px]">
-          <Outlet />
-        </main>
-      </div>
-    </div>
+    <PanelShell
+      sidebar={<AdminSidebar />}
+      heading="Panel administrativo"
+      variant="admin"
+      mainClassName="flex-1 p-4 sm:p-[26px]"
+    >
+      <Outlet />
+    </PanelShell>
   );
 }
 

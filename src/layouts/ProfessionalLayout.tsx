@@ -1,6 +1,6 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import ProfessionalSidebar from '../components/dashboard/ProfessionalSidebar';
-import DashboardHeader from '../components/dashboard/DashboardHeader';
+import PanelShell from '../components/dashboard/PanelShell';
 import PanelBranchSelector from '../components/dashboard/PanelBranchSelector';
 import PanelBranchProvider from '../context/PanelBranchProvider';
 
@@ -11,16 +11,15 @@ function ProfessionalLayout() {
 
   return (
     <PanelBranchProvider>
-      <div className="flex min-h-screen bg-adm-surface-app">
-        <ProfessionalSidebar />
-        <div className="flex min-w-0 flex-1 flex-col">
-          <DashboardHeader heading="Panel profesional" variant="professional" />
-          <main className="flex flex-1 flex-col gap-6 p-[26px]">
-            {showBranchSelector && <PanelBranchSelector />}
-            <Outlet />
-          </main>
-        </div>
-      </div>
+      <PanelShell
+        sidebar={<ProfessionalSidebar />}
+        heading="Panel profesional"
+        variant="professional"
+        mainClassName="flex flex-1 flex-col gap-4 p-4 sm:gap-6 sm:p-[26px]"
+      >
+        {showBranchSelector && <PanelBranchSelector />}
+        <Outlet />
+      </PanelShell>
     </PanelBranchProvider>
   );
 }

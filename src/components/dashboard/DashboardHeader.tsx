@@ -1,4 +1,4 @@
-import { Bell, LogOut } from 'lucide-react';
+import { Bell, LogOut, Menu } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import SearchInput from '../common/SearchInput';
@@ -7,6 +7,10 @@ import type { AppRole } from '../../types/User';
 interface DashboardHeaderProps {
   heading: string;
   variant?: 'admin' | 'professional';
+  // Celular y tablet: nombre de la sección y botón del menú lateral.
+  sectionTitle?: string | null;
+  isMenuOpen?: boolean;
+  onMenuClick?: () => void;
 }
 
 const today = new Date().toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -19,7 +23,9 @@ const roleLabels: Record<AppRole, string> = {
   tecnica: 'Técnica',
 };
 
-function DashboardHeader({ heading, variant = 'admin' }: DashboardHeaderProps) {
+// Desde lg es la cabecera de siempre. Por debajo queda fija arriba, con el
+// botón de menú, el nombre de la sección y "Cerrar sesión" como icono.
+function DashboardHeader({ heading, variant = 'admin', sectionTitle, isMenuOpen = false, onMenuClick }: DashboardHeaderProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -31,25 +37,44 @@ function DashboardHeader({ heading, variant = 'admin' }: DashboardHeaderProps) {
   const initials = user?.name ? user.name.slice(0, 2).toUpperCase() : '--';
 
   return (
-    <header className="flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-adm-line-card bg-white px-[26px] py-3">
-      <h1 className="text-lg font-semibold tracking-[-0.01em] text-adm-ink-700">{heading}</h1>
+    <header className="sticky top-0 z-30 flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-adm-line-card bg-white px-4 py-3 sm:px-[26px] lg:static lg:z-auto">
+      <div className="flex min-w-0 flex-1 items-center gap-1 lg:contents">
+        {onMenuClick && (
+          <button
+            type="button"
+            onClick={onMenuClick}
+            aria-label={isMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
+            aria-expanded={isMenuOpen}
+            aria-controls="panel-menu"
+            className="-ml-2.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] text-adm-ink-700 transition-colors hover:bg-adm-surface-hover lg:hidden"
+          >
+            <Menu size={22} />
+          </button>
+        )}
+        <h1 className="min-w-0 text-lg font-semibold tracking-[-0.01em] text-adm-ink-700">
+          <span className="block truncate lg:hidden">{sectionTitle ?? heading}</span>
+          <span className="hidden lg:inline">{heading}</span>
+        </h1>
+      </div>
 
       {variant === 'admin' ? (
         <div className="flex items-center gap-3">
-          <SearchInput wrapperClassName="w-60 max-w-[40vw]" placeholder="Buscar..." />
-          <button
-            type="button"
-            aria-label="Notificaciones"
-            className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-adm-line-control text-adm-ink-400 transition-colors hover:bg-adm-surface-hover"
-          >
-            <Bell size={17} strokeWidth={1.75} />
-          </button>
+          <div className="hidden lg:contents">
+            <SearchInput wrapperClassName="w-60 max-w-[40vw]" placeholder="Buscar..." />
+            <button
+              type="button"
+              aria-label="Notificaciones"
+              className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-adm-line-control text-adm-ink-400 transition-colors hover:bg-adm-surface-hover"
+            >
+              <Bell size={17} strokeWidth={1.75} />
+            </button>
+          </div>
 
-          <div className="flex items-center gap-3 border-l border-adm-line-card pl-3">
+          <div className="flex items-center gap-1 lg:gap-3 lg:border-l lg:border-adm-line-card lg:pl-3">
             <span className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[#dceef0] text-[13px] font-semibold text-adm-accent-deep">
               {initials}
             </span>
-            <div className="flex flex-col leading-tight">
+            <div className="hidden flex-col leading-tight lg:flex">
               <span className="text-[13px] font-semibold text-adm-ink-700">{user?.name ?? 'Usuario'}</span>
               <span className="text-xs text-adm-ink-300">{user ? roleLabels[user.role] : ''}</span>
             </div>
@@ -57,7 +82,7 @@ function DashboardHeader({ heading, variant = 'admin' }: DashboardHeaderProps) {
               type="button"
               onClick={handleLogout}
               aria-label="Cerrar sesión"
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-adm-ink-300 transition-colors hover:bg-adm-line-faint hover:text-adm-danger-text"
+              className="flex h-11 w-11 items-center justify-center rounded-lg text-adm-ink-300 transition-colors hover:bg-adm-line-faint hover:text-adm-danger-text lg:h-8 lg:w-8"
             >
               <LogOut size={16} />
             </button>
@@ -65,14 +90,15 @@ function DashboardHeader({ heading, variant = 'admin' }: DashboardHeaderProps) {
         </div>
       ) : (
         <div className="flex items-center gap-4">
-          <span className="text-[13px] text-adm-ink-300">{today}</span>
+          <span className="hidden text-[13px] text-adm-ink-300 lg:inline">{today}</span>
           <button
             type="button"
             onClick={handleLogout}
-            className="flex items-center gap-2 text-sm font-medium text-adm-ink-400 transition-colors hover:text-adm-danger-text"
+            aria-label="Cerrar sesión"
+            className="flex min-h-11 min-w-11 items-center justify-center gap-2 text-sm font-medium text-adm-ink-400 transition-colors hover:text-adm-danger-text lg:min-h-0 lg:min-w-0"
           >
             <LogOut size={16} />
-            Cerrar sesión
+            <span className="hidden lg:inline">Cerrar sesión</span>
           </button>
         </div>
       )}
