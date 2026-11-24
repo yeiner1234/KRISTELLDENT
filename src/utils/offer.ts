@@ -1,5 +1,12 @@
-import type { ServiceOfferStatus } from '../types/Offer';
+import type { OfferProfessional, ServiceOfferStatus } from '../types/Offer';
+
+// Por qué una profesional asignada no hace visible el servicio en la reserva.
+function professionalLabel(professional: OfferProfessional): string {
+  if (!professional.active) return `${professional.fullName} (desactivada)`;
+  if (!professional.hasSchedule) return `${professional.fullName} (sin horario aquí)`;
+  return professional.fullName;
+}
 
 export function professionalNames(row: ServiceOfferStatus): string {
-  return row.professionals.length > 0 ? row.professionals.map((professional) => professional.fullName).join(', ') : '—';
+  return row.professionals.length > 0 ? row.professionals.map(professionalLabel).join(', ') : '—';
 }

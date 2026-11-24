@@ -106,7 +106,8 @@ describe('ServicesPage — servicios de la sede', () => {
     offer.rows = [row({})];
     renderPage();
 
-    expect(screen.getByText('No visible en reservas: falta asignar una profesional.')).toBeInTheDocument();
+    expect(screen.getByText('No visible en reservas')).toBeInTheDocument();
+    expect(screen.getByText('Falta asignar una profesional.')).toBeInTheDocument();
     expect(screen.getByText(/Todavía ninguna/)).toBeInTheDocument();
   });
 
