@@ -43,7 +43,10 @@ export function profileGaps(professional: AdminProfessional, branches: BranchLik
     gaps.push({ branchId: null, branchName: null, missing: ['sede'] });
   }
 
-  for (const branch of activeBranches) {
+  // Donde está desactivada a propósito no se le pide nada.
+  const inactive = professional.inactiveBranchIds ?? [];
+
+  for (const branch of activeBranches.filter((item) => !inactive.includes(item.id))) {
     const missing: Missing[] = [];
     if (!professional.assignments.some((assignment) => assignment.branchId === branch.id)) {
       missing.push('servicios');

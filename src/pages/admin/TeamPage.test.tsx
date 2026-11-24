@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import TeamPage from './TeamPage';
+import { setProfessionalBranchActive } from '../../services/professionalService';
 import { inviteInternalUser, setMemberBranches, setProfileActive } from '../../services/teamService';
 import type { TeamMember } from '../../services/teamService';
 
@@ -16,6 +17,7 @@ const members: TeamMember[] = [
     branchIds: ['bagua', 'jaen'],
     branchNames: ['Bagua', 'Jaén'],
     branchesFromProfessionals: true,
+    inactiveBranchIds: [],
   },
   {
     id: 'tere',
@@ -26,6 +28,7 @@ const members: TeamMember[] = [
     branchIds: ['jaen'],
     branchNames: ['Jaén'],
     branchesFromProfessionals: false,
+    inactiveBranchIds: [],
   },
 ];
 
@@ -61,6 +64,10 @@ vi.mock('../../hooks/useAdminBranches', () => ({
 }));
 vi.mock('../../hooks/useManageableBranchIds', () => ({
   useManageableBranchIds: () => ({ branchIds: access.branchIds, isLoading: false, error: null }),
+}));
+vi.mock('../../services/professionalService', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../services/professionalService')>()),
+  setProfessionalBranchActive: vi.fn(),
 }));
 vi.mock('../../services/teamService', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../services/teamService')>()),
@@ -124,25 +131,27 @@ describe('TeamPage', () => {
     expect(within(dialog).getByRole('checkbox', { name: 'Jaén' })).toBeEnabled();
   });
 
-  it('admin_sede desactiva a una técnica de su sede, pero no a quien también atiende en otra sede', async () => {
+  it('admin_sede desactiva la cuenta de una técnica de su sede', async () => {
     access.role = 'admin_sede';
     access.branchIds = ['jaen'];
     const user = renderPage();
 
-    const cardOf = (name: string) => {
-      let node: HTMLElement | null = screen.getByText(name);
-      while (node && !within(node).queryByRole('button', { name: /^(Activar|Desactivar)$/ })) node = node.parentElement;
-      return node as HTMLElement;
-    };
+    await user.click(within(cardOf('Tere')).getByRole('button', { name: 'Desactivar' }));
+
+    expect(setProfileActive).toHaveBeenCalledWith('tere', false);
+  });
+
+  it('admin_sede desactiva solo en su sede a una profesional que atiende en varias', async () => {
+    access.role = 'admin_sede';
+    access.branchIds = ['jaen'];
+    const user = renderPage();
 
     const anali = cardOf('ANali');
-    expect(within(anali).getByRole('button', { name: 'Desactivar' })).toBeDisabled();
-    expect(
-      within(anali).getByText('Atiende también en otra sede: solo la administración general puede desactivar su cuenta.'),
-    ).toBeInTheDocument();
+    expect(within(anali).queryByRole('button', { name: 'Desactivar' })).not.toBeInTheDocument();
+    await user.click(within(anali).getByRole('button', { name: 'Desactivar en Jaén' }));
 
-    await user.click(within(cardOf('Tere')).getByRole('button', { name: 'Desactivar' }));
-    expect(setProfileActive).toHaveBeenCalledWith('tere', false);
+    expect(setProfessionalBranchActive).toHaveBeenCalledWith('ana', 'jaen', false);
+    expect(setProfileActive).not.toHaveBeenCalled();
   });
 
   it('no ofrece crear una administradora global', async () => {

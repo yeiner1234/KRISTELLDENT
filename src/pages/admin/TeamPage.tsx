@@ -21,7 +21,8 @@ import {
   setProfileActive,
   type TeamMember,
 } from '../../services/teamService';
-import { accountToggle } from '../../utils/teamAccounts';
+import { accountAction } from '../../utils/teamAccounts';
+import { setProfessionalBranchActive } from '../../services/professionalService';
 import { PROFESSIONAL_ROLES } from '../../services/professionalService';
 import type { AppRole } from '../../types/User';
 
@@ -56,8 +57,8 @@ function TeamPage() {
   const canEditBranches = (member: TeamMember) =>
     !member.branchesFromProfessionals &&
     (member.role === 'tecnica' || (isAdminGlobal && member.role === 'admin_sede'));
-  const toggles = (member: TeamMember) =>
-    accountToggle(member, { isAdminGlobal, myBranchIds: manageableBranchIds, selfId: user?.id });
+  const actionFor = (member: TeamMember) =>
+    accountAction(member, { isAdminGlobal, myBranchIds: manageableBranchIds, selfId: user?.id });
   const [editingBranches, setEditingBranches] = useState<TeamMember | null>(null);
   const [toggleError, setToggleError] = useState<string | null>(null);
 
@@ -130,11 +131,13 @@ function TeamPage() {
     }
   };
 
-  const handleToggleActive = async (memberId: string, nextActive: boolean) => {
+  const handleToggleActive = async (memberId: string, nextActive: boolean, branchId?: string) => {
     setTogglingId(memberId);
     setToggleError(null);
     try {
-      await setProfileActive(memberId, nextActive);
+      await (branchId
+        ? setProfessionalBranchActive(memberId, branchId, nextActive)
+        : setProfileActive(memberId, nextActive));
       refetch();
     } catch (err) {
       setToggleError(err instanceof Error ? err.message : 'No se pudo actualizar la cuenta.');
@@ -200,7 +203,13 @@ function TeamPage() {
               {member.branchesFromProfessionals ? (
                 <div className="flex flex-col gap-1">
                   <p className="text-[13px] text-adm-ink-400">
-                    {member.branchNames.length > 0 ? member.branchNames.join(', ') : 'Sin sedes todavía'}
+                    {member.branchNames.length > 0
+                      ? member.branchNames
+                          .map((name, index) =>
+                            member.inactiveBranchIds.includes(member.branchIds[index]) ? `${name} (desactivada)` : name,
+                          )
+                          .join(', ')
+                      : 'Sin sedes todavía'}
                   </p>
                   <p className="text-[12px] italic text-adm-ink-300">Se asignan en Profesionales</p>
                   <Link
@@ -230,23 +239,48 @@ function TeamPage() {
                 </div>
               )}
 
-              {toggles(member).show && (
-                <div className="flex flex-col gap-1.5 border-t border-adm-line-div pt-3">
-                  <Button
-                    type="button"
-                    variant={member.active ? 'admin-danger' : 'admin-outline'}
-                    size="xs"
-                    className="w-full"
-                    disabled={togglingId === member.id || toggles(member).blockedReason !== null}
-                    onClick={() => handleToggleActive(member.id, !member.active)}
-                  >
-                    {togglingId === member.id ? 'Guardando…' : member.active ? 'Desactivar' : 'Activar'}
-                  </Button>
-                  {toggles(member).blockedReason && (
-                    <p className="text-[12px] text-adm-ink-400">{toggles(member).blockedReason}</p>
-                  )}
-                </div>
-              )}
+              {(() => {
+                const action = actionFor(member);
+                if (action.kind === 'none') return null;
+                const isBusy = togglingId === member.id;
+                if (action.kind === 'branch') {
+                  const branchName = branches.find((branch) => branch.id === action.branchId)?.name ?? 'tu sede';
+                  return (
+                    <div className="flex flex-col gap-1.5 border-t border-adm-line-div pt-3">
+                      <Button
+                        type="button"
+                        variant={action.active ? 'admin-danger' : 'admin-outline'}
+                        size="xs"
+                        className="w-full"
+                        disabled={isBusy}
+                        onClick={() => handleToggleActive(member.id, !action.active, action.branchId)}
+                      >
+                        {isBusy ? 'Guardando…' : `${action.active ? 'Desactivar' : 'Activar'} en ${branchName}`}
+                      </Button>
+                      <p className="text-[12px] text-adm-ink-400">
+                        {action.active
+                          ? `Atiende en varias sedes: solo deja de salir en la reserva de ${branchName}.`
+                          : `Desactivada en ${branchName}: no sale en su reserva. Conserva su horario y servicios.`}
+                      </p>
+                    </div>
+                  );
+                }
+                return (
+                  <div className="flex flex-col gap-1.5 border-t border-adm-line-div pt-3">
+                    <Button
+                      type="button"
+                      variant={member.active ? 'admin-danger' : 'admin-outline'}
+                      size="xs"
+                      className="w-full"
+                      disabled={isBusy || action.blockedReason !== null}
+                      onClick={() => handleToggleActive(member.id, !member.active)}
+                    >
+                      {isBusy ? 'Guardando…' : member.active ? 'Desactivar' : 'Activar'}
+                    </Button>
+                    {action.blockedReason && <p className="text-[12px] text-adm-ink-400">{action.blockedReason}</p>}
+                  </div>
+                );
+              })()}
             </div>
           ))}
         </div>

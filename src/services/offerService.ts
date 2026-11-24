@@ -33,6 +33,7 @@ interface OfferProfessionalRow {
   // Llegan desde 20261124000900; sin esa migración se deducen de "active".
   account_active?: boolean;
   record_active?: boolean;
+  branch_active?: boolean;
   has_schedule: boolean;
   bookable: boolean;
 }
@@ -68,6 +69,7 @@ export async function getBranchOfferStatus(branchId: string): Promise<ServiceOff
       active: professional.active,
       accountActive: professional.account_active ?? professional.active,
       recordActive: professional.record_active ?? professional.active,
+      branchActive: professional.branch_active ?? true,
       hasSchedule: professional.has_schedule,
       bookable: professional.bookable,
     })),

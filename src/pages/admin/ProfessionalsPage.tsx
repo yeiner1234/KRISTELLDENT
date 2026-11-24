@@ -168,7 +168,9 @@ function ProfessionalsPage() {
               .join(', ');
             const branchNames = branches
               .filter((branch) => professional.branchIds.includes(branch.id))
-              .map((branch) => branch.name)
+              .map((branch) =>
+                professional.inactiveBranchIds.includes(branch.id) ? `${branch.name} (desactivada)` : branch.name,
+              )
               .join(', ');
             const gaps = profileGaps(professional, branches);
 

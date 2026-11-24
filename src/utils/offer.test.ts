@@ -8,6 +8,7 @@ const professional = (overrides: Partial<OfferProfessional>): OfferProfessional 
   active: true,
   accountActive: true,
   recordActive: true,
+  branchActive: true,
   hasSchedule: true,
   bookable: true,
   ...overrides,
@@ -28,8 +29,11 @@ describe('professionalNames', () => {
           professional({ fullName: 'Bea', active: false, accountActive: false, bookable: false }),
           professional({ fullName: 'Carla', active: false, recordActive: false, bookable: false }),
           professional({ fullName: 'Dina' }),
+          professional({ fullName: 'Eva', active: false, branchActive: false, bookable: false }),
         ]),
       ),
-    ).toBe('ANali (sin horario aquí), Bea (cuenta desactivada en Equipo), Carla (ficha desactivada), Dina');
+    ).toBe(
+      'ANali (sin horario aquí), Bea (cuenta desactivada en Equipo), Carla (ficha desactivada), Dina, Eva (desactivada en esta sede)',
+    );
   });
 });

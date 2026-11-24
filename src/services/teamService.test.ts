@@ -68,8 +68,8 @@ describe('getTeamMembers', () => {
       }),
       professional_branches: mockQuery({
         data: [
-          { professional_id: 'ana', branch_id: 'bagua', branches: { name: 'Bagua' } },
-          { professional_id: 'ana', branch_id: 'jaen', branches: { name: 'Jaén' } },
+          { professional_id: 'ana', branch_id: 'bagua', active: true, branches: { name: 'Bagua' } },
+          { professional_id: 'ana', branch_id: 'jaen', active: false, branches: { name: 'Jaén' } },
         ],
       }),
     };
@@ -83,6 +83,8 @@ describe('getTeamMembers', () => {
     ]);
     expect(findCall(queries.professional_branches, 'in')?.args).toEqual(['professional_id', ['ana']]);
     expect(members.map((member) => member.branchIds)).toEqual([['bagua', 'jaen'], ['jaen']]);
+    // Sedes donde la profesional está desactivada (solo ahí no sale en la reserva).
+    expect(members.map((member) => member.inactiveBranchIds)).toEqual([['jaen'], []]);
   });
 });
 

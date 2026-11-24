@@ -24,6 +24,9 @@ export interface AdminProfessional extends Professional {
   // Cuenta de la persona (profiles.active, se cambia en Equipo). "active" es la
   // ficha (professionals.active). Sin cualquiera de las dos no sale en la reserva.
   accountActive: boolean;
+  // Sedes donde está desactivada (professional_branches.active = false): ahí no
+  // sale en la reserva, pero conserva su horario y sus servicios.
+  inactiveBranchIds: string[];
   assignments: ProfessionalAssignment[];
   // Sedes donde tiene al menos un bloque de horario semanal.
   scheduleBranchIds: string[];

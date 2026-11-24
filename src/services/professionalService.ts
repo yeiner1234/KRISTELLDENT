@@ -21,7 +21,7 @@ interface ProfessionalRow {
   active: boolean;
   profiles?: ProfileNameRow | ProfileNameRow[] | null;
   professional_specialties: { specialty_id: string }[];
-  professional_branches: { branch_id: string }[];
+  professional_branches: { branch_id: string; active?: boolean }[];
   professional_services: ServiceAssignmentRow[];
   professional_schedules?: { branch_id: string }[];
 }
@@ -30,7 +30,7 @@ const SELECT_COLUMNS = `
   id, bio, active,
   profiles ( full_name, role, active ),
   professional_specialties ( specialty_id ),
-  professional_branches ( branch_id ),
+  professional_branches ( branch_id, active ),
   professional_services ( service_id, branch_id, active ),
   professional_schedules ( branch_id )
 `;
@@ -74,6 +74,7 @@ function mapAdminRow(row: ProfessionalRow, publicIds: Set<string>): AdminProfess
   return {
     ...mapRow(row),
     accountActive: profile?.active ?? publicIds.has(row.id),
+    inactiveBranchIds: row.professional_branches.filter((item) => item.active === false).map((item) => item.branch_id),
     assignments: row.professional_services
       .filter((item) => item.active)
       .map((item) => ({ serviceId: item.service_id, branchId: item.branch_id })),
@@ -259,6 +260,24 @@ export async function removeProfessionalFromBranch(professionalId: string, branc
         .eq('branch_id', branchId)
     ).error,
   );
+}
+
+// Activa o desactiva a la profesional solo en una sede: ahí deja de salir en
+// la reserva, pero conserva su horario y sus servicios. La base revisa que
+// quien lo pide administre esa sede (set_professional_branch_active).
+export async function setProfessionalBranchActive(professionalId: string, branchId: string, active: boolean): Promise<void> {
+  const { error } = await supabase.rpc('set_professional_branch_active', {
+    p_professional_id: professionalId,
+    p_branch_id: branchId,
+    p_active: active,
+  });
+
+  if (error) {
+    if (error.message.includes('set_professional_branch_active')) {
+      throw new Error('Falta aplicar la migración 20261124001100_activa_por_sede.sql.');
+    }
+    throw new Error(friendlyWriteError(error.message));
+  }
 }
 
 // Servicios que atiende en una sede: cada servicio es de una sola sede, así

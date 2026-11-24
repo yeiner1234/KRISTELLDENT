@@ -7,6 +7,7 @@ import {
   getAllProfessionalsForAdmin,
   getProfessionals,
   removeProfessionalFromBranch,
+  setProfessionalBranchActive,
   setProfessionalBranchServices,
   updateProfessionalProfile,
 } from './professionalService';
@@ -25,7 +26,7 @@ function professionalRow(id: string) {
     bio: null,
     active: true,
     professional_specialties: [{ specialty_id: 's1' }],
-    professional_branches: [{ branch_id: 'b1' }],
+    professional_branches: [{ branch_id: 'b1', active: true }],
     professional_services: [
       { service_id: 'v1', branch_id: 'b1', active: true },
       { service_id: 'v9', branch_id: 'b1', active: false },
@@ -122,6 +123,29 @@ describe('getAllProfessionalsForAdmin', () => {
       ['p3', true, true],
       ['p4', true, false],
     ]);
+  });
+
+  it('marca las sedes donde está desactivada', async () => {
+    vi.mocked(supabase.from).mockReturnValue(
+      mockQuery({
+        data: [
+          {
+            ...professionalRow('p1'),
+            professional_branches: [
+              { branch_id: 'b1', active: true },
+              { branch_id: 'b2', active: false },
+            ],
+            profiles: { full_name: 'Ana', role: 'especialista', active: true },
+          },
+        ],
+      }) as never,
+    );
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: [], error: null } as never);
+
+    const [professional] = await getAllProfessionalsForAdmin();
+
+    expect(professional.branchIds).toEqual(['b1', 'b2']);
+    expect(professional.inactiveBranchIds).toEqual(['b2']);
   });
 
   it('trae los servicios activos con su sede y las sedes donde tiene horario', async () => {
@@ -307,5 +331,29 @@ describe('setProfessionalBranchServices (servicios de una sede)', () => {
     await setProfessionalBranchServices('p1', ['v1'], ['v1']);
 
     expect(log).toEqual([]);
+  });
+});
+
+describe('setProfessionalBranchActive', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('activa o desactiva a la profesional solo en esa sede', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: null } as never);
+
+    await setProfessionalBranchActive('p1', 'jaen', false);
+
+    expect(supabase.rpc).toHaveBeenCalledWith('set_professional_branch_active', {
+      p_professional_id: 'p1',
+      p_branch_id: 'jaen',
+      p_active: false,
+    });
+  });
+
+  it('muestra el mensaje de la base', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: { message: 'No administras esta sede.' } } as never);
+
+    await expect(setProfessionalBranchActive('p1', 'bagua', false)).rejects.toThrow('No administras esta sede.');
   });
 });

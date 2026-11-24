@@ -8,6 +8,7 @@ import { getBranchScheduleForAdmin } from '../../services/branchScheduleService'
 import {
   addProfessionalToBranch,
   removeProfessionalFromBranch,
+  setProfessionalBranchActive,
   setProfessionalBranchServices,
 } from '../../services/professionalService';
 import { searchProfessionalsDirectory } from '../../services/offerService';
@@ -21,6 +22,7 @@ const anali: AdminProfessional = {
   bio: null,
   active: true,
   accountActive: true,
+  inactiveBranchIds: [],
   specialtyIds: ['endo'],
   branchIds: ['bagua', 'chacha', 'jaen'],
   serviceIds: ['conducto-jaen'],
@@ -123,6 +125,7 @@ vi.mock('../../services/professionalService', () => ({
   getEligibleProfilesForProfessional: vi.fn().mockResolvedValue([]),
   removeProfessionalFromBranch: vi.fn(),
   setProfessionalActive: vi.fn(),
+  setProfessionalBranchActive: vi.fn(),
   setProfessionalBranchServices: vi.fn(),
   updateProfessionalProfile: vi.fn(),
 }));
@@ -412,5 +415,27 @@ describe('ProfessionalsPage — estado de cuenta y ficha', () => {
     const { dialog } = await openProfile('PRUEBA Especialista B');
 
     expect(within(dialog).getByText('Cuenta desactivada (Equipo)')).toBeInTheDocument();
+  });
+});
+
+describe('ProfessionalsPage — activa por sede', () => {
+  it('desde la pestaña de una sede la desactiva solo ahí', async () => {
+    const { user, dialog } = await openProfile();
+    await user.click(within(dialog).getByRole('tab', { name: 'Jaén' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Desactivar en esta sede' }));
+
+    expect(setProfessionalBranchActive).toHaveBeenCalledWith('anali', 'jaen', false);
+  });
+
+  it('si está desactivada en esa sede lo dice, la marca en la tarjeta y deja activarla', async () => {
+    extra.professionals = [{ ...anali, id: 'eva', fullName: 'Eva', inactiveBranchIds: ['jaen'] }];
+    const { user, dialog } = await openProfile('Eva');
+
+    expect(screen.getAllByText(/Jaén \(desactivada\)/).length).toBeGreaterThan(0);
+    await user.click(within(dialog).getByRole('tab', { name: 'Jaén' }));
+    expect(within(dialog).getByText(/Desactivada en esta sede/)).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Activar en esta sede' }));
+
+    expect(setProfessionalBranchActive).toHaveBeenCalledWith('eva', 'jaen', true);
   });
 });

@@ -1,41 +1,60 @@
 import { describe, expect, it } from 'vitest';
-import { accountToggle } from './teamAccounts';
+import { accountAction } from './teamAccounts';
 
-const member = (overrides: Partial<Parameters<typeof accountToggle>[0]> = {}) => ({
+const member = (overrides: Partial<Parameters<typeof accountAction>[0]> = {}) => ({
   id: 'tere',
   role: 'tecnica' as const,
   active: true,
   branchIds: ['jaen'],
+  inactiveBranchIds: [] as string[],
   ...overrides,
 });
 
 const global = { isAdminGlobal: true, myBranchIds: null, selfId: 'yo' };
 const jaen = { isAdminGlobal: false, myBranchIds: ['jaen'], selfId: 'yo' };
 
-describe('accountToggle', () => {
-  it('admin_global activa y desactiva cualquier cuenta menos la suya', () => {
-    expect(accountToggle(member({ role: 'admin_sede', branchIds: ['bagua'] }), global)).toEqual({ show: true, blockedReason: null });
-    expect(accountToggle(member({ id: 'yo' }), global).show).toBe(false);
+describe('accountAction', () => {
+  it('admin_global activa y desactiva la cuenta de cualquiera menos la suya', () => {
+    expect(accountAction(member({ role: 'admin_sede', branchIds: ['bagua'] }), global)).toEqual({
+      kind: 'account',
+      blockedReason: null,
+    });
+    expect(accountAction(member({ id: 'yo' }), global)).toEqual({ kind: 'none' });
   });
 
-  it('admin_sede desactiva a quien trabaja solo en su sede', () => {
-    expect(accountToggle(member(), jaen)).toEqual({ show: true, blockedReason: null });
-    expect(accountToggle(member({ role: 'especialista' }), jaen)).toEqual({ show: true, blockedReason: null });
+  it('admin_sede desactiva la cuenta de quien trabaja solo en su sede', () => {
+    expect(accountAction(member(), jaen)).toEqual({ kind: 'account', blockedReason: null });
+    expect(accountAction(member({ role: 'especialista' }), jaen)).toEqual({ kind: 'account', blockedReason: null });
   });
 
-  it('admin_sede no desactiva a quien también atiende en otra sede, pero sí la activa', () => {
-    expect(accountToggle(member({ role: 'especialista', branchIds: ['bagua', 'jaen'] }), jaen)).toEqual({
-      show: true,
-      blockedReason: 'Atiende también en otra sede: solo la administración general puede desactivar su cuenta.',
+  it('profesional en varias sedes: admin_sede la activa o desactiva solo en su sede', () => {
+    expect(accountAction(member({ role: 'especialista', branchIds: ['bagua', 'jaen'] }), jaen)).toEqual({
+      kind: 'branch',
+      branchId: 'jaen',
+      active: true,
     });
     expect(
-      accountToggle(member({ role: 'especialista', branchIds: ['bagua', 'jaen'], active: false }), jaen),
-    ).toEqual({ show: true, blockedReason: null });
+      accountAction(member({ role: 'especialista', branchIds: ['bagua', 'jaen'], inactiveBranchIds: ['jaen'] }), jaen),
+    ).toEqual({ kind: 'branch', branchId: 'jaen', active: false });
+  });
+
+  it('con la cuenta desactivada, admin_sede activa la cuenta aunque trabaje en varias sedes', () => {
+    expect(accountAction(member({ role: 'especialista', branchIds: ['bagua', 'jaen'], active: false }), jaen)).toEqual({
+      kind: 'account',
+      blockedReason: null,
+    });
+  });
+
+  it('técnica en varias sedes: se le quita la sede con "Editar sedes"', () => {
+    expect(accountAction(member({ branchIds: ['bagua', 'jaen'] }), jaen)).toEqual({
+      kind: 'account',
+      blockedReason: 'Trabaja también en otra sede: quítale tu sede con "Editar sedes".',
+    });
   });
 
   it('admin_sede no toca cuentas de administradoras ni la suya', () => {
-    expect(accountToggle(member({ role: 'admin_sede' }), jaen).show).toBe(false);
-    expect(accountToggle(member({ role: 'admin_global' }), jaen).show).toBe(false);
-    expect(accountToggle(member({ id: 'yo' }), jaen).show).toBe(false);
+    expect(accountAction(member({ role: 'admin_sede' }), jaen)).toEqual({ kind: 'none' });
+    expect(accountAction(member({ role: 'admin_global' }), jaen)).toEqual({ kind: 'none' });
+    expect(accountAction(member({ id: 'yo' }), jaen)).toEqual({ kind: 'none' });
   });
 });

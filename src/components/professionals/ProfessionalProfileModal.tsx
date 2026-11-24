@@ -7,6 +7,7 @@ import StatusBadge from '../common/StatusBadge';
 import {
   removeProfessionalFromBranch,
   setProfessionalActive,
+  setProfessionalBranchActive,
   setProfessionalBranchServices,
   updateProfessionalProfile,
 } from '../../services/professionalService';
@@ -266,6 +267,7 @@ function ProfessionalProfileModal({
             const readOnly = !canManageBranch(currentBranch.id);
             const { current, options, selected } = branchServices(currentBranch.id);
             const hasSchedule = professional.scheduleBranchIds.includes(currentBranch.id);
+            const activeHere = !professional.inactiveBranchIds.includes(currentBranch.id);
             return (
               <>
                 {readOnly && (
@@ -275,6 +277,12 @@ function ProfessionalProfileModal({
                   </p>
                 )}
                 {!currentBranch.active && <p className="text-[13px] text-adm-ink-400">Esta sede está inactiva.</p>}
+                {!activeHere && (
+                  <p className="rounded-[10px] border border-adm-status-pending-border bg-adm-status-pending-bg px-3.5 py-2.5 text-sm text-adm-status-pending-text">
+                    Desactivada en esta sede: no sale en la reserva de {currentBranch.name}. Conserva su horario y sus
+                    servicios aquí; en sus otras sedes sigue igual.
+                  </p>
+                )}
 
                 <div className="flex flex-col gap-1.5">
                   <span className="text-sm font-medium text-adm-ink-700">Servicios que atiende en {currentBranch.name}</span>
@@ -337,6 +345,24 @@ function ProfessionalProfileModal({
                   >
                     Horario
                   </Button>
+                  {!readOnly && (
+                    <Button
+                      type="button"
+                      variant={activeHere ? 'admin-danger' : 'admin-outline'}
+                      size="sm"
+                      disabled={isSaving}
+                      onClick={() =>
+                        run(
+                          () => setProfessionalBranchActive(professional.id, currentBranch.id, !activeHere),
+                          activeHere
+                            ? `Desactivada en ${currentBranch.name}.`
+                            : `Activada en ${currentBranch.name}.`,
+                        )
+                      }
+                    >
+                      {activeHere ? 'Desactivar en esta sede' : 'Activar en esta sede'}
+                    </Button>
+                  )}
                   {!readOnly &&
                     (confirmRemove ? (
                       <div className="flex flex-wrap items-center gap-2 rounded-[10px] border border-adm-status-cancelled-border bg-adm-status-cancelled-bg px-3 py-2">

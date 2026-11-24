@@ -14,6 +14,8 @@ export interface TeamMember {
   // true para especialista y odontóloga general: sus sedes se asignan en
   // Profesionales (professional_branches) y un trigger las copia a Equipo.
   branchesFromProfessionals: boolean;
+  // Profesionales: sedes donde está desactivada (solo ahí no sale en la reserva).
+  inactiveBranchIds: string[];
 }
 
 interface ProfileRow {
@@ -35,6 +37,7 @@ interface AccessRow {
 interface ProfessionalBranchRow {
   professional_id: string;
   branch_id: string;
+  active?: boolean;
   branches: BranchNameJoin;
 }
 
@@ -91,11 +94,12 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
   // Las profesionales muestran sus sedes de Profesionales, que es la fuente.
   const professionalIds = rows.filter((row) => PROFESSIONAL_ROLES.includes(row.role)).map((row) => row.id);
   const professionalBranches = new Map<string, MemberBranches>();
+  const inactiveByProfessional = new Map<string, string[]>();
 
   if (professionalIds.length > 0) {
     const { data: professionalRows, error: professionalError } = await supabase
       .from('professional_branches')
-      .select('professional_id, branch_id, branches(name)')
+      .select('professional_id, branch_id, active, branches(name)')
       .in('professional_id', professionalIds);
 
     if (professionalError) {
@@ -104,6 +108,12 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
 
     for (const row of (professionalRows ?? []) as unknown as ProfessionalBranchRow[]) {
       addBranch(professionalBranches, row.professional_id, row.branch_id, row.branches);
+      if (row.active === false) {
+        inactiveByProfessional.set(row.professional_id, [
+          ...(inactiveByProfessional.get(row.professional_id) ?? []),
+          row.branch_id,
+        ]);
+      }
     }
   }
 
@@ -119,6 +129,7 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
       branchIds: branches.ids,
       branchNames: branches.names,
       branchesFromProfessionals: isProfessional,
+      inactiveBranchIds: inactiveByProfessional.get(row.id) ?? [],
     };
   });
 }

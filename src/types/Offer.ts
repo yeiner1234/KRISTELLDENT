@@ -9,6 +9,8 @@ export interface OfferProfessional {
   // Cuenta (profiles.active, Equipo) y ficha (professionals.active, Profesionales).
   accountActive: boolean;
   recordActive: boolean;
+  // Activa en esta sede (professional_branches.active).
+  branchActive: boolean;
   hasSchedule: boolean;
   bookable: boolean;
 }

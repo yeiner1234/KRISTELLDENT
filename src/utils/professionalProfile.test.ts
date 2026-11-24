@@ -15,6 +15,7 @@ const base: AdminProfessional = {
   bio: null,
   active: true,
   accountActive: true,
+  inactiveBranchIds: [],
   specialtyIds: ['orto'],
   branchIds: ['jaen', 'bagua'],
   serviceIds: ['s-jaen'],
@@ -29,6 +30,10 @@ describe('profileGaps', () => {
 
   it('dice qué le falta en cada sede', () => {
     expect(profileGaps(base, branches)).toEqual([{ branchId: 'bagua', branchName: 'Bagua', missing: ['servicios', 'horario'] }]);
+  });
+
+  it('una sede donde está desactivada no pide servicios ni horario', () => {
+    expect(profileGaps({ ...base, inactiveBranchIds: ['bagua'] }, branches)).toEqual([]);
   });
 
   it('una sede inactiva no cuenta', () => {
