@@ -145,10 +145,16 @@ export async function setMemberBranches(userId: string, wantedIds: string[], cur
 // Un perfil profesional desactivado tampoco debe ofrecerse en la reserva: su
 // ficha en professionals sigue el mismo estado.
 export async function setProfileActive(id: string, active: boolean): Promise<void> {
-  const { data, error } = await supabase.from('profiles').update({ active }).eq('id', id).select('role').single();
+  const { data, error } = await supabase.from('profiles').update({ active }).eq('id', id).select('role').maybeSingle();
 
   if (error) {
     throw new Error(error.message);
+  }
+  // 0 filas: la RLS solo deja actualizar perfiles a una admin_global activa.
+  if (!data) {
+    throw new Error(
+      'No se pudo cambiar la cuenta: solo una administradora global activa puede activar o desactivar cuentas.',
+    );
   }
 
   if (PROFESSIONAL_ROLES.includes((data as { role: AppRole }).role)) {

@@ -50,6 +50,16 @@ describe('setProfileActive', () => {
     expect(supabase.from).not.toHaveBeenCalledWith('professionals');
   });
 
+  it('si la base no cambia ninguna fila (sin permiso) da un mensaje claro', async () => {
+    const queries: Record<string, MockQuery> = { profiles: mockQuery({ data: null }), professionals: mockQuery({}) };
+    vi.mocked(supabase.from).mockImplementation((table: string) => queries[table] as never);
+
+    await expect(setProfileActive('u1', false)).rejects.toThrow(
+      'No se pudo cambiar la cuenta: solo una administradora global activa puede activar o desactivar cuentas.',
+    );
+    expect(supabase.from).not.toHaveBeenCalledWith('professionals');
+  });
+
   it('propaga el error de Supabase', async () => {
     setup('especialista', { message: 'permission denied for table profiles' });
 
