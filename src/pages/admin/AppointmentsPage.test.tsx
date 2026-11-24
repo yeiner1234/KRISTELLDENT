@@ -62,7 +62,12 @@ vi.mock('../../hooks/useAdminProfessionals', () => ({
 }));
 vi.mock('../../hooks/useProfessionals', () => ({ useProfessionals: () => ({ professionals: [], isLoading: false }) }));
 vi.mock('../../hooks/useAdminBranches', () => ({
-  useAdminBranches: () => ({ branches: [], isLoading: false, error: null, refetch: vi.fn() }),
+  useAdminBranches: () => ({
+    branches: [{ id: 'b1', name: 'KristellDent Jaen', active: true }],
+    isLoading: false,
+    error: null,
+    refetch: vi.fn(),
+  }),
 }));
 vi.mock('../../hooks/useManageableBranchIds', () => ({
   useManageableBranchIds: () => ({ branchIds: ['b1'], isLoading: false, error: null }),
@@ -114,6 +119,16 @@ describe('AppointmentsPage (admin)', () => {
     expect(within(row).getByText('Limpieza')).toBeInTheDocument();
     // Profesional inactiva: su nombre se ve igual.
     expect(within(rowOf('KD-CCC333')).getByText('Dra. Soto')).toBeInTheDocument();
+  });
+
+  it('el detalle de la cita muestra su sede', async () => {
+    renderPage();
+
+    await userEvent.click(within(rowOf('KD-AAA111')).getByRole('button', { name: 'Ver detalle de la cita' }));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('Sede')).toBeInTheDocument();
+    expect(within(dialog).getByText('KristellDent Jaen')).toBeInTheDocument();
   });
 
   it('filtra por estado En sala', async () => {

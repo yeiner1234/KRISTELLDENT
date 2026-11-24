@@ -12,6 +12,7 @@ import Spinner from '../../components/common/Spinner';
 import { useAllAppointments } from '../../hooks/useAppointments';
 import { useAllPatients } from '../../hooks/usePatients';
 import { useAdminProfessionals } from '../../hooks/useAdminProfessionals';
+import { useAdminBranches } from '../../hooks/useAdminBranches';
 import { useAuth } from '../../hooks/useAuth';
 import { useAppointmentDetail } from '../../hooks/useAppointmentDetail';
 import { formatFullName } from '../../utils/format';
@@ -35,6 +36,8 @@ function DashboardPage() {
   const { patients, isLoading: isLoadingPatients, error: patientsError } = useAllPatients();
   const { professionals, isLoading: isLoadingProfessionals, error: professionalsError } = useAdminProfessionals();
   const loadError = appointmentsError ?? patientsError ?? professionalsError;
+  // Solo para el nombre de la sede en el detalle de la cita.
+  const { branches } = useAdminBranches();
   const { user } = useAuth();
   const { selected, open, close, rescheduling, closeReschedule, handleAction, statusAction } = useAppointmentDetail(refetch);
   const today = getTodayIsoDate();
@@ -111,6 +114,7 @@ function DashboardPage() {
         professionalName={selected ? professionalName(professionals, selected.professionalId) : undefined}
         role={user?.role ?? 'admin_sede'}
         patientLabel={selected ? patientName(patients, selected.patientId) : undefined}
+        branchName={selected ? branches.find((branch) => branch.id === selected.branchId)?.name : undefined}
         onClose={close}
         onAction={handleAction}
         busy={statusAction.pendingId !== null}

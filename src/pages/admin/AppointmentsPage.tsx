@@ -197,6 +197,7 @@ function AppointmentsPage() {
         role={role}
         professionalName={selectedView?.professionalName}
         patientLabel={selectedView ? `${selectedView.patientName} · DNI ${selectedView.patientDni}` : undefined}
+        branchName={selected ? branches.find((branch) => branch.id === selected.branchId)?.name : undefined}
         onClose={close}
         onAction={handleAction}
         busy={statusAction.pendingId !== null}
