@@ -177,7 +177,7 @@ function DateTimeStep({
                       {slotTime}
                     </span>
                     {isAnyProfessional && professional && (
-                      <span className="mt-0.5 block truncate text-[11.5px] text-ink-tertiary">{professional.fullName}</span>
+                      <span className="mt-0.5 block truncate text-[13px] text-ink-tertiary sm:text-[11.5px]">{professional.fullName}</span>
                     )}
                   </button>
                 );

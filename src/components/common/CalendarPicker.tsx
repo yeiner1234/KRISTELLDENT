@@ -41,7 +41,7 @@ function CalendarPicker({ selectedDate, onSelect, minDate, isDateDisabled }: Cal
         <button
           type="button"
           onClick={() => setViewDate(new Date(year, month - 1, 1))}
-          className="rounded-lg p-1.5 text-ink-tertiary hover:bg-tint"
+          className="rounded-lg p-2.5 text-ink-tertiary hover:bg-tint sm:p-1.5"
           aria-label="Mes anterior"
         >
           <ChevronLeft size={18} />
@@ -50,7 +50,7 @@ function CalendarPicker({ selectedDate, onSelect, minDate, isDateDisabled }: Cal
         <button
           type="button"
           onClick={() => setViewDate(new Date(year, month + 1, 1))}
-          className="rounded-lg p-1.5 text-ink-tertiary hover:bg-tint"
+          className="rounded-lg p-2.5 text-ink-tertiary hover:bg-tint sm:p-1.5"
           aria-label="Mes siguiente"
         >
           <ChevronRight size={18} />
