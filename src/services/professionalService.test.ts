@@ -100,6 +100,30 @@ describe('getAllProfessionalsForAdmin', () => {
     expect(professionals.map((professional) => professional.fullName)).toEqual(['Ana Torres', 'Bea Ríos']);
   });
 
+  it('lee si la cuenta está activa (profiles.active), aparte de la ficha', async () => {
+    vi.mocked(supabase.from).mockReturnValue(
+      mockQuery({
+        data: [
+          { ...professionalRow('p1'), profiles: { full_name: 'Ana', role: 'especialista', active: true } },
+          { ...professionalRow('p2'), profiles: { full_name: 'Prueba B', role: 'especialista', active: false } },
+          { ...professionalRow('p3'), profiles: null },
+          { ...professionalRow('p4'), profiles: null },
+        ],
+      }) as never,
+    );
+    // Sin perfil legible: get_public_professionals solo trae cuentas activas.
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: [{ id: 'p3', full_name: 'Bea' }], error: null } as never);
+
+    const professionals = await getAllProfessionalsForAdmin();
+
+    expect(professionals.map((professional) => [professional.id, professional.active, professional.accountActive])).toEqual([
+      ['p1', true, true],
+      ['p2', true, false],
+      ['p3', true, true],
+      ['p4', true, false],
+    ]);
+  });
+
   it('trae los servicios activos con su sede y las sedes donde tiene horario', async () => {
     vi.mocked(supabase.from).mockReturnValue(
       mockQuery({ data: [{ ...professionalRow('p1'), profiles: { full_name: 'Ana', role: 'especialista' } }] }) as never,

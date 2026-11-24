@@ -6,6 +6,7 @@ import type { AppRole } from '../types/User';
 interface ProfileNameRow {
   full_name: string;
   role: AppRole;
+  active?: boolean;
 }
 
 interface ServiceAssignmentRow {
@@ -27,7 +28,7 @@ interface ProfessionalRow {
 
 const SELECT_COLUMNS = `
   id, bio, active,
-  profiles ( full_name, role ),
+  profiles ( full_name, role, active ),
   professional_specialties ( specialty_id ),
   professional_branches ( branch_id ),
   professional_services ( service_id, branch_id, active ),
@@ -66,9 +67,13 @@ function mapRow(row: ProfessionalRow): Professional {
   };
 }
 
-function mapAdminRow(row: ProfessionalRow): AdminProfessional {
+// accountActive: si la RLS no deja leer el perfil, get_public_professionals
+// (solo cuentas activas) dice si la cuenta está activa.
+function mapAdminRow(row: ProfessionalRow, publicIds: Set<string>): AdminProfessional {
+  const profile = extractProfile(row.profiles);
   return {
     ...mapRow(row),
+    accountActive: profile?.active ?? publicIds.has(row.id),
     assignments: row.professional_services
       .filter((item) => item.active)
       .map((item) => ({ serviceId: item.service_id, branchId: item.branch_id })),
@@ -116,7 +121,7 @@ export async function getAllProfessionalsForAdmin(): Promise<AdminProfessional[]
   const nameById = new Map(((names ?? []) as PublicProfessionalNameRow[]).map((row) => [row.id, row.full_name]));
 
   return ((data ?? []) as unknown as ProfessionalRow[]).map((row) => {
-    const professional = mapAdminRow(row);
+    const professional = mapAdminRow(row, new Set(nameById.keys()));
     return professional.fullName ? professional : { ...professional, fullName: nameById.get(row.id) ?? '' };
   });
 }

@@ -20,6 +20,7 @@ const anali: AdminProfessional = {
   role: 'especialista',
   bio: null,
   active: true,
+  accountActive: true,
   specialtyIds: ['endo'],
   branchIds: ['bagua', 'chacha', 'jaen'],
   serviceIds: ['conducto-jaen'],
@@ -37,6 +38,11 @@ const bea: AdminProfessional = {
   assignments: [],
   scheduleBranchIds: [],
 };
+
+// Ficha activa, pero la cuenta se desactivó en Equipo: no sale en la reserva.
+const pruebaB: AdminProfessional = { ...anali, id: 'prueba-b', fullName: 'PRUEBA Especialista B', accountActive: false };
+
+const extra = vi.hoisted(() => ({ professionals: [] as AdminProfessional[] }));
 
 // null = admin_global (todas las sedes); una lista = admin_sede.
 const access = vi.hoisted(() => ({ branchIds: null as string[] | null, role: 'admin_global' }));
@@ -69,7 +75,7 @@ vi.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({ user: { id: 'yo', role: access.role } }),
 }));
 vi.mock('../../hooks/useAdminProfessionals', () => ({
-  useAdminProfessionals: () => ({ professionals: [anali, bea], isLoading: false, error: null, refetch: vi.fn() }),
+  useAdminProfessionals: () => ({ professionals: [anali, bea, ...extra.professionals], isLoading: false, error: null, refetch: vi.fn() }),
 }));
 vi.mock('../../hooks/useAdminSpecialties', () => ({
   useAdminSpecialties: () => ({
@@ -157,6 +163,7 @@ beforeEach(() => {
   Element.prototype.scrollIntoView = vi.fn();
   access.role = 'admin_global';
   access.branchIds = null;
+  extra.professionals = [];
 });
 
 describe('ProfessionalsPage — modal Horario', () => {
@@ -374,5 +381,36 @@ describe('ProfessionalsPage — filtros', () => {
 
     expect(screen.getByText('ANali')).toBeInTheDocument();
     expect(screen.queryByText('Bea')).not.toBeInTheDocument();
+  });
+});
+
+describe('ProfessionalsPage — estado de cuenta y ficha', () => {
+  it('dice "Cuenta desactivada (Equipo)" aunque la ficha esté activa, y no inventa "Agenda publicada"', () => {
+    extra.professionals = [pruebaB];
+    renderPage();
+
+    const card = screen.getByText('PRUEBA Especialista B').closest('div.flex.flex-col.gap-2') as HTMLElement;
+    expect(within(card).getByText('Cuenta desactivada (Equipo)')).toBeInTheDocument();
+    expect(within(card).queryByText('Activo')).not.toBeInTheDocument();
+    expect(screen.queryByText('Agenda publicada')).not.toBeInTheDocument();
+
+    const analiCard = screen.getByText('ANali').closest('div.flex.flex-col.gap-2') as HTMLElement;
+    expect(within(analiCard).getByText('Activa')).toBeInTheDocument();
+  });
+
+  it('no deja activar la ficha si la cuenta está desactivada', () => {
+    extra.professionals = [{ ...pruebaB, active: false }];
+    renderPage();
+
+    const card = screen.getByText('PRUEBA Especialista B').closest('div.flex.flex-col.gap-2') as HTMLElement;
+    expect(within(card).getByRole('button', { name: 'Activar ficha' })).toBeDisabled();
+    expect(within(card).getByText('Activa primero la cuenta en Equipo.')).toBeInTheDocument();
+  });
+
+  it('la ficha muestra el mismo estado', async () => {
+    extra.professionals = [pruebaB];
+    const { dialog } = await openProfile('PRUEBA Especialista B');
+
+    expect(within(dialog).getByText('Cuenta desactivada (Equipo)')).toBeInTheDocument();
   });
 });

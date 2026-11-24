@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { profileGaps, profileGapsSummary } from './professionalProfile';
+import { professionalStatus, profileGaps, profileGapsSummary } from './professionalProfile';
 import type { AdminProfessional } from '../types/Professional';
 
 const branches = [
@@ -14,6 +14,7 @@ const base: AdminProfessional = {
   role: 'especialista',
   bio: null,
   active: true,
+  accountActive: true,
   specialtyIds: ['orto'],
   branchIds: ['jaen', 'bagua'],
   serviceIds: ['s-jaen'],
@@ -54,5 +55,23 @@ describe('profileGapsSummary', () => {
         { branchId: 'jaen', branchName: 'Jaén', missing: ['horario'] },
       ]),
     ).toBe('Falta especialidad · Jaén: falta horario');
+  });
+});
+
+describe('professionalStatus', () => {
+  it('cuenta y ficha activas', () => {
+    expect(professionalStatus(base)).toEqual({ label: 'Activa', tone: 'adm-active' });
+  });
+
+  it('la cuenta desactivada en Equipo manda, aunque la ficha esté activa', () => {
+    expect(professionalStatus({ ...base, accountActive: false })).toEqual({
+      label: 'Cuenta desactivada (Equipo)',
+      tone: 'adm-inactive',
+    });
+    expect(professionalStatus({ ...base, accountActive: false, active: false }).label).toBe('Cuenta desactivada (Equipo)');
+  });
+
+  it('ficha desactivada con la cuenta activa', () => {
+    expect(professionalStatus({ ...base, active: false })).toEqual({ label: 'Ficha desactivada', tone: 'adm-inactive' });
   });
 });

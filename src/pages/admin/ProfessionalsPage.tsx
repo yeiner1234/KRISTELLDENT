@@ -21,7 +21,7 @@ import { useAdminServices } from '../../hooks/useAdminServices';
 import { useManageableBranchIds } from '../../hooks/useManageableBranchIds';
 import { setProfessionalActive } from '../../services/professionalService';
 import { activeBranchesOf } from '../../utils/professionalBranches';
-import { profileGaps, profileGapsSummary } from '../../utils/professionalProfile';
+import { professionalStatus, profileGaps, profileGapsSummary } from '../../utils/professionalProfile';
 
 type OpenModal =
   | { kind: 'profile'; professionalId: string }
@@ -180,6 +180,7 @@ function ProfessionalsPage() {
                   meta={branchNames || 'Sin sedes'}
                   variant="admin"
                   agendaHref="/admin/agenda"
+                  status={professionalStatus(professional)}
                   onEdit={() => open({ kind: 'profile', professionalId: professional.id })}
                   onSchedule={
                     activeBranchesOf(professional.branchIds, branches).length > 0
@@ -193,15 +194,20 @@ function ProfessionalsPage() {
                   </p>
                 )}
                 {isAdminGlobal && (
-                  <Button
-                    type="button"
-                    variant={professional.active ? 'admin-danger' : 'admin-outline'}
-                    size="xs"
-                    disabled={togglingId === professional.id}
-                    onClick={() => handleToggleActive(professional.id, !professional.active)}
-                  >
-                    {togglingId === professional.id ? 'Guardando…' : professional.active ? 'Desactivar ficha' : 'Activar ficha'}
-                  </Button>
+                  <>
+                    <Button
+                      type="button"
+                      variant={professional.active ? 'admin-danger' : 'admin-outline'}
+                      size="xs"
+                      disabled={togglingId === professional.id || (!professional.active && !professional.accountActive)}
+                      onClick={() => handleToggleActive(professional.id, !professional.active)}
+                    >
+                      {togglingId === professional.id ? 'Guardando…' : professional.active ? 'Desactivar ficha' : 'Activar ficha'}
+                    </Button>
+                    {!professional.active && !professional.accountActive && (
+                      <p className="text-[12.5px] text-adm-ink-400">Activa primero la cuenta en Equipo.</p>
+                    )}
+                  </>
                 )}
               </div>
             );

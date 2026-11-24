@@ -113,7 +113,7 @@ describe('ServicesPage — servicios de la sede', () => {
 
   it('las especialidades de la sede salen de sus servicios visibles', () => {
     offer.rows = [
-      row({ bookable: true, reason: null, professionals: [{ id: 'a', fullName: 'ANali', active: true, hasSchedule: true, bookable: true }] }),
+      row({ bookable: true, reason: null, professionals: [{ id: 'a', fullName: 'ANali', active: true, accountActive: true, recordActive: true, hasSchedule: true, bookable: true }] }),
       row({ serviceId: 's2', name: 'Conducto', specialtyId: 'endo', specialtyName: 'Endodoncia' }),
     ];
     renderPage();

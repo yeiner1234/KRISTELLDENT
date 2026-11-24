@@ -34,7 +34,10 @@ describe('offerService', () => {
         price: '80.00',
         duration_minutes: 30,
         active: true,
-        professionals: [{ id: 'ana', full_name: 'ANali', active: true, has_schedule: false, bookable: false }],
+        professionals: [
+          { id: 'ana', full_name: 'ANali', active: true, account_active: true, record_active: true, has_schedule: false, bookable: false },
+          { id: 'bea', full_name: 'Bea', active: false, account_active: false, record_active: true, has_schedule: true, bookable: false },
+        ],
         bookable: false,
         reason: 'No visible en reservas: la profesional asignada no tiene horario en esta sede.',
       },
@@ -53,7 +56,10 @@ describe('offerService', () => {
         price: 80,
         duration: 30,
         active: true,
-        professionals: [{ id: 'ana', fullName: 'ANali', active: true, hasSchedule: false, bookable: false }],
+        professionals: [
+          { id: 'ana', fullName: 'ANali', active: true, accountActive: true, recordActive: true, hasSchedule: false, bookable: false },
+          { id: 'bea', fullName: 'Bea', active: false, accountActive: false, recordActive: true, hasSchedule: true, bookable: false },
+        ],
         bookable: false,
         reason: 'No visible en reservas: la profesional asignada no tiene horario en esta sede.',
       },

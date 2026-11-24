@@ -11,6 +11,7 @@ import {
   updateProfessionalProfile,
 } from '../../services/professionalService';
 import { formatCurrency } from '../../utils/format';
+import { professionalStatus } from '../../utils/professionalProfile';
 import type { AdminProfessional } from '../../types/Professional';
 import type { Service } from '../../types/Service';
 import type { Specialty } from '../../types/Specialty';
@@ -141,10 +142,7 @@ function ProfessionalProfileModal({
       onClose={onClose}
       title={`Ficha — ${professional.fullName}`}
       badge={
-        <StatusBadge
-          label={professional.active ? 'Ficha activa' : 'Ficha inactiva'}
-          tone={professional.active ? 'adm-active' : 'adm-inactive'}
-        />
+        <StatusBadge label={professionalStatus(professional).label} tone={professionalStatus(professional).tone} />
       }
       maxWidth="max-w-[620px]"
       footer={
@@ -153,7 +151,8 @@ function ProfessionalProfileModal({
             <Button
               type="button"
               variant={professional.active ? 'admin-danger' : 'admin-outline'}
-              disabled={isSaving}
+              disabled={isSaving || (!professional.active && !professional.accountActive)}
+              title={!professional.active && !professional.accountActive ? 'Activa primero la cuenta en Equipo.' : undefined}
               onClick={() =>
                 run(
                   () => setProfessionalActive(professional.id, !professional.active),

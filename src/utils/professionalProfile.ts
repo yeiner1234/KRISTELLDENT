@@ -1,5 +1,19 @@
 import type { AdminProfessional } from '../types/Professional';
 
+export interface ProfessionalStatus {
+  label: 'Activa' | 'Cuenta desactivada (Equipo)' | 'Ficha desactivada';
+  tone: 'adm-active' | 'adm-inactive';
+}
+
+// Estado de la profesional, el mismo que usa la reserva: hace falta la cuenta
+// (Equipo) y la ficha (Profesionales). Se nombra primero la cuenta, porque
+// activar la ficha no sirve mientras la cuenta esté desactivada.
+export function professionalStatus(professional: Pick<AdminProfessional, 'active' | 'accountActive'>): ProfessionalStatus {
+  if (!professional.accountActive) return { label: 'Cuenta desactivada (Equipo)', tone: 'adm-inactive' };
+  if (!professional.active) return { label: 'Ficha desactivada', tone: 'adm-inactive' };
+  return { label: 'Activa', tone: 'adm-active' };
+}
+
 type Missing = 'especialidad' | 'sede' | 'servicios' | 'horario';
 
 export interface ProfileGap {

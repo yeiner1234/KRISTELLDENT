@@ -6,6 +6,8 @@ const professional = (overrides: Partial<OfferProfessional>): OfferProfessional 
   id: 'p',
   fullName: 'ANali',
   active: true,
+  accountActive: true,
+  recordActive: true,
   hasSchedule: true,
   bookable: true,
   ...overrides,
@@ -18,15 +20,16 @@ describe('professionalNames', () => {
     expect(professionalNames(row([]))).toBe('—');
   });
 
-  it('marca a la desactivada y a la que no tiene horario en la sede', () => {
+  it('dice exactamente qué falla: cuenta, ficha u horario', () => {
     expect(
       professionalNames(
         row([
           professional({ fullName: 'ANali', hasSchedule: false, bookable: false }),
-          professional({ fullName: 'Bea', active: false, bookable: false }),
-          professional({ fullName: 'Carla' }),
+          professional({ fullName: 'Bea', active: false, accountActive: false, bookable: false }),
+          professional({ fullName: 'Carla', active: false, recordActive: false, bookable: false }),
+          professional({ fullName: 'Dina' }),
         ]),
       ),
-    ).toBe('ANali (sin horario aquí), Bea (desactivada), Carla');
+    ).toBe('ANali (sin horario aquí), Bea (cuenta desactivada en Equipo), Carla (ficha desactivada), Dina');
   });
 });

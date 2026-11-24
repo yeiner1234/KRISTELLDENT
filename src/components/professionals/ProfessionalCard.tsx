@@ -1,7 +1,8 @@
-import { CalendarCheck, Clock } from 'lucide-react';
+import { Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { Professional } from '../../types/Professional';
 import { getInitials } from '../../utils/format';
+import type { ProfessionalStatus } from '../../utils/professionalProfile';
 import StatusBadge from '../common/StatusBadge';
 import Button from '../common/Button';
 
@@ -13,6 +14,8 @@ interface ProfessionalCardProps {
   agendaHref?: string;
   onEdit?: () => void;
   onSchedule?: () => void;
+  // Panel admin: estado de cuenta y ficha (professionalStatus).
+  status?: ProfessionalStatus;
 }
 
 function ProfessionalCard({
@@ -23,6 +26,7 @@ function ProfessionalCard({
   agendaHref,
   onEdit,
   onSchedule,
+  status,
 }: ProfessionalCardProps) {
   const fullName = professional.fullName;
   const initials = getInitials(professional.fullName);
@@ -52,11 +56,10 @@ function ProfessionalCard({
               {meta}
             </span>
           )}
-          <span className="flex items-center gap-1.5 text-[13px] text-adm-ink-400">
-            <CalendarCheck size={14} strokeWidth={1.75} />
-            Agenda publicada
-          </span>
-          <StatusBadge label={professional.active ? 'Activo' : 'Inactivo'} tone={professional.active ? 'adm-active' : 'adm-inactive'} />
+          <StatusBadge
+            label={status?.label ?? (professional.active ? 'Activa' : 'Ficha desactivada')}
+            tone={status?.tone ?? (professional.active ? 'adm-active' : 'adm-inactive')}
+          />
         </div>
 
         <div className="flex gap-2 border-t border-adm-line-div pt-3.5">

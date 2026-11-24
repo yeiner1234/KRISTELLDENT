@@ -4,7 +4,11 @@ import type { AppRole } from './User';
 export interface OfferProfessional {
   id: string;
   fullName: string;
+  // Cuenta y ficha activas a la vez.
   active: boolean;
+  // Cuenta (profiles.active, Equipo) y ficha (professionals.active, Profesionales).
+  accountActive: boolean;
+  recordActive: boolean;
   hasSchedule: boolean;
   bookable: boolean;
 }
