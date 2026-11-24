@@ -160,6 +160,15 @@ begin
     raise exception 'Estos servicios tienen el mismo nombre y terminarían en la misma sede: %. Renombra uno (consulta R3) y vuelve a correr este archivo.', v_problem;
   end if;
 
+  -- Las copias se revisan con services_duration_max (máximo 480 minutos).
+  select string_agg(distinct format('%s (%s min)', s.name, s.duration_minutes), ', ') into v_problem
+  from service_branch_map m
+  join public.services s on s.id = m.old_service_id
+  where s.duration_minutes > 480;
+  if v_problem is not null then
+    raise exception 'Estos servicios duran más de 480 minutos: %. Corrige su duración y vuelve a correr este archivo.', v_problem;
+  end if;
+
   -- --- Paso 4: repartir ------------------------------------------------------
   -- La primera sede (por nombre) se queda con la fila original; las demás
   -- reciben una copia con el mismo nombre, especialidad, precio, duración y
