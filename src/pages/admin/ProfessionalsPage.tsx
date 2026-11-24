@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { MapPinPlus, Plus, UserRound } from 'lucide-react';
+import { MapPinPlus, Plus, Power, TriangleAlert, UserRound } from 'lucide-react';
 import SectionTitle from '../../components/common/SectionTitle';
 import SearchInput from '../../components/common/SearchInput';
 import Select from '../../components/common/Select';
@@ -126,7 +126,7 @@ function ProfessionalsPage() {
           placeholder="Buscar por nombre..."
           wrapperClassName="min-w-[180px] flex-1"
         />
-        <div className="w-full max-w-[220px]">
+        <div className="w-full sm:max-w-[220px]">
           <Select
             label="Especialidad"
             hideLabel
@@ -135,7 +135,7 @@ function ProfessionalsPage() {
             options={[{ value: '', label: 'Todas las especialidades' }, ...specialties.map((s) => ({ value: s.id, label: s.name }))]}
           />
         </div>
-        <div className="w-full max-w-[220px]">
+        <div className="w-full sm:max-w-[220px]">
           <Select
             label="Sede"
             hideLabel
@@ -175,43 +175,51 @@ function ProfessionalsPage() {
             const gaps = profileGaps(professional, branches);
 
             return (
-              <div key={professional.id} className="flex flex-col gap-2">
-                <ProfessionalCard
-                  professional={professional}
-                  specialtyName={specialtyName || undefined}
-                  meta={branchNames || 'Sin sedes'}
-                  variant="admin"
-                  agendaHref="/admin/agenda"
-                  status={professionalStatus(professional)}
-                  onEdit={() => open({ kind: 'profile', professionalId: professional.id })}
-                  onSchedule={
-                    activeBranchesOf(professional.branchIds, branches).length > 0
-                      ? () => open({ kind: 'schedule', professionalId: professional.id, returnToProfile: false })
-                      : undefined
-                  }
-                />
-                {gaps.length > 0 && (
-                  <p className="rounded-[10px] border border-adm-status-pending-border bg-adm-status-pending-bg px-3 py-2 text-[12.5px] text-adm-status-pending-text">
-                    <span className="font-semibold">Ficha incompleta.</span> {profileGapsSummary(gaps)}
-                  </p>
-                )}
-                {isAdminGlobal && (
-                  <>
-                    <Button
-                      type="button"
-                      variant={professional.active ? 'admin-danger' : 'admin-outline'}
-                      size="xs"
-                      disabled={togglingId === professional.id || (!professional.active && !professional.accountActive)}
-                      onClick={() => handleToggleActive(professional.id, !professional.active)}
-                    >
-                      {togglingId === professional.id ? 'Guardando…' : professional.active ? 'Desactivar ficha' : 'Activar ficha'}
-                    </Button>
-                    {!professional.active && !professional.accountActive && (
-                      <p className="text-[12.5px] text-adm-ink-400">Activa primero la cuenta en Equipo.</p>
-                    )}
-                  </>
-                )}
-              </div>
+              <ProfessionalCard
+                key={professional.id}
+                professional={professional}
+                specialtyName={specialtyName || undefined}
+                meta={branchNames || 'Sin sedes'}
+                variant="admin"
+                agendaHref="/admin/agenda"
+                status={professionalStatus(professional)}
+                onEdit={() => open({ kind: 'profile', professionalId: professional.id })}
+                onSchedule={
+                  activeBranchesOf(professional.branchIds, branches).length > 0
+                    ? () => open({ kind: 'schedule', professionalId: professional.id, returnToProfile: false })
+                    : undefined
+                }
+                notice={
+                  gaps.length > 0 && (
+                    <p className="flex items-start gap-2 rounded-[10px] border border-adm-status-pending-border bg-adm-status-pending-bg px-3 py-2 text-[13px] leading-snug text-adm-status-pending-text">
+                      <TriangleAlert size={15} className="mt-px shrink-0" />
+                      <span>
+                        <span className="font-semibold">Ficha incompleta.</span> {profileGapsSummary(gaps)}
+                      </span>
+                    </p>
+                  )
+                }
+                footer={
+                  isAdminGlobal && (
+                    <>
+                      <Button
+                        type="button"
+                        variant={professional.active ? 'admin-danger' : 'admin-outline'}
+                        size="md"
+                        className="w-full"
+                        icon={<Power size={14} />}
+                        disabled={togglingId === professional.id || (!professional.active && !professional.accountActive)}
+                        onClick={() => handleToggleActive(professional.id, !professional.active)}
+                      >
+                        {togglingId === professional.id ? 'Guardando…' : professional.active ? 'Desactivar ficha' : 'Activar ficha'}
+                      </Button>
+                      {!professional.active && !professional.accountActive && (
+                        <p className="text-[12.5px] text-adm-ink-400">Activa primero la cuenta en Equipo.</p>
+                      )}
+                    </>
+                  )
+                }
+              />
             );
           })}
         </div>

@@ -1,6 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { ArrowRight, Mail, MapPin, Plus, Power, UsersRound } from 'lucide-react';
 import SectionTitle from '../../components/common/SectionTitle';
+import { getInitials } from '../../utils/format';
 import Button from '../../components/common/Button';
 import EmptyState from '../../components/common/EmptyState';
 import Spinner from '../../components/common/Spinner';
@@ -182,15 +183,22 @@ function TeamPage() {
           {members.map((member) => (
             <div
               key={member.id}
-              className="flex flex-col rounded-[14px] border border-adm-line-card bg-white p-5 shadow-soft"
+              className="flex h-full flex-col rounded-[14px] border border-adm-line-card bg-white p-5 shadow-soft transition-shadow duration-[180ms] hover:border-[#d7e2e6] hover:shadow-adm-elev-1"
             >
-              <div className="flex flex-1 flex-col gap-3">
-                <div className="flex min-w-0 flex-col gap-0.5">
-                  <p className="truncate text-[15.5px] font-semibold text-adm-ink-700">{member.fullName}</p>
-                  <p className="flex min-w-0 items-center gap-1.5 text-[13px] text-adm-ink-400">
-                    <Mail size={13} className="shrink-0" />
-                    <span className="truncate">{member.email}</span>
-                  </p>
+              <div className="flex flex-1 flex-col gap-3.5">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#dceef0] text-sm font-semibold text-adm-accent-deep">
+                    {getInitials(member.fullName)}
+                  </span>
+                  <div className="flex min-w-0 flex-col gap-0.5">
+                    <p className="truncate text-[15.5px] font-semibold text-adm-ink-700" title={member.fullName}>
+                      {member.fullName}
+                    </p>
+                    <p className="flex min-w-0 items-center gap-1.5 text-[13px] text-adm-ink-400">
+                      <Mail size={13} className="shrink-0" />
+                      <span className="truncate" title={member.email}>{member.email}</span>
+                    </p>
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-1.5">
@@ -199,7 +207,7 @@ function TeamPage() {
                 </div>
 
                 <div className="flex items-start gap-1.5">
-                  <MapPin size={13} className="mt-[3px] shrink-0 text-adm-ink-300" />
+                  <MapPin size={14} strokeWidth={1.75} className="mt-px shrink-0 text-adm-ink-300" />
                   <div className="flex flex-col gap-0.5">
                     <p className="text-[13px] leading-snug text-adm-ink-400">
                       {member.branchNames.length === 0
@@ -231,7 +239,7 @@ function TeamPage() {
                   <Button
                     to={`/admin/profesionales?ficha=${member.id}`}
                     variant="admin-outline"
-                    size="sm"
+                    size="md"
                     icon={<ArrowRight size={14} />}
                     className="w-full"
                   >
@@ -241,7 +249,7 @@ function TeamPage() {
                   <Button
                     type="button"
                     variant="admin-outline"
-                    size="sm"
+                    size="md"
                     icon={<MapPin size={14} />}
                     className="w-full"
                     onClick={() => setEditingBranches(member)}
@@ -255,7 +263,7 @@ function TeamPage() {
                     <Button
                       type="button"
                       variant={action.active ? 'admin-danger' : 'admin-outline'}
-                      size="sm"
+                      size="md"
                       icon={<Power size={14} />}
                       className="w-full"
                       disabled={isBusy}
@@ -267,7 +275,7 @@ function TeamPage() {
                     <Button
                       type="button"
                       variant={member.active ? 'admin-danger' : 'admin-outline'}
-                      size="sm"
+                      size="md"
                       icon={<Power size={14} />}
                       className="w-full"
                       disabled={isBusy || action.blockedReason !== null}

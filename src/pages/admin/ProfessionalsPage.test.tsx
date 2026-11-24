@@ -150,7 +150,7 @@ async function openSchedule() {
 
 async function openProfile(name = 'ANali') {
   const user = renderPage();
-  const card = screen.getByText(name).closest('div.flex.flex-col.gap-2') as HTMLElement;
+  const card = screen.getByText(name).closest('[data-testid="professional-card"]') as HTMLElement;
   await user.click(within(card).getByRole('button', { name: 'Editar' }));
   const dialog = await screen.findByRole('dialog');
   return { user, dialog };
@@ -392,12 +392,12 @@ describe('ProfessionalsPage — estado de cuenta y ficha', () => {
     extra.professionals = [pruebaB];
     renderPage();
 
-    const card = screen.getByText('PRUEBA Especialista B').closest('div.flex.flex-col.gap-2') as HTMLElement;
+    const card = screen.getByText('PRUEBA Especialista B').closest('[data-testid="professional-card"]') as HTMLElement;
     expect(within(card).getByText('Cuenta desactivada (Equipo)')).toBeInTheDocument();
     expect(within(card).queryByText('Activo')).not.toBeInTheDocument();
     expect(screen.queryByText('Agenda publicada')).not.toBeInTheDocument();
 
-    const analiCard = screen.getByText('ANali').closest('div.flex.flex-col.gap-2') as HTMLElement;
+    const analiCard = screen.getByText('ANali').closest('[data-testid="professional-card"]') as HTMLElement;
     expect(within(analiCard).getByText('Activa')).toBeInTheDocument();
   });
 
@@ -405,7 +405,7 @@ describe('ProfessionalsPage — estado de cuenta y ficha', () => {
     extra.professionals = [{ ...pruebaB, active: false }];
     renderPage();
 
-    const card = screen.getByText('PRUEBA Especialista B').closest('div.flex.flex-col.gap-2') as HTMLElement;
+    const card = screen.getByText('PRUEBA Especialista B').closest('[data-testid="professional-card"]') as HTMLElement;
     expect(within(card).getByRole('button', { name: 'Activar ficha' })).toBeDisabled();
     expect(within(card).getByText('Activa primero la cuenta en Equipo.')).toBeInTheDocument();
   });
