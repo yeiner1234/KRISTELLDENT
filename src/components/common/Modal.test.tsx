@@ -56,6 +56,14 @@ describe('Modal', () => {
     expect(screen.getByRole('dialog')).toHaveClass('max-h-[100dvh]', 'sm:max-h-[90vh]', 'flex-col');
   });
 
+  it('en celular ocupa toda la pantalla y sus botones son táctiles', () => {
+    renderLongModal();
+
+    expect(screen.getByRole('dialog')).toHaveClass('h-[100dvh]', 'sm:h-auto');
+    expect(screen.getByRole('button', { name: 'Cerrar' })).toHaveClass('h-11', 'w-11', 'sm:h-8', 'sm:w-8');
+    expect(screen.getByTestId('modal-footer')).toHaveClass('[&>*]:flex-1', 'sm:[&>*]:flex-initial');
+  });
+
   it('el botón del pie envía el formulario del cuerpo', async () => {
     const onSubmit = renderLongModal();
 
