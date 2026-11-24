@@ -168,6 +168,9 @@ interface AppointmentRow {
   professional_id: string;
   branch_id: string;
   service_id: string | null;
+  service_name: string | null;
+  service_price: number | string | null;
+  service_duration_minutes: number | null;
   appointment_date: string;
   start_time: string;
   end_time: string;
@@ -188,13 +191,19 @@ function mapRow(row: AppointmentRow): Appointment {
     endTime: row.end_time.slice(0, 5),
     status: row.status,
     reason: row.reason ?? '',
+    serviceName: row.service_name,
+    // numeric llega como texto desde PostgREST.
+    servicePrice: row.service_price === null ? null : Number(row.service_price),
+    serviceDuration: row.service_duration_minutes,
   };
 }
 
 export async function getAllAppointments(): Promise<Appointment[]> {
   const { data, error } = await supabase
     .from('appointments')
-    .select('id, appointment_code, patient_id, professional_id, branch_id, service_id, appointment_date, start_time, end_time, status, reason')
+    .select(
+      'id, appointment_code, patient_id, professional_id, branch_id, service_id, service_name, service_price, service_duration_minutes, appointment_date, start_time, end_time, status, reason',
+    )
     .order('appointment_date', { ascending: false });
 
   if (error) {

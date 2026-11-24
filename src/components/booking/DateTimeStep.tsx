@@ -5,8 +5,8 @@ import CalendarPicker from '../common/CalendarPicker';
 import StepHeader from './StepHeader';
 import Spinner from '../common/Spinner';
 import EmptyState from '../common/EmptyState';
-import { ANY_PROFESSIONAL, candidateProfessionals } from '../../utils/bookingCandidates';
-import { useProfessionals } from '../../hooks/useProfessionals';
+import { ANY_PROFESSIONAL } from '../../utils/bookingCandidates';
+import { useBookableProfessionals } from '../../hooks/useBookingOffer';
 import { getAvailableSlots } from '../../services/appointmentService';
 import { getBranchWeeklyHours } from '../../services/branchScheduleService';
 import { isBranchClosedOn, type WeeklyHours } from '../../utils/businessHours';
@@ -40,14 +40,21 @@ function DateTimeStep({
   onSelectDate,
   onSelectTime,
 }: DateTimeStepProps) {
-  const { professionals, isLoading: isLoadingProfessionals, error: professionalsError } = useProfessionals();
+  // Quien atiende ese servicio en esa sede (get_bookable_professionals): con
+  // "cualquier profesional" se buscan horarios de todas ellas.
+  const {
+    data: professionals,
+    isLoading: isLoadingProfessionals,
+    error: professionalsError,
+  } = useBookableProfessionals(branchId, specialtyId, serviceId);
   const [result, setResult] = useState<SlotsResult | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [weeklyHours, setWeeklyHours] = useState<WeeklyHours | null>(null);
 
   const isAnyProfessional = professionalId === ANY_PROFESSIONAL;
-  const candidateKey = candidateProfessionals(professionals, { specialtyId, branchId, professionalId })
-    .map((p) => p.id)
+  const candidateKey = professionals
+    .filter((professional) => isAnyProfessional || professional.id === professionalId)
+    .map((professional) => professional.id)
     .join(',');
   // Identifica la consulta en curso: si el resultado guardado es de otra
   // clave, todavía se está cargando la nueva.

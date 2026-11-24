@@ -4,25 +4,18 @@ import userEvent from '@testing-library/user-event';
 import DateTimeStep from './DateTimeStep';
 import { getAvailableSlots } from '../../services/appointmentService';
 import { getBranchWeeklyHours } from '../../services/branchScheduleService';
-import type { Professional } from '../../types/Professional';
 
 vi.mock('../../services/appointmentService', () => ({ getAvailableSlots: vi.fn() }));
 vi.mock('../../services/branchScheduleService', () => ({ getBranchWeeklyHours: vi.fn() }));
 
-const ana: Professional = {
-  id: 'ana',
-  fullName: 'Ana Ríos',
-  role: null,
-  bio: null,
-  active: true,
-  specialtyIds: ['endo'],
-  branchIds: ['A'],
-  serviceIds: ['s45'],
-};
-const bety: Professional = { ...ana, id: 'bety', fullName: 'Bety Soto', branchIds: ['B'] };
-
-vi.mock('../../hooks/useProfessionals', () => ({
-  useProfessionals: () => ({ professionals: [ana, bety], isLoading: false, error: null }),
+// get_bookable_professionals ya filtra por sede, especialidad y servicio:
+// en la sede A solo Ana atiende el servicio s45.
+const bookable = vi.hoisted(() => ({ calls: [] as unknown[][] }));
+vi.mock('../../hooks/useBookingOffer', () => ({
+  useBookableProfessionals: (...args: unknown[]) => {
+    bookable.calls.push(args);
+    return { data: [{ id: 'ana', fullName: 'Ana Ríos' }], isLoading: false, error: null, refetch: vi.fn() };
+  },
 }));
 
 function renderStep(date: string | null = '2026-11-16') {
@@ -55,12 +48,13 @@ describe('DateTimeStep', () => {
     vi.useRealTimers();
   });
 
-  it('con cualquier profesional solo consulta a quienes atienden en la sede', async () => {
+  it('con cualquier profesional solo consulta a quienes atienden ese servicio en la sede', async () => {
     vi.mocked(getAvailableSlots).mockResolvedValue([{ time: '09:00', available: true }]);
 
     renderStep();
 
     expect(await screen.findByText('09:00')).toBeInTheDocument();
+    expect(bookable.calls[0]).toEqual(['A', 'endo', 's45']);
     expect(getAvailableSlots).toHaveBeenCalledTimes(1);
     expect(getAvailableSlots).toHaveBeenCalledWith({ professionalId: 'ana', branchId: 'A', serviceId: 's45', date: '2026-11-16' });
   });

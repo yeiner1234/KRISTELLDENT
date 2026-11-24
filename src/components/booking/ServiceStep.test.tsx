@@ -1,61 +1,49 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import ServiceStep from './ServiceStep';
-import type { Professional } from '../../types/Professional';
-import type { Service } from '../../types/Service';
+import type { BookableService } from '../../types/Offer';
 
-const ana: Professional = {
-  id: 'ana',
-  fullName: 'Ana Ríos',
-  role: null,
-  bio: null,
-  active: true,
-  specialtyIds: ['endo'],
-  branchIds: ['chacha'],
-  serviceIds: [],
-};
+const offer = vi.hoisted(() => ({ services: [] as BookableService[], calls: [] as unknown[][] }));
 
-const mocks = vi.hoisted(() => ({ professionals: [] as Professional[], services: [] as Service[] }));
-
-vi.mock('../../hooks/useProfessionals', () => ({
-  useProfessionals: () => ({ professionals: mocks.professionals, isLoading: false, error: null }),
+vi.mock('../../hooks/useBookingOffer', () => ({
+  useBookableServices: (...args: unknown[]) => {
+    offer.calls.push(args);
+    return { data: offer.services, isLoading: false, error: null, refetch: vi.fn() };
+  },
 }));
-vi.mock('../../hooks/useServices', () => ({
-  useServices: () => ({ services: mocks.services, isLoading: false, error: null }),
-}));
-
-const service = (id: string, name: string, branchId: string): Service => ({
-  id,
-  name,
-  specialtyId: 'endo',
-  branchId,
-  duration: 30,
-  price: 80,
-  active: true,
-});
 
 describe('ServiceStep', () => {
-  it('sin profesionales de la especialidad en la sede lo dice así', () => {
-    mocks.professionals = [ana];
-    mocks.services = [];
-    render(<ServiceStep specialtyId="endo" branchId="chiclayo" professionalId="any" serviceId={null} onChange={vi.fn()} />);
-
-    expect(screen.getByText('No hay profesionales de esta especialidad en esta sede.')).toBeInTheDocument();
+  beforeEach(() => {
+    offer.services = [];
+    offer.calls = [];
   });
 
-  it('con profesionales pero sin servicios mantiene el mensaje de servicios', () => {
-    mocks.professionals = [ana];
-    mocks.services = [];
-    render(<ServiceStep specialtyId="endo" branchId="chacha" professionalId="any" serviceId={null} onChange={vi.fn()} />);
+  it('pide los servicios reservables de la sede, de la profesional elegida', () => {
+    render(<ServiceStep specialtyId="endo" branchId="jaen" professionalId="ana" serviceId={null} onChange={vi.fn()} />);
 
-    expect(screen.getByText('No hay servicios disponibles')).toBeInTheDocument();
+    expect(offer.calls[0]).toEqual(['jaen', 'endo', 'ana']);
   });
 
-  it('solo muestra el servicio de la sede elegida aunque la profesional tenga la copia de otra sede', () => {
-    mocks.professionals = [{ ...ana, branchIds: ['chacha', 'jaen'], serviceIds: ['conducto-chacha', 'conducto-jaen'] }];
-    mocks.services = [service('conducto-chacha', 'Conducto', 'chacha'), service('conducto-jaen', 'Conducto', 'jaen')];
+  it('con "cualquier profesional" pide los de todas las que atienden ahí', () => {
     render(<ServiceStep specialtyId="endo" branchId="jaen" professionalId="any" serviceId={null} onChange={vi.fn()} />);
 
-    expect(screen.getAllByText('Conducto')).toHaveLength(1);
+    expect(offer.calls[0]).toEqual(['jaen', 'endo', null]);
+  });
+
+  it('muestra el precio y la duración de esa sede', () => {
+    offer.services = [
+      { id: 'c', name: 'Conducto', specialtyId: 'endo', specialtyName: 'Endodoncia', price: 150, duration: 60 },
+    ];
+    render(<ServiceStep specialtyId="endo" branchId="jaen" professionalId="any" serviceId={null} onChange={vi.fn()} />);
+
+    expect(screen.getByText('Conducto')).toBeInTheDocument();
+    expect(screen.getByText('60 min')).toBeInTheDocument();
+    expect(screen.getByText(/150/)).toBeInTheDocument();
+  });
+
+  it('sin servicios lo dice', () => {
+    render(<ServiceStep specialtyId="endo" branchId="jaen" professionalId="any" serviceId={null} onChange={vi.fn()} />);
+
+    expect(screen.getByText('No hay servicios disponibles')).toBeInTheDocument();
   });
 });

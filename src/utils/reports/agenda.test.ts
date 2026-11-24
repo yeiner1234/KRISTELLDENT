@@ -156,6 +156,12 @@ describe('buildAgendaRows', () => {
     });
   });
 
+  it('el servicio sale de la copia guardada en la cita', () => {
+    const rows = buildAgendaRows([appointment({ id: 'a1', serviceName: 'Extracción (precio 2025)' })], lookups, base);
+
+    expect(rows[0].serviceName).toBe('Extracción (precio 2025)');
+  });
+
   it('filtra por doctora y por turno', () => {
     expect(buildAgendaRows(appointments, lookups, { ...base, professionalId: 'pr-sanchez' }).map((r) => r.id)).toEqual([
       'a2',

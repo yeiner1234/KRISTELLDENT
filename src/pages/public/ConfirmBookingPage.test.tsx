@@ -4,10 +4,10 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import ConfirmBookingPage from './ConfirmBookingPage';
 import { createPublicAppointment } from '../../services/appointmentService';
-import { useServices } from '../../hooks/useServices';
+import { useBookableServices } from '../../hooks/useBookingOffer';
 
 vi.mock('../../services/appointmentService', () => ({ createPublicAppointment: vi.fn() }));
-vi.mock('../../hooks/useServices', () => ({ useServices: vi.fn() }));
+vi.mock('../../hooks/useBookingOffer', () => ({ useBookableServices: vi.fn() }));
 vi.mock('../../hooks/useBranches', () => ({
   useBranches: () => ({ branches: [{ id: 'b1', name: 'Sede Centro', region: 'Lima' }], isLoading: false, error: null }),
 }));
@@ -16,7 +16,7 @@ vi.mock('../../hooks/useProfessionals', () => ({
   useSpecialties: () => ({ specialties: [{ id: 'sp1', name: 'Endodoncia' }], isLoading: false, error: null }),
 }));
 
-const service = { id: 's1', name: 'Endodoncia unirradicular', duration: 45, specialtyId: 'sp1', active: true };
+const service = { id: 's1', name: 'Endodoncia unirradicular', duration: 45, price: 180, specialtyId: 'sp1', specialtyName: 'Endodoncia' };
 
 const state = {
   specialtyId: 'sp1',
@@ -56,11 +56,19 @@ function renderPage() {
 describe('ConfirmBookingPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useServices).mockReturnValue({ services: [service] as never, isLoading: false, error: null });
+    vi.mocked(useBookableServices).mockReturnValue({ data: [service], isLoading: false, error: null, refetch: vi.fn() });
+  });
+
+  it('muestra el servicio con el precio y la duración de la sede elegida', () => {
+    renderPage();
+
+    expect(vi.mocked(useBookableServices)).toHaveBeenCalledWith('b1', 'sp1', 'p1');
+    expect(screen.getByText('Endodoncia unirradicular (45 min)')).toBeInTheDocument();
+    expect(screen.getByText(/S\/\s?180/)).toBeInTheDocument();
   });
 
   it('deshabilita Confirmar mientras cargan los servicios', () => {
-    vi.mocked(useServices).mockReturnValue({ services: [], isLoading: true, error: null });
+    vi.mocked(useBookableServices).mockReturnValue({ data: [], isLoading: true, error: null, refetch: vi.fn() });
     renderPage();
     expect(screen.getByRole('button', { name: /confirmar/i })).toBeDisabled();
   });

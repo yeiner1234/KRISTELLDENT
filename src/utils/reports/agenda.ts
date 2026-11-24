@@ -199,7 +199,9 @@ export function buildAgendaRows(appointments: Appointment[], lookups: AgendaLook
         id: appointment.id,
         time: appointment.startTime,
         patientName: patient ? formatPatientName(patient.firstName, patient.lastName) : 'Paciente',
-        serviceName: (appointment.serviceId && serviceById.get(appointment.serviceId)?.name) || '—',
+        // La copia guardada en la cita manda (historial).
+        serviceName:
+          appointment.serviceName || (appointment.serviceId && serviceById.get(appointment.serviceId)?.name) || '—',
         professionalId: appointment.professionalId,
         doctorFullName,
         doctorName: doctorFullName ? formatDoctorName(doctorFullName) : '—',

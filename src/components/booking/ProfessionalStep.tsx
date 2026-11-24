@@ -5,9 +5,9 @@ import StepHeader from './StepHeader';
 import StepTransition from './StepTransition';
 import EmptyState from '../common/EmptyState';
 import Spinner from '../common/Spinner';
-import { useProfessionals, useSpecialties } from '../../hooks/useProfessionals';
+import { useBookableProfessionals, useBranchSpecialties } from '../../hooks/useBookingOffer';
 import { getInitials } from '../../utils/format';
-import { ANY_PROFESSIONAL, professionalsForBooking } from '../../utils/bookingCandidates';
+import { ANY_PROFESSIONAL } from '../../utils/bookingCandidates';
 
 type View = 'choice' | 'grid';
 
@@ -23,11 +23,15 @@ function ProfessionalStep({ specialtyId, branchId, professionalId, onChange }: P
     professionalId && professionalId !== ANY_PROFESSIONAL ? 'grid' : 'choice',
   );
 
-  const { professionals, isLoading, error: professionalsError } = useProfessionals();
-  const { specialties, error: specialtiesError } = useSpecialties();
+  // Solo quien atiende algo reservable de esa especialidad en esa sede.
+  const {
+    data: matchingProfessionals,
+    isLoading,
+    error: professionalsError,
+  } = useBookableProfessionals(branchId, specialtyId);
+  const { data: specialties, error: specialtiesError } = useBranchSpecialties(branchId);
   const loadError = professionalsError ?? specialtiesError;
   const specialty = specialties.find((item) => item.id === specialtyId);
-  const matchingProfessionals = professionalsForBooking(professionals, specialtyId, branchId);
 
   return (
     <div>

@@ -45,9 +45,12 @@ function BookingPage() {
     setStep((current) => current - 1);
   };
 
-  // Los profesionales dependen de la sede: al cambiarla se suelta lo elegido después.
+  // Especialidades, profesionales y servicios dependen de la sede: al
+  // cambiarla se suelta lo elegido después.
   const handleChangeBranch = (id: string) => {
     if (id !== branchId) {
+      setSpecialtyId(null);
+      setMotiveLabel(null);
       setProfessionalChoice(null);
       setResolvedProfessionalId(null);
       setServiceId(null);
@@ -136,8 +139,9 @@ function BookingPage() {
     >
       {step === 1 && <BranchSelector selectedId={branchId} onSelect={handleChangeBranch} />}
 
-      {step === 2 && (
+      {step === 2 && branchId && (
         <AttentionStep
+          branchId={branchId}
           specialtyId={specialtyId}
           motiveLabel={motiveLabel}
           onChange={handleChangeSpecialty}

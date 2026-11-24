@@ -60,6 +60,16 @@ describe('buildAppointmentViews', () => {
     expect(views[1].professionalName).toBe('Dra. Inés Soto');
   });
 
+  it('muestra el servicio tal como se reservó aunque después lo hayan renombrado', () => {
+    const [view] = buildAppointmentViews([appointment({ id: 'a9', serviceName: 'Limpieza simple' })], {
+      patients,
+      professionals,
+      services,
+    });
+
+    expect(view.serviceName).toBe('Limpieza simple');
+  });
+
   it('usa valores por defecto cuando falta un dato', () => {
     const [view] = buildAppointmentViews([appointment({ patientId: 'x', professionalId: 'y', serviceId: null })], {
       patients,

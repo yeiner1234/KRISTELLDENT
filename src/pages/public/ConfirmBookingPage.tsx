@@ -6,9 +6,9 @@ import StepHeader from '../../components/booking/StepHeader';
 import BookingSummary, { type BookingSummaryRow } from '../../components/booking/BookingSummary';
 import { useProfessionals, useSpecialties } from '../../hooks/useProfessionals';
 import { useBranches } from '../../hooks/useBranches';
-import { useServices } from '../../hooks/useServices';
+import { useBookableServices } from '../../hooks/useBookingOffer';
 import { createPublicAppointment } from '../../services/appointmentService';
-import { formatFullName } from '../../utils/format';
+import { formatCurrency, formatFullName } from '../../utils/format';
 import { formatDateLong } from '../../utils/date';
 import type { BookingSelection } from './BookingPage';
 import type { PatientFormValues } from '../../components/booking/PatientForm';
@@ -22,7 +22,12 @@ function ConfirmBookingPage() {
   const { professionals, error: professionalsError } = useProfessionals();
   const { specialties, error: specialtiesError } = useSpecialties();
   const { branches, error: branchesError } = useBranches();
-  const { services, isLoading: isLoadingServices, error: servicesError } = useServices();
+  // El servicio de la sede elegida, con su precio y duración en esa sede.
+  const {
+    data: services,
+    isLoading: isLoadingServices,
+    error: servicesError,
+  } = useBookableServices(state?.branchId ?? null, state?.specialtyId ?? null, state?.professionalId ?? null);
   // Sin estos datos el resumen sale incompleto: no se deja confirmar a ciegas.
   const loadError = servicesError ?? professionalsError ?? specialtiesError ?? branchesError;
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -93,6 +98,7 @@ function ConfirmBookingPage() {
     { label: 'Sucursal', value: branch?.name ?? '—' },
     { label: 'Especialidad', value: specialty?.name ?? '—' },
     { label: 'Servicio', value: service ? `${service.name} (${service.duration} min)` : '—' },
+    { label: 'Precio', value: service ? formatCurrency(service.price) : '—' },
     { label: 'Profesional', value: professional?.fullName ?? '—' },
     { label: 'Fecha', value: formatDateLong(state.date) },
     { label: 'Hora', value: state.time },

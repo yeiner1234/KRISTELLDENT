@@ -12,6 +12,12 @@ export interface Appointment {
   endTime: string;
   status: AppointmentStatus;
   reason: string;
+  // Copia del servicio al reservar o reprogramar (appointments.service_*): el
+  // historial no cambia si después se edita el servicio. null en citas sin
+  // servicio; ausente en datos que no la traen.
+  serviceName?: string | null;
+  servicePrice?: number | null;
+  serviceDuration?: number | null;
 }
 
 // Cita tal como la ve el paciente en /mis-citas (Edge Function patient-appointments).

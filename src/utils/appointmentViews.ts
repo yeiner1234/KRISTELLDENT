@@ -38,7 +38,10 @@ export function buildAppointmentViews(appointments: Appointment[], lookups: Appo
     .map((appointment) => {
       const patient = patientById.get(appointment.patientId);
       const professionalName = professionalById.get(appointment.professionalId)?.fullName;
-      const serviceName = appointment.serviceId ? serviceById.get(appointment.serviceId)?.name : undefined;
+      // La copia guardada en la cita manda; el servicio actual solo cubre
+      // citas anteriores a esa copia.
+      const serviceName =
+        appointment.serviceName ?? (appointment.serviceId ? serviceById.get(appointment.serviceId)?.name : undefined);
       return {
         appointment,
         patientName: patient ? formatFullName(patient.firstName, patient.lastName) : 'Paciente',

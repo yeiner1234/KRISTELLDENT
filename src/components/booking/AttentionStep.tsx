@@ -6,7 +6,7 @@ import StepTransition from './StepTransition';
 import Button from '../common/Button';
 import EmptyState from '../common/EmptyState';
 import Spinner from '../common/Spinner';
-import { useSpecialties } from '../../hooks/useProfessionals';
+import { useBranchSpecialties } from '../../hooks/useBookingOffer';
 import { getSpecialtyIcon } from './specialtyIcons';
 import { attentionMotives } from './attentionMotives';
 import { findSpecialtyByNames } from '../../utils/specialtyMatch';
@@ -14,14 +14,17 @@ import { findSpecialtyByNames } from '../../utils/specialtyMatch';
 type View = 'choice' | 'specialty' | 'motive' | 'recommendation';
 
 interface AttentionStepProps {
+  branchId: string;
   specialtyId: string | null;
   motiveLabel: string | null;
   onChange: (specialtyId: string, motiveLabel: string | null) => void;
   onContinue: () => void;
 }
 
-function AttentionStep({ specialtyId, motiveLabel, onChange, onContinue }: AttentionStepProps) {
-  const { specialties, isLoading, error } = useSpecialties();
+// Solo especialidades con al menos un servicio reservable en la sede elegida
+// (get_branch_specialties); la recomendación por motivo también se limita a ellas.
+function AttentionStep({ branchId, specialtyId, motiveLabel, onChange, onContinue }: AttentionStepProps) {
+  const { data: specialties, isLoading, error } = useBranchSpecialties(branchId);
   const [view, setView] = useState<View>(specialtyId ? 'specialty' : 'choice');
   const [pendingMotiveId, setPendingMotiveId] = useState<string | null>(
     motiveLabel ? (attentionMotives.find((motive) => motive.label === motiveLabel)?.id ?? null) : null,
@@ -96,8 +99,8 @@ function AttentionStep({ specialtyId, motiveLabel, onChange, onContinue }: Atten
           ) : specialties.length === 0 ? (
             <EmptyState
               icon={Stethoscope}
-              title="No hay especialidades registradas"
-              description="Aún no hay especialidades disponibles para reservar."
+              title="Esta sede aún no tiene atenciones disponibles"
+              description="Vuelve atrás y elige otra sede."
             />
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
@@ -189,7 +192,7 @@ function AttentionStep({ specialtyId, motiveLabel, onChange, onContinue }: Atten
           </button>
           <EmptyState
             icon={Stethoscope}
-            title="No hay una especialidad recomendada disponible"
+            title="No hay una especialidad recomendada disponible en esta sede"
             description="Elige directamente una especialidad para continuar."
           />
           <div className="mt-4">

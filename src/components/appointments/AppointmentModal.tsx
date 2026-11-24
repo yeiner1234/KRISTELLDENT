@@ -7,6 +7,7 @@ import type { Appointment } from '../../types/Appointment';
 import type { AppRole } from '../../types/User';
 import type { AppointmentAction } from '../../utils/appointmentActions';
 import { formatDateLong, formatTimeRange } from '../../utils/date';
+import { formatCurrency } from '../../utils/format';
 
 interface AppointmentModalProps {
   appointment: Appointment | null;
@@ -73,6 +74,17 @@ function AppointmentModal({
           {branchName && <Row label="Sede" value={branchName} />}
           <Row label="Fecha" value={<span className="capitalize">{formatDateLong(appointment.date)}</span>} />
           <Row label="Hora" value={formatTimeRange(appointment.startTime, appointment.endTime)} />
+          {appointment.serviceName && (
+            <Row
+              label="Servicio"
+              value={
+                appointment.serviceDuration ? `${appointment.serviceName} (${appointment.serviceDuration} min)` : appointment.serviceName
+              }
+            />
+          )}
+          {appointment.servicePrice !== null && appointment.servicePrice !== undefined && (
+            <Row label="Precio" value={formatCurrency(appointment.servicePrice)} />
+          )}
           {appointment.reason && (
             <div className="py-3">
               <span className="text-[13px] text-adm-ink-300">Motivo</span>
