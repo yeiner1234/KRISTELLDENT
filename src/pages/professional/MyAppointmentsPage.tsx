@@ -83,13 +83,13 @@ function MyAppointmentsPage() {
             >
               <div className="flex min-w-[170px] flex-col">
                 <span className="text-sm font-semibold capitalize text-adm-ink-700">{formatDateLong(view.appointment.date)}</span>
-                <span className="text-[13px] text-adm-ink-400 [font-variant-numeric:tabular-nums]">
+                <span className="text-sm text-adm-ink-400 sm:text-[13px] [font-variant-numeric:tabular-nums]">
                   {formatTimeRange(view.appointment.startTime, view.appointment.endTime)} · {view.appointment.code}
                 </span>
               </div>
               <div className="flex min-w-[160px] flex-1 flex-col">
                 <span className="text-sm font-medium text-adm-ink-700">{view.patientName}</span>
-                <span className="text-[13px] text-adm-ink-400">{view.serviceName}</span>
+                <span className="text-sm text-adm-ink-400 sm:text-[13px]">{view.serviceName}</span>
               </div>
               <BranchTag branchId={view.appointment.branchId} />
               <AppointmentStatus status={view.appointment.status} theme="admin" />

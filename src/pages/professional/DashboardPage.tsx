@@ -132,7 +132,7 @@ function DashboardPage() {
                 <span className={`h-[34px] w-1 rounded-[3px] ${statusBarClasses[appointment.status]}`} />
                 <div className="flex min-w-[140px] flex-1 flex-col">
                   <span className="text-sm font-medium text-adm-ink-700">{patientName(appointment.patientId)}</span>
-                  <span className="text-[13px] text-adm-ink-400">{appointment.reason || 'Consulta'}</span>
+                  <span className="text-sm text-adm-ink-400 sm:text-[13px]">{appointment.reason || 'Consulta'}</span>
                 </div>
                 <BranchTag branchId={appointment.branchId} />
                 <AppointmentStatus status={appointment.status} theme="admin" />
