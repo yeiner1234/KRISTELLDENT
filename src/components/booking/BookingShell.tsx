@@ -55,7 +55,8 @@ function BookingShell({
             Completa los siguientes pasos para encontrar el horario que mejor se adapte a ti.
           </p>
         </div>
-        <span className="text-[12.5px] font-semibold text-brand-600">
+        {/* En celular y tablet el paso ya sale en el indicador compacto. */}
+        <span className="hidden text-[12.5px] font-semibold text-brand-600 lg:inline">
           Paso {currentStep} de {bookingSteps.length}
         </span>
       </div>
