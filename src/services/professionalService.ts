@@ -97,11 +97,6 @@ export async function getProfessionals(): Promise<Professional[]> {
     .map((row) => ({ ...mapRow(row), fullName: nameById.get(row.id) ?? '' }));
 }
 
-export async function getProfessionalsBySpecialty(specialtyId: string): Promise<Professional[]> {
-  const all = await getProfessionals();
-  return all.filter((professional) => professional.specialtyIds.includes(specialtyId));
-}
-
 // Un admin_sede solo lee el perfil del personal que comparte sede con él; si
 // el nombre llega vacío se toma de get_public_professionals (solo
 // profesionales activos).
