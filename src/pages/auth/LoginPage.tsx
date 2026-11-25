@@ -1,19 +1,54 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
-import Input from '../../components/common/Input';
-import Button from '../../components/common/Button';
+import { Eye, EyeOff, Lock, LogIn, Mail } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { homePathForRole } from '../../utils/roleHome';
-import icon from '../../../imagenes/kristelldent-icon.png';
+import { getRememberMe, setRememberMe } from '../../utils/authStorage';
+import background from '../../assets/images/login-fondo.jpg';
+import logo from '../../../imagenes/kristelldent-logo.png';
+import '../../styles/login.css';
+
+const POPPINS_ID = 'kd-font-poppins';
+const POPPINS_HREF = 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap';
+
+// Poppins solo se usa en esta pantalla: se carga al abrirla.
+function usePoppinsFont() {
+  useEffect(() => {
+    if (document.getElementById(POPPINS_ID)) return;
+    const link = document.createElement('link');
+    link.id = POPPINS_ID;
+    link.rel = 'stylesheet';
+    link.href = POPPINS_HREF;
+    document.head.appendChild(link);
+  }, []);
+}
+
+function LogoBadge() {
+  return (
+    <span className="login__logo">
+      <img src={logo} alt="" />
+      <svg viewBox="0 0 100 12" aria-hidden="true">
+        <path d="M2 10 Q50 -2 98 6" fill="none" stroke="#e3177c" strokeWidth="4.5" strokeLinecap="round" />
+      </svg>
+    </span>
+  );
+}
 
 function LoginPage() {
+  usePoppinsFont();
   const navigate = useNavigate();
   const { login, sessionError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [remember, setRemember] = useState(getRememberMe);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleRememberChange = (checked: boolean) => {
+    setRemember(checked);
+    setRememberMe(checked);
+  };
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -30,89 +65,119 @@ function LoginPage() {
     }
   };
 
+  const message = error ?? sessionError;
+
   return (
-    <section className="min-h-screen bg-white">
-      <div className="grid min-h-screen lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
-        <div className="flex min-h-[280px] flex-col justify-between gap-14 bg-brand-600 p-8 text-white lg:min-h-[620px] lg:p-[56px_48px]">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-[9px] bg-white/18 p-1">
-              <img src={icon} alt="" className="h-full w-full" />
-            </span>
-            <span className="text-base font-semibold">KristellDent</span>
-          </div>
+    <main className="login">
+      <img src={background} alt="" className="login__backdrop" />
+      <div className="login__veil" />
 
-          <div className="flex max-w-[30ch] flex-col gap-4">
-            <h2 className="text-[32px] font-semibold leading-[1.25] tracking-[-0.02em]">Área interna de la clínica</h2>
-            <p className="text-[15px] leading-[1.65]" style={{ color: 'rgba(255,255,255,0.86)' }}>
-              Acceso reservado a administradores y profesionales. Los pacientes reservan sin cuenta desde el área
-              pública.
-            </p>
-          </div>
+      <div className="login__stage">
+        <img src={background} alt="" className="login__art" />
 
-          <Button
-            to="/"
-            variant="admin-outline"
-            size="sm"
-            icon={<ArrowLeft size={16} />}
-            className="w-fit !border-white/32 !bg-transparent !text-white hover:!bg-white/10"
-          >
-            Ir al área pública
-          </Button>
-        </div>
+        <header className="login__mobile-head">
+          <LogoBadge />
+          <p className="login__system">
+            Sistema Interno <strong>de la Clínica</strong>
+          </p>
+        </header>
 
-        <div className="flex items-center justify-center bg-white p-8 lg:p-[56px_48px]">
-          <form onSubmit={handleSubmit} className="flex w-full max-w-[380px] flex-col gap-[26px]">
-            <div className="flex flex-col gap-1.5">
-              <h1 className="text-[26px] font-semibold tracking-[-0.02em] text-adm-ink-700">Iniciar sesión</h1>
-              <p className="text-sm text-adm-ink-400">Introduce tus credenciales de trabajador.</p>
-            </div>
+        <section className="login__card" aria-labelledby="login-title">
+          <LogoBadge />
+          <h1 id="login-title" className="login__title">
+            Iniciar sesión
+          </h1>
+          <p className="login__subtitle">Accede con tus credenciales de trabajador.</p>
 
-            {(error ?? sessionError) && (
-              <p className="rounded-[10px] border border-adm-status-cancelled-border bg-adm-status-cancelled-bg px-3.5 py-2.5 text-sm font-medium text-adm-danger-text">
-                {error ?? sessionError}
-              </p>
-            )}
-
-            <div className="flex flex-col gap-4">
-              <Input
-                label="Correo electrónico"
+          <form onSubmit={handleSubmit} className="login__form">
+            <label htmlFor="login-email" className="login__label">
+              <span className="login__icon login__icon--mail" aria-hidden="true">
+                <Mail strokeWidth={2} />
+                <Mail strokeWidth={2} />
+              </span>
+              Correo electrónico
+            </label>
+            <div className="login__field">
+              <input
+                id="login-email"
                 name="email"
                 type="email"
-                variant="admin"
+                autoComplete="username"
+                className="login__input"
                 placeholder="nombre@kristelldent.com"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 required
               />
-              <Input
-                label="Contraseña"
+            </div>
+
+            <label htmlFor="login-password" className="login__label">
+              <Lock className="login__icon login__icon--lock" strokeWidth={2.5} aria-hidden="true" />
+              Contraseña
+            </label>
+            <div className="login__field">
+              <input
+                id="login-password"
                 name="password"
-                type="password"
-                variant="admin"
+                type={isPasswordVisible ? 'text' : 'password'}
+                autoComplete="current-password"
+                className="login__input login__input--password"
                 placeholder="••••••••"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 required
               />
+              <button
+                type="button"
+                className="login__eye"
+                onClick={() => setIsPasswordVisible((visible) => !visible)}
+                aria-label={isPasswordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                aria-pressed={isPasswordVisible}
+                aria-controls="login-password"
+                title={isPasswordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              >
+                {/* Como en el diseño: ojo tachado mientras la contraseña está oculta. */}
+                {isPasswordVisible ? (
+                  <Eye strokeWidth={2} aria-hidden="true" />
+                ) : (
+                  <EyeOff strokeWidth={2} aria-hidden="true" />
+                )}
+              </button>
             </div>
 
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 text-sm text-adm-ink-500">
-                <input type="checkbox" className="h-[15px] w-[15px] accent-brand-600" />
+            <div className="login__row">
+              <label className="login__remember">
+                <input
+                  type="checkbox"
+                  className="login__checkbox"
+                  checked={remember}
+                  onChange={(event) => handleRememberChange(event.target.checked)}
+                />
                 Recordarme
               </label>
-              <Link to="/login/recuperar" className="text-[13px] font-medium text-adm-accent-deep hover:underline">
+              <Link to="/login/recuperar" className="login__forgot">
                 ¿Olvidaste tu contraseña?
               </Link>
             </div>
 
-            <Button type="submit" variant="admin-solid" size="lg" className="w-full" disabled={isSubmitting}>
+            <button type="submit" className="login__submit" disabled={isSubmitting}>
+              <LogIn strokeWidth={2.75} aria-hidden="true" />
               {isSubmitting ? 'Iniciando sesión…' : 'Iniciar sesión'}
-            </Button>
+            </button>
+
+            {message && (
+              <p role="alert" className="login__error">
+                {message}
+              </p>
+            )}
+
+            <p className="login__tagline">
+              Tu trabajo hace <strong>sonreír a más personas</strong>
+            </p>
           </form>
-        </div>
+        </section>
       </div>
-    </section>
+    </main>
   );
 }
 
