@@ -1,8 +1,11 @@
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { CalendarRange, ClipboardList, LayoutDashboard, Printer, Users } from 'lucide-react';
+import { CalendarRange, Camera, ClipboardList, LayoutDashboard, Printer, Users } from 'lucide-react';
 import logo from '../../../imagenes/kristelldent-icon.png';
 import { useAuth } from '../../hooks/useAuth';
 import SidebarNavGroup from './SidebarNavGroup';
+import Avatar from '../common/Avatar';
+import AvatarUploadModal from '../profile/AvatarUploadModal';
 
 const professionalItems = [
   { label: 'Dashboard', to: '/profesional', icon: LayoutDashboard, end: true },
@@ -21,10 +24,10 @@ const technicianItems = [
 const technicianPrintables = [{ label: 'Agenda de citas', to: '/profesional/reportes/agenda' }];
 
 function ProfessionalSidebar() {
-  const { user } = useAuth();
+  const { user, setAvatarPath } = useAuth();
+  const [isPhotoOpen, setIsPhotoOpen] = useState(false);
   const isTechnician = user?.role === 'tecnica';
   const items = isTechnician ? technicianItems : professionalItems;
-  const initials = user?.name ? user.name.slice(0, 2).toUpperCase() : 'PR';
 
   return (
     <aside className="flex w-[244px] shrink-0 flex-col gap-[22px] bg-brand-900 p-[20px_14px]">
@@ -52,15 +55,37 @@ function ProfessionalSidebar() {
         {isTechnician && <SidebarNavGroup label="Imprimibles" icon={Printer} links={technicianPrintables} />}
       </nav>
 
-      <div className="mt-auto flex items-center gap-2.5 border-t border-white/[0.12] px-2 pt-3">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1e3a44] text-xs font-semibold text-[#9fc4c9]">
-          {initials}
+      {/* Al tocar su nombre o su foto, la persona cambia su foto de perfil. */}
+      <button
+        type="button"
+        onClick={() => setIsPhotoOpen(true)}
+        disabled={!user}
+        aria-label="Cambiar mi foto de perfil"
+        className="group mt-auto flex items-center gap-2.5 rounded-[10px] border-t border-white/[0.12] px-2 pb-1 pt-3 text-left transition-colors hover:bg-white/5"
+      >
+        <span className="relative">
+          <Avatar name={user?.name ?? 'Profesional'} path={user?.avatarPath} className="h-9 w-9 text-xs" />
+          <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-brand-600 text-white ring-2 ring-brand-900">
+            <Camera size={9} />
+          </span>
         </span>
-        <div className="flex min-w-0 flex-col">
-          <p className="truncate text-[13px] font-semibold text-white">{user?.name ?? 'Profesional'}</p>
-          <p className="truncate text-xs text-[#8aa3ab]">Panel profesional</p>
-        </div>
-      </div>
+        <span className="flex min-w-0 flex-col">
+          <span className="truncate text-[13px] font-semibold text-white">{user?.name ?? 'Profesional'}</span>
+          <span className="truncate text-xs text-[#8aa3ab] group-hover:text-white">Cambiar mi foto</span>
+        </span>
+      </button>
+
+      {isPhotoOpen && user && (
+        <AvatarUploadModal
+          userId={user.id}
+          name={user.name}
+          role={user.role}
+          avatarPath={user.avatarPath}
+          isOwn
+          onClose={() => setIsPhotoOpen(false)}
+          onChanged={setAvatarPath}
+        />
+      )}
     </aside>
   );
 }

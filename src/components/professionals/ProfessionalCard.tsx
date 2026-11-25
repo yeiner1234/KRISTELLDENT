@@ -5,6 +5,8 @@ import type { Professional } from '../../types/Professional';
 import { getInitials } from '../../utils/format';
 import type { ProfessionalStatus } from '../../utils/professionalProfile';
 import StatusBadge from '../common/StatusBadge';
+import Avatar from '../common/Avatar';
+import { getAvatarUrl } from '../../services/avatarService';
 import Button from '../common/Button';
 
 interface ProfessionalCardProps {
@@ -37,6 +39,7 @@ function ProfessionalCard({
 }: ProfessionalCardProps) {
   const fullName = professional.fullName;
   const initials = getInitials(professional.fullName);
+  const photoUrl = getAvatarUrl(professional.avatarPath);
 
   if (variant === 'admin') {
     // h-full: en una fila de la cuadrícula todas las tarjetas miden lo mismo y
@@ -44,9 +47,7 @@ function ProfessionalCard({
     return (
       <div data-testid="professional-card" className="flex h-full flex-col gap-3.5 rounded-[14px] border border-adm-line-card bg-white p-5 shadow-soft transition-shadow duration-[180ms] hover:border-[#d7e2e6] hover:shadow-adm-elev-1">
         <div className="flex items-center gap-3">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#dceef0] text-sm font-semibold text-adm-accent-deep">
-            {initials}
-          </span>
+          <Avatar name={fullName} path={professional.avatarPath} className="h-12 w-12 text-sm" />
           <div className="flex min-w-0 flex-col gap-0.5">
             <p className="truncate text-[15.5px] font-semibold text-adm-ink-700" title={fullName}>
               {fullName}
@@ -109,11 +110,19 @@ function ProfessionalCard({
 
   return (
     <div className="overflow-hidden rounded-2xl bg-white transition-all duration-200 hover:-translate-y-1">
+      {/* Foto de la profesional; sin foto, sus iniciales sobre el degradado. */}
       <div
-        aria-hidden="true"
-        className="aspect-square w-full"
+        className="flex aspect-square w-full items-center justify-center overflow-hidden"
         style={{ background: 'linear-gradient(150deg, #d2e9ec, #a8d5db)' }}
-      />
+      >
+        {photoUrl ? (
+          <img src={photoUrl} alt={`Foto de ${fullName}`} loading="lazy" className="h-full w-full object-cover" />
+        ) : (
+          <span aria-hidden="true" className="text-[56px] font-semibold tracking-[-0.02em] text-white/90">
+            {initials}
+          </span>
+        )}
+      </div>
       <div className="p-4">
         <p className="text-[15.5px] font-semibold text-brand-900">{fullName}</p>
         {specialtyName && <p className="text-sm font-medium text-brand-700">{specialtyName}</p>}

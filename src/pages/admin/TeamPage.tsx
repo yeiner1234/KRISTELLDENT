@@ -1,7 +1,9 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { ArrowRight, Mail, MapPin, Plus, Power, UsersRound } from 'lucide-react';
+import { ArrowRight, Camera, Mail, MapPin, Plus, Power, UsersRound } from 'lucide-react';
 import SectionTitle from '../../components/common/SectionTitle';
-import { getInitials } from '../../utils/format';
+import { canManageProfilePhoto } from '../../utils/avatar';
+import Avatar from '../../components/common/Avatar';
+import AvatarUploadModal from '../../components/profile/AvatarUploadModal';
 import Button from '../../components/common/Button';
 import EmptyState from '../../components/common/EmptyState';
 import Spinner from '../../components/common/Spinner';
@@ -46,7 +48,8 @@ interface FormState {
 }
 
 function TeamPage() {
-  const { user } = useAuth();
+  const { user, setAvatarPath } = useAuth();
+  const [photoMember, setPhotoMember] = useState<TeamMember | null>(null);
   const isAdminGlobal = user?.role === 'admin_global';
   const assignableRoles = isAdminGlobal ? rolesAdminGlobalCanCreate : rolesAdminSedeCanCreate;
   // null = admin_global (todas las sedes).
@@ -187,8 +190,19 @@ function TeamPage() {
             >
               <div className="flex flex-1 flex-col gap-3.5">
                 <div className="flex items-center gap-3">
-                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#dceef0] text-sm font-semibold text-adm-accent-deep">
-                    {getInitials(member.fullName)}
+                  <span className="relative shrink-0">
+                    <Avatar name={member.fullName} path={member.avatarPath} className="h-12 w-12 text-sm" />
+                    {canManageProfilePhoto(user, member) && (
+                      <button
+                        type="button"
+                        onClick={() => setPhotoMember(member)}
+                        aria-label={`Cambiar la foto de ${member.fullName}`}
+                        title="Cambiar foto"
+                        className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-brand-600 text-white shadow-soft ring-2 ring-white transition-colors hover:bg-brand-700"
+                      >
+                        <Camera size={12} />
+                      </button>
+                    )}
                   </span>
                   <div className="flex min-w-0 flex-col gap-0.5">
                     <p className="truncate text-[15.5px] font-semibold text-adm-ink-700" title={member.fullName}>
@@ -408,6 +422,21 @@ function TeamPage() {
           </p>
         </form>
       </Modal>
+
+      {photoMember && (
+        <AvatarUploadModal
+          userId={photoMember.id}
+          name={photoMember.fullName}
+          role={photoMember.role}
+          avatarPath={photoMember.avatarPath}
+          isOwn={photoMember.id === user?.id}
+          onClose={() => setPhotoMember(null)}
+          onChanged={(path) => {
+            if (photoMember.id === user?.id) setAvatarPath(path);
+            refetch();
+          }}
+        />
+      )}
 
       {editingBranches && (
         <MemberBranchesModal

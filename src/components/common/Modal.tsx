@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 
@@ -17,8 +18,10 @@ interface ModalProps {
 // se envía desde el pie con <Button type="submit" form={formId}>.
 // En celular ocupa toda la pantalla y los botones del pie se reparten el ancho;
 // desde sm es la ventana centrada de siempre.
+// Se pinta en <body> (portal): así ningún contenedor con transform, como el
+// menú lateral deslizable, lo encierra.
 function Modal({ isOpen, onClose, title, badge, footer, maxWidth = 'max-w-[460px]', children }: ModalProps) {
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <motion.div
@@ -71,7 +74,8 @@ function Modal({ isOpen, onClose, title, badge, footer, maxWidth = 'max-w-[460px
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
 

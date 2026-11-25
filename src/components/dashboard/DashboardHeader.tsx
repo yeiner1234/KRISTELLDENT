@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import { Bell, LogOut, Menu } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import SearchInput from '../common/SearchInput';
+import Avatar from '../common/Avatar';
+import AvatarUploadModal from '../profile/AvatarUploadModal';
 import type { AppRole } from '../../types/User';
 
 interface DashboardHeaderProps {
@@ -26,15 +29,14 @@ const roleLabels: Record<AppRole, string> = {
 // Desde lg es la cabecera de siempre. Por debajo queda fija arriba, con el
 // botón de menú, el nombre de la sección y "Cerrar sesión" como icono.
 function DashboardHeader({ heading, variant = 'admin', sectionTitle, isMenuOpen = false, onMenuClick }: DashboardHeaderProps) {
-  const { user, logout } = useAuth();
+  const { user, logout, setAvatarPath } = useAuth();
   const navigate = useNavigate();
+  const [isPhotoOpen, setIsPhotoOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
   };
-
-  const initials = user?.name ? user.name.slice(0, 2).toUpperCase() : '--';
 
   return (
     <header className="sticky top-0 z-30 flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-adm-line-card bg-white px-4 py-3 sm:px-[26px] lg:static lg:z-auto">
@@ -71,9 +73,16 @@ function DashboardHeader({ heading, variant = 'admin', sectionTitle, isMenuOpen 
           </div>
 
           <div className="flex items-center gap-1 lg:gap-3 lg:border-l lg:border-adm-line-card lg:pl-3">
-            <span className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[#dceef0] text-[13px] font-semibold text-adm-accent-deep">
-              {initials}
-            </span>
+            <button
+              type="button"
+              onClick={() => setIsPhotoOpen(true)}
+              disabled={!user}
+              aria-label="Cambiar mi foto de perfil"
+              title="Cambiar mi foto de perfil"
+              className="rounded-full transition-shadow hover:ring-2 hover:ring-adm-accent-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+            >
+              <Avatar name={user?.name ?? 'Usuario'} path={user?.avatarPath} className="h-[34px] w-[34px] text-[13px]" />
+            </button>
             <div className="hidden flex-col leading-tight lg:flex">
               <span className="text-[13px] font-semibold text-adm-ink-700">{user?.name ?? 'Usuario'}</span>
               <span className="text-xs text-adm-ink-300">{user ? roleLabels[user.role] : ''}</span>
@@ -101,6 +110,17 @@ function DashboardHeader({ heading, variant = 'admin', sectionTitle, isMenuOpen 
             <span className="hidden lg:inline">Cerrar sesión</span>
           </button>
         </div>
+      )}
+      {isPhotoOpen && user && (
+        <AvatarUploadModal
+          userId={user.id}
+          name={user.name}
+          role={user.role}
+          avatarPath={user.avatarPath}
+          isOwn
+          onClose={() => setIsPhotoOpen(false)}
+          onChanged={setAvatarPath}
+        />
       )}
     </header>
   );
