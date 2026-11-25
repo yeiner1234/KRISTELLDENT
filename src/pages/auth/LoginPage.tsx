@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Eye, EyeOff, Lock, LogIn, Mail } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Eye, EyeOff, Hospital, Lock, LogIn, Mail, Users } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { homePathForRole } from '../../utils/roleHome';
 import { getRememberMe, setRememberMe } from '../../utils/authStorage';
@@ -75,6 +75,25 @@ function LoginPage() {
 
       <div className="login__stage">
         <img src={background} alt="" className="login__art" />
+
+        {/* Detalle del fondo, bajo la frase de la imagen (solo escritorio). */}
+        <ul className="login__features">
+          <li>
+            <CalendarDays strokeWidth={1.75} aria-hidden="true" />
+            Gestiona <br />
+            citas
+          </li>
+          <li>
+            <Users strokeWidth={1.75} aria-hidden="true" />
+            Administra <br />
+            pacientes
+          </li>
+          <li>
+            <Hospital strokeWidth={1.75} aria-hidden="true" />
+            Controla <br />
+            sedes
+          </li>
+        </ul>
 
         <Link to="/" className="login__back">
           <ArrowLeft strokeWidth={2.25} aria-hidden="true" />

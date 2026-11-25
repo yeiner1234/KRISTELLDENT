@@ -68,6 +68,42 @@
   display: none;
 }
 
+/* Fila "Gestiona citas | Administra pacientes | Controla sedes": hueco libre
+   de la imagen entre el subrayado de la frase (y 551) y la onda (y 670). */
+.login__features {
+  position: absolute;
+  top: calc(var(--px) * 578);
+  left: calc(var(--px) * 152);
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  pointer-events: none;
+}
+
+.login__features li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--px) * 10);
+  width: calc(var(--px) * 168);
+  padding: calc(var(--px) * 2) 0;
+  font-size: calc(var(--px) * 18.5);
+  font-weight: 500;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--login-ink);
+}
+
+.login__features li + li {
+  border-left: calc(var(--px) * 2) solid rgb(14 79 92 / 0.28);
+}
+
+.login__features svg {
+  width: calc(var(--px) * 42);
+  height: calc(var(--px) * 42);
+}
+
 /* Vuelta al área pública: en la esquina libre de la foto, arriba a la izquierda. */
 .login__back {
   position: absolute;
@@ -459,6 +495,7 @@
   }
 
   .login__art,
+  .login__features,
   .login__card > .login__logo {
     display: none;
   }

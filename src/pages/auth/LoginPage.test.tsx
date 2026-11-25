@@ -36,7 +36,8 @@ describe('LoginPage', () => {
     expect(screen.getByLabelText('Correo electrónico')).toHaveAttribute('placeholder', 'nombre@kristelldent.com');
     expect(screen.getByLabelText('Contraseña')).toHaveAttribute('type', 'password');
     expect(screen.getByRole('button', { name: 'Iniciar sesión' })).toBeInTheDocument();
-    expect(screen.queryByText(/sede/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/selecciona tu sede/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   });
 
   it('el ojo muestra y oculta la contraseña', async () => {
