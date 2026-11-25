@@ -1,5 +1,6 @@
 import type { InputHTMLAttributes } from 'react';
-import { useId } from 'react';
+import { useId, useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
@@ -7,9 +8,12 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   variant?: 'public' | 'admin';
 }
 
-function Input({ label, error, id, variant = 'public', className = '', ...rest }: InputProps) {
+function Input({ label, error, id, variant = 'public', className = '', type, ...rest }: InputProps) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
+  // Contraseña: el ojo la muestra u oculta.
+  const isPassword = type === 'password';
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   const fieldClasses =
     variant === 'admin'
@@ -28,7 +32,29 @@ function Input({ label, error, id, variant = 'public', className = '', ...rest }
       <label htmlFor={inputId} className={labelClasses}>
         {label}
       </label>
-      <input id={inputId} className={`${fieldClasses} ${className}`} {...rest} />
+      {isPassword ? (
+        <div className="relative flex flex-col">
+          <input
+            id={inputId}
+            type={isPasswordVisible ? 'text' : 'password'}
+            className={`${fieldClasses} pr-12 ${className}`}
+            {...rest}
+          />
+          <button
+            type="button"
+            onClick={() => setIsPasswordVisible((visible) => !visible)}
+            aria-label={isPasswordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+            aria-pressed={isPasswordVisible}
+            aria-controls={inputId}
+            title={isPasswordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-[10px] text-adm-ink-300 transition-colors hover:text-adm-accent-deep focus-visible:text-adm-accent-deep focus-visible:outline-none"
+          >
+            {isPasswordVisible ? <EyeOff size={18} strokeWidth={1.75} /> : <Eye size={18} strokeWidth={1.75} />}
+          </button>
+        </div>
+      ) : (
+        <input id={inputId} type={type} className={`${fieldClasses} ${className}`} {...rest} />
+      )}
       {error && <span className={errorClasses}>{error}</span>}
     </div>
   );
