@@ -16,6 +16,8 @@ export interface TeamMember {
   branchesFromProfessionals: boolean;
   // Profesionales: sedes donde está desactivada (solo ahí no sale en la reserva).
   inactiveBranchIds: string[];
+  // Foto de perfil (bucket "avatars"); null = sin foto.
+  avatarPath: string | null;
 }
 
 interface ProfileRow {
@@ -24,6 +26,7 @@ interface ProfileRow {
   email: string;
   role: AppRole;
   active: boolean;
+  avatar_path?: string | null;
 }
 
 type BranchNameJoin = { name: string } | { name: string }[] | null;
@@ -64,7 +67,7 @@ export const EMAIL_TAKEN_MESSAGE =
 export async function getTeamMembers(): Promise<TeamMember[]> {
   const { data: profiles, error: profilesError } = await supabase
     .from('profiles')
-    .select('id, full_name, email, role, active')
+    .select('id, full_name, email, role, active, avatar_path')
     .order('full_name', { ascending: true });
 
   if (profilesError) {
@@ -130,6 +133,7 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
       branchNames: branches.names,
       branchesFromProfessionals: isProfessional,
       inactiveBranchIds: inactiveByProfessional.get(row.id) ?? [],
+      avatarPath: row.avatar_path ?? null,
     };
   });
 }

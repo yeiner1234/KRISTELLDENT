@@ -20,6 +20,7 @@ const anali: AdminProfessional = {
   fullName: 'ANali',
   role: 'especialista',
   bio: null,
+  avatarPath: null,
   active: true,
   accountActive: true,
   inactiveBranchIds: [],

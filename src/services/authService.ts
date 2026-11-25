@@ -12,6 +12,7 @@ interface ProfileRow {
   email: string;
   role: AppRole;
   active: boolean;
+  avatar_path?: string | null;
 }
 
 function mapProfileToUser(profile: ProfileRow): User {
@@ -20,13 +21,14 @@ function mapProfileToUser(profile: ProfileRow): User {
     name: profile.full_name,
     email: profile.email,
     role: profile.role,
+    avatarPath: profile.avatar_path ?? null,
   };
 }
 
 async function fetchOwnProfile(userId: string): Promise<ProfileRow | null> {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, full_name, email, role, active')
+    .select('id, full_name, email, role, active, avatar_path')
     .eq('id', userId)
     .maybeSingle();
 

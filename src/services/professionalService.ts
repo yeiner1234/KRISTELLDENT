@@ -7,6 +7,7 @@ interface ProfileNameRow {
   full_name: string;
   role: AppRole;
   active?: boolean;
+  avatar_path?: string | null;
 }
 
 interface ServiceAssignmentRow {
@@ -28,7 +29,7 @@ interface ProfessionalRow {
 
 const SELECT_COLUMNS = `
   id, bio, active,
-  profiles ( full_name, role, active ),
+  profiles ( full_name, role, active, avatar_path ),
   professional_specialties ( specialty_id ),
   professional_branches ( branch_id, active ),
   professional_services ( service_id, branch_id, active ),
@@ -47,6 +48,7 @@ const PUBLIC_SELECT_COLUMNS = `
 interface PublicProfessionalNameRow {
   id: string;
   full_name: string;
+  avatar_path?: string | null;
 }
 
 function extractProfile(profiles: ProfessionalRow['profiles']): ProfileNameRow | null {
@@ -60,6 +62,7 @@ function mapRow(row: ProfessionalRow): Professional {
     fullName: extractProfile(row.profiles)?.full_name ?? '',
     role: extractProfile(row.profiles)?.role ?? null,
     bio: row.bio,
+    avatarPath: extractProfile(row.profiles)?.avatar_path ?? null,
     active: row.active,
     specialtyIds: row.professional_specialties.map((item) => item.specialty_id),
     branchIds: row.professional_branches.map((item) => item.branch_id),
@@ -95,12 +98,14 @@ export async function getProfessionals(): Promise<Professional[]> {
     throw new Error(namesError.message);
   }
 
-  const nameById = new Map(((names ?? []) as PublicProfessionalNameRow[]).map((row) => [row.id, row.full_name]));
+  const publicRows = (names ?? []) as PublicProfessionalNameRow[];
+  const nameById = new Map(publicRows.map((row) => [row.id, row.full_name]));
+  const avatarById = new Map(publicRows.map((row) => [row.id, row.avatar_path ?? null]));
 
   // Sin nombre público = perfil inactivo: no se ofrece en la reserva.
   return ((data ?? []) as unknown as ProfessionalRow[])
     .filter((row) => nameById.has(row.id))
-    .map((row) => ({ ...mapRow(row), fullName: nameById.get(row.id) ?? '' }));
+    .map((row) => ({ ...mapRow(row), fullName: nameById.get(row.id) ?? '', avatarPath: avatarById.get(row.id) ?? null }));
 }
 
 // Un admin_sede solo lee el perfil del personal que comparte sede con él; si
@@ -119,11 +124,16 @@ export async function getAllProfessionalsForAdmin(): Promise<AdminProfessional[]
     throw new Error(namesError.message);
   }
 
-  const nameById = new Map(((names ?? []) as PublicProfessionalNameRow[]).map((row) => [row.id, row.full_name]));
+  const publicRows = (names ?? []) as PublicProfessionalNameRow[];
+  const nameById = new Map(publicRows.map((row) => [row.id, row.full_name]));
+  const avatarById = new Map(publicRows.map((row) => [row.id, row.avatar_path ?? null]));
 
   return ((data ?? []) as unknown as ProfessionalRow[]).map((row) => {
     const professional = mapAdminRow(row, new Set(nameById.keys()));
-    return professional.fullName ? professional : { ...professional, fullName: nameById.get(row.id) ?? '' };
+    // Sin perfil legible (RLS), nombre y foto llegan de get_public_professionals.
+    return professional.fullName
+      ? professional
+      : { ...professional, fullName: nameById.get(row.id) ?? '', avatarPath: avatarById.get(row.id) ?? null };
   });
 }
 

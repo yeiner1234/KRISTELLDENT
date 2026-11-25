@@ -31,6 +31,7 @@ const professional = (id: string, fullName: string, active = true): Professional
   fullName,
   role: 'especialista',
   bio: null,
+  avatarPath: null,
   active,
   specialtyIds: [],
   branchIds: [],

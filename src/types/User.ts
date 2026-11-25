@@ -5,4 +5,6 @@ export interface User {
   name: string;
   email: string;
   role: AppRole;
+  // Ruta de la foto en el bucket "avatars" (null = sin foto).
+  avatarPath: string | null;
 }

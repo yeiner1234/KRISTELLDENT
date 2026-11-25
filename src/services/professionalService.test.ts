@@ -55,6 +55,7 @@ describe('getProfessionals', () => {
         fullName: 'Ana Torres',
         role: null,
         bio: null,
+        avatarPath: null,
         active: true,
         specialtyIds: ['s1'],
         branchIds: ['b1'],
@@ -72,6 +73,18 @@ describe('getProfessionals', () => {
     expect(professionals.map((professional) => professional.id)).toEqual(['p1']);
   });
 
+  it('toma la foto de get_public_professionals', async () => {
+    vi.mocked(supabase.from).mockReturnValue(mockQuery({ data: [professionalRow('p1')] }) as never);
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: [{ id: 'p1', full_name: 'Ana Torres', avatar_path: 'p1/9.jpg' }],
+      error: null,
+    } as never);
+
+    const [professional] = await getProfessionals();
+
+    expect(professional.avatarPath).toBe('p1/9.jpg');
+  });
+
   it('propaga el error del RPC', async () => {
     vi.mocked(supabase.from).mockReturnValue(mockQuery({ data: [professionalRow('p1')] }) as never);
     vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: { message: 'permission denied' } } as never);
@@ -83,6 +96,26 @@ describe('getProfessionals', () => {
 describe('getAllProfessionalsForAdmin', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('lee la foto del perfil y, si la RLS no lo deja ver, de get_public_professionals', async () => {
+    const query = mockQuery({
+      data: [
+        { ...professionalRow('p1'), profiles: { full_name: 'Ana', role: 'especialista', active: true, avatar_path: 'p1/1.jpg' } },
+        { ...professionalRow('p2'), profiles: null },
+        { ...professionalRow('p3'), profiles: { full_name: 'Sin foto', role: 'especialista', active: true, avatar_path: null } },
+      ],
+    });
+    vi.mocked(supabase.from).mockReturnValue(query as never);
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: [{ id: 'p2', full_name: 'Bea', avatar_path: 'p2/2.jpg' }],
+      error: null,
+    } as never);
+
+    const professionals = await getAllProfessionalsForAdmin();
+
+    expect(findCall(query, 'select')?.args[0]).toContain('avatar_path');
+    expect(professionals.map((professional) => professional.avatarPath)).toEqual(['p1/1.jpg', 'p2/2.jpg', null]);
   });
 
   it('completa el nombre que la RLS de profiles no deja ver (admin_sede de otra sede)', async () => {

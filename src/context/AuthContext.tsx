@@ -10,6 +10,8 @@ interface AuthContextValue {
   sessionError: string | null;
   login: (credentials: LoginCredentials) => Promise<User>;
   logout: () => Promise<void>;
+  // Tras cambiar la propia foto de perfil.
+  setAvatarPath: (path: string | null) => void;
 }
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -69,7 +71,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const value = useMemo<AuthContextValue>(() => ({ user, isLoading, sessionError, login, logout }), [user, isLoading, sessionError]);
+  const setAvatarPath = (path: string | null) => {
+    setUser((current) => (current ? { ...current, avatarPath: path } : current));
+  };
+
+  const value = useMemo<AuthContextValue>(
+    () => ({ user, isLoading, sessionError, login, logout, setAvatarPath }),
+    [user, isLoading, sessionError],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

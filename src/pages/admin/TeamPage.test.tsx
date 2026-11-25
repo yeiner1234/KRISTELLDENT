@@ -18,6 +18,7 @@ const members: TeamMember[] = [
     branchNames: ['Bagua', 'Jaén'],
     branchesFromProfessionals: true,
     inactiveBranchIds: [],
+    avatarPath: null,
   },
   {
     id: 'tere',
@@ -29,6 +30,7 @@ const members: TeamMember[] = [
     branchNames: ['Jaén'],
     branchesFromProfessionals: false,
     inactiveBranchIds: [],
+    avatarPath: null,
   },
 ];
 

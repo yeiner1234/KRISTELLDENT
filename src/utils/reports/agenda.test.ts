@@ -37,7 +37,7 @@ function appointment(overrides: Partial<Appointment> & { id: string }): Appointm
 }
 
 function professional(id: string, fullName: string): Professional {
-  return { id, fullName, role: null, bio: null, active: true, specialtyIds: [], branchIds: ['bagua'], serviceIds: [] };
+  return { id, fullName, role: null, bio: null, avatarPath: null, active: true, specialtyIds: [], branchIds: ['bagua'], serviceIds: [] };
 }
 
 const patients: Patient[] = [

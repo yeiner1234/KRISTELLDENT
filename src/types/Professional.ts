@@ -6,6 +6,8 @@ export interface Professional {
   // null en las lecturas públicas: anon no puede leer profiles.role.
   role: AppRole | null;
   bio: string | null;
+  // Foto de perfil (bucket "avatars"); null = sin foto.
+  avatarPath: string | null;
   active: boolean;
   specialtyIds: string[];
   branchIds: string[];
