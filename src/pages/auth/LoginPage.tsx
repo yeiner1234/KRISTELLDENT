@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Lock, LogIn, Mail } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Lock, LogIn, Mail } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { homePathForRole } from '../../utils/roleHome';
 import { getRememberMe, setRememberMe } from '../../utils/authStorage';
@@ -74,6 +74,11 @@ function LoginPage() {
 
       <div className="login__stage">
         <img src={background} alt="" className="login__art" />
+
+        <Link to="/" className="login__back">
+          <ArrowLeft strokeWidth={2.25} aria-hidden="true" />
+          Ir al área pública
+        </Link>
 
         <header className="login__mobile-head">
           <LogoBadge />

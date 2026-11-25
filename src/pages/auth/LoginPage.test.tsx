@@ -57,6 +57,12 @@ describe('LoginPage', () => {
     expect(screen.getByRole('link', { name: '¿Olvidaste tu contraseña?' })).toHaveAttribute('href', '/login/recuperar');
   });
 
+  it('el enlace "Ir al área pública" vuelve a la página principal', () => {
+    renderLogin();
+
+    expect(screen.getByRole('link', { name: 'Ir al área pública' })).toHaveAttribute('href', '/');
+  });
+
   it('Recordarme guarda su estado y lo recuerda al volver', async () => {
     const user = userEvent.setup();
     renderLogin();

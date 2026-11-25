@@ -68,6 +68,41 @@
   display: none;
 }
 
+/* Vuelta al área pública: en la esquina libre de la foto, arriba a la izquierda. */
+.login__back {
+  position: absolute;
+  top: calc(var(--px) * 28);
+  left: calc(var(--px) * 40);
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--px) * 10);
+  padding: calc(var(--px) * 10) calc(var(--px) * 20) calc(var(--px) * 10) calc(var(--px) * 16);
+  border: 1px solid rgb(14 79 92 / 0.14);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.82);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 calc(var(--px) * 4) calc(var(--px) * 14) rgb(14 79 92 / 0.12);
+  font-size: calc(var(--px) * 16);
+  font-weight: 500;
+  color: var(--login-ink);
+  text-decoration: none;
+  transition: background-color 0.15s;
+}
+
+.login__back svg {
+  width: calc(var(--px) * 20);
+  height: calc(var(--px) * 20);
+}
+
+.login__back:hover {
+  background: #ffffff;
+}
+
+.login__back:focus-visible {
+  outline: calc(var(--px) * 3) solid rgb(2 135 155 / 0.4);
+  outline-offset: calc(var(--px) * 2);
+}
+
 /* Tarjeta: x 1132–1666, y 92–831 de la imagen. */
 .login__card {
   position: absolute;
@@ -426,6 +461,20 @@
   .login__art,
   .login__card > .login__logo {
     display: none;
+  }
+
+  .login__back {
+    position: static;
+    min-height: 44px;
+    margin-bottom: 16px;
+    padding: 0 16px 0 12px;
+    gap: 8px;
+    font-size: 14px;
+  }
+
+  .login__back svg {
+    width: 18px;
+    height: 18px;
   }
 
   .login__mobile-head {
