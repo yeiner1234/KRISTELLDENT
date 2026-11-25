@@ -28,7 +28,7 @@ function LogoBadge() {
     <span className="login__logo">
       <img src={logo} alt="" />
       <svg viewBox="0 0 100 12" aria-hidden="true">
-        <path d="M2 10 Q50 -2 98 6" fill="none" stroke="#e3177c" strokeWidth="4.5" strokeLinecap="round" />
+        <path d="M1 11 Q46 -3 99 5 Q46 3.2 1 11 Z" fill="#e3177c" />
       </svg>
     </span>
   );

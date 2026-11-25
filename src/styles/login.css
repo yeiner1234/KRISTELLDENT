@@ -145,9 +145,9 @@
 
 .login__logo svg {
   position: absolute;
-  bottom: 22%;
-  left: 50%;
-  width: calc(var(--px) * 140);
+  bottom: 19%;
+  left: 51%;
+  width: calc(var(--px) * 142);
   transform: translateX(-50%);
 }
 
