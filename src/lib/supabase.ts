@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { passwordFlowFromHash, type PasswordLinkFlow } from '../utils/passwordLink';
+import { authStorage } from '../utils/authStorage';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -10,7 +11,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// La sesión va a localStorage o sessionStorage según "Recordarme" del login.
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: { storage: authStorage },
+});
 
 // Guarda qué enlace abrió /actualizar-contrasena: 'recovery' o 'invite'.
 const PASSWORD_RECOVERY_KEY = 'kd_password_recovery';
