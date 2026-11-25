@@ -27,8 +27,9 @@ function LogoBadge() {
   return (
     <span className="login__logo">
       <img src={logo} alt="" />
-      <svg viewBox="0 0 100 12" aria-hidden="true">
-        <path d="M1 11 Q46 -3 99 5 Q46 3.2 1 11 Z" fill="#e3177c" />
+      {/* Curva rosa calcada de la imagen del diseño. */}
+      <svg viewBox="0 0 127 17" aria-hidden="true">
+        <path d="M3 12.5Q2 12 3 11Q4 10 7 8Q10 6 13 5Q16 4 19 3Q22 2 26.5 2Q31 2 35.5 2Q40 2 44.5 2.5Q49 3 53.5 4Q58 5 62.5 6Q67 7 71.5 7.5Q76 8 80.5 8Q85 8 89.5 8Q94 8 98.5 7.5Q103 7 107.5 6Q112 5 115 4.5Q118 4 121 3.5Q124 3 124.75 3.25Q125.5 3.5 124.75 3.75Q124 4 121 5.5Q118 7 115 8.5Q112 10 107.5 11Q103 12 98.5 13Q94 14 89.5 14.5Q85 15 80.5 15Q76 15 71.5 14.5Q67 14 62.5 13.5Q58 13 53.5 12Q49 11 44.5 10Q40 9 35.5 8.5Q31 8 26.5 8Q22 8 19 8.5Q16 9 13 10Q10 11 7 12Q4 13 3 12.5Z" fill="#e3177c" />
       </svg>
     </span>
   );

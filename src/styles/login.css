@@ -143,12 +143,12 @@
   transform: translateX(-50%);
 }
 
+/* Posición de la curva en la imagen: x 1342, y 262 (dentro del aro). */
 .login__logo svg {
   position: absolute;
-  bottom: 19%;
-  left: 51%;
-  width: calc(var(--px) * 142);
-  transform: translateX(-50%);
+  top: calc(var(--px) * 142);
+  left: calc(var(--px) * 36);
+  width: calc(var(--px) * 127);
 }
 
 .login__title {
