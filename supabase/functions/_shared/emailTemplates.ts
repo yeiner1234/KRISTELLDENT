@@ -112,3 +112,54 @@ export function appointmentCodesEmail(input: {
     ),
   };
 }
+
+function siteLink(siteUrl: string, path: string, label: string): string {
+  const url = `${siteUrl.replace(/\/+$/, '')}${path}`;
+  return `<a href="${escapeHtml(url)}" style="color:#0f7b86;">${label}</a>`;
+}
+
+// HU13: la cita cambió de fecha u hora (la cambió el paciente o la clínica).
+export function rescheduledEmail(input: {
+  patientName: string;
+  appointment: EmailAppointment;
+  siteUrl: string | null;
+}): EmailContent {
+  return {
+    subject: `Tu cita en Kristell Dent fue reprogramada — código ${input.appointment.code}`,
+    html: layout(
+      input.patientName,
+      'Tu cita fue reprogramada. Estos son sus nuevos datos:',
+      appointmentBlock(input.appointment) + consultLink(input.siteUrl),
+    ),
+  };
+}
+
+// HU13: una cita cancelada ya no se puede reprogramar; se ofrece reservar otra.
+export function cancelledEmail(input: {
+  patientName: string;
+  appointment: EmailAppointment;
+  siteUrl: string | null;
+}): EmailContent {
+  const newBooking = input.siteUrl
+    ? `<p style="font-size:14px;color:#12232b;">Si lo necesitas, puedes ${siteLink(input.siteUrl, '/reservar', 'reservar una nueva cita')}.</p>`
+    : '<p style="font-size:14px;color:#12232b;">Si lo necesitas, puedes reservar una nueva cita en nuestra web.</p>';
+  return {
+    subject: `Tu cita en Kristell Dent fue cancelada — código ${input.appointment.code}`,
+    html: layout(input.patientName, 'Tu cita fue cancelada. Estos eran sus datos:', appointmentBlock(input.appointment) + newBooking),
+  };
+}
+
+// HU14: recordatorio breve un día antes, con cómo reprogramar o cancelar.
+export function reminderEmail(input: {
+  patientName: string;
+  appointment: EmailAppointment;
+  siteUrl: string | null;
+}): EmailContent {
+  const howTo = input.siteUrl
+    ? `<p style="font-size:14px;color:#12232b;">Si no puedes asistir, entra a ${siteLink(input.siteUrl, '/consultar-citas', 'Consultar citas')} con tu DNI y el código para reprogramarla o cancelarla.</p>`
+    : '<p style="font-size:14px;color:#12232b;">Si no puedes asistir, entra a nuestra web, sección <strong>Consultar citas</strong>, con tu DNI y el código para reprogramarla o cancelarla.</p>';
+  return {
+    subject: `Recordatorio: tu cita en Kristell Dent es mañana a las ${input.appointment.startTime.slice(0, 5)}`,
+    html: layout(input.patientName, 'Te recordamos tu cita de mañana:', appointmentBlock(input.appointment) + howTo),
+  };
+}
