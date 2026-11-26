@@ -12,8 +12,8 @@ interface PanelShellProps {
   children: ReactNode;
 }
 
-// Estructura de los paneles. Desde lg el sidebar queda fijo a la izquierda,
-// como siempre. En celular y tablet se oculta y se abre desde el botón de
+// Estructura de los paneles. Desde lg el sidebar queda fijo a la izquierda
+// (sticky, alto de pantalla): solo se desplaza el contenido. En celular y tablet se oculta y se abre desde el botón de
 // menú de la cabecera como panel deslizable; se cierra al elegir una opción,
 // al tocar el fondo oscuro o con Escape.
 function PanelShell({ sidebar, heading, variant, mainClassName, children }: PanelShellProps) {
@@ -57,7 +57,7 @@ function PanelShell({ sidebar, heading, variant, mainClassName, children }: Pane
         id="panel-menu"
         data-open={isMenuOpen}
         onClick={handleMenuClick}
-        className={`fixed inset-y-0 left-0 z-50 flex overflow-y-auto bg-brand-900 transition-[translate,visibility] duration-200 lg:visible lg:static lg:z-auto lg:translate-x-0 lg:overflow-visible lg:bg-transparent lg:transition-none ${
+        className={`fixed inset-y-0 left-0 z-50 flex overflow-y-auto bg-brand-900 transition-[translate,visibility] duration-200 lg:visible lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:translate-x-0 lg:overflow-y-auto lg:bg-transparent lg:transition-none print:static print:h-auto ${
           isMenuOpen ? 'visible translate-x-0' : 'invisible -translate-x-full'
         }`}
       >

@@ -53,6 +53,8 @@ describe('PanelShell (menú móvil)', () => {
     expect(menu()).toHaveAttribute('data-open', 'false');
     // Fondo propio para lo que no cabe en pantallas bajas; en escritorio, transparente.
     expect(menu()).toHaveClass('overflow-y-auto', 'bg-brand-900', 'lg:bg-transparent');
+    // En escritorio el menú queda quieto mientras la página hace scroll.
+    expect(menu()).toHaveClass('lg:sticky', 'lg:top-0', 'lg:h-screen');
     expect(menuButton()).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByTestId('panel-menu-backdrop')).not.toBeInTheDocument();
 
