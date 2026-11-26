@@ -42,7 +42,7 @@ function AppointmentStatusTabs({ value, onChange, counts }: AppointmentStatusTab
             role="tab"
             aria-selected={isActive}
             onClick={() => onChange(tab.value)}
-            className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium transition-colors ${
+            className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-adm-accent-ring ${
               isActive
                 ? `${tab.active} text-white`
                 : 'border-adm-line-control bg-white text-adm-ink-500 hover:border-adm-accent-line hover:bg-adm-surface-sel'

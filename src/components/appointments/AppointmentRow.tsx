@@ -28,6 +28,15 @@ const accentByStatus: Record<AppointmentStatusType, string> = {
   cancelled: 'before:bg-adm-status-cancelled-solid',
 };
 
+// Punto de color junto a la hora, como en la agenda.
+const dotByStatus: Record<AppointmentStatusType, string> = {
+  pending: 'bg-adm-status-pending-solid',
+  confirmed: 'bg-adm-status-confirmed-solid',
+  in_room: 'bg-adm-status-in-room-solid',
+  completed: 'bg-adm-status-completed-solid',
+  cancelled: 'bg-adm-status-cancelled-solid',
+};
+
 // Una cita como tarjeta: hora grande, paciente, servicio, estado y acciones.
 // En celular se apila; desde lg es una fila.
 function AppointmentRow({
@@ -45,13 +54,14 @@ function AppointmentRow({
   return (
     <article
       data-appointment-row
-      className={`relative grid gap-3 overflow-hidden rounded-[14px] border border-adm-line-card bg-white p-4 pl-5 shadow-soft transition-shadow before:absolute before:inset-y-0 before:left-0 before:w-1 hover:shadow-adm-elev-1 lg:grid-cols-[88px_minmax(0,1.3fr)_minmax(0,1.2fr)_auto_auto] lg:items-center lg:gap-5 ${accentByStatus[appointment.status]}`}
+      className={`relative grid gap-3 overflow-hidden rounded-2xl border border-adm-line-card p-4 pl-5 shadow-soft transition-[box-shadow,border-color] duration-150 before:absolute before:inset-y-0 before:left-0 before:w-1 hover:border-adm-accent-line hover:shadow-adm-elev-1 lg:grid-cols-[96px_minmax(0,1.3fr)_minmax(0,1.2fr)_auto_auto] lg:items-center lg:gap-5 lg:py-3.5 ${accentByStatus[appointment.status]} ${isCancelled ? 'bg-adm-surface-hover' : 'bg-white'}`}
     >
       {/* Hora */}
-      <div className="flex items-baseline gap-2 lg:flex-col lg:gap-0">
+      <div className="flex items-baseline gap-2 lg:flex-col lg:gap-0.5">
         <span
-          className={`text-lg font-semibold leading-tight text-adm-ink-700 [font-variant-numeric:tabular-nums] ${isCancelled ? 'line-through decoration-adm-ink-200' : ''}`}
+          className={`flex items-center gap-1.5 text-lg font-semibold leading-tight text-adm-ink-700 [font-variant-numeric:tabular-nums] ${isCancelled ? 'line-through decoration-adm-ink-200' : ''}`}
         >
+          <span aria-hidden="true" className={`h-2 w-2 shrink-0 rounded-full ${dotByStatus[appointment.status]}`} />
           {appointment.startTime}
         </span>
         <span className="text-xs text-adm-ink-300 [font-variant-numeric:tabular-nums]">hasta {appointment.endTime}</span>
@@ -102,7 +112,7 @@ function AppointmentRow({
             type="button"
             onClick={() => onOpen(appointment)}
             aria-label="Ver detalle de la cita"
-            className="flex h-9 w-9 items-center justify-center rounded-[8px] border border-adm-line-control text-adm-ink-400 transition-colors hover:border-adm-accent-line hover:bg-adm-surface-sel hover:text-adm-accent-deep"
+            className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-adm-line-control bg-white text-adm-ink-400 transition-colors hover:border-adm-accent-line hover:bg-adm-surface-sel hover:text-adm-accent-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-adm-accent-ring"
           >
             <Eye size={16} />
           </button>

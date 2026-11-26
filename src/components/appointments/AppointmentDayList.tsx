@@ -17,21 +17,32 @@ function AppointmentDayList({ views, todayIso, renderRow }: AppointmentDayListPr
       {groupAppointmentViewsByDate(views).map((group) => {
         const relative = formatRelativeDay(group.date, todayIso);
         const isNear = ['Hoy', 'Mañana', 'Ayer'].includes(relative);
+        const isToday = relative === 'Hoy';
         return (
-          <section key={group.date} className="flex flex-col gap-2.5" aria-label={formatDateLong(group.date)}>
-            <h3 className="flex items-center gap-2 px-1 text-sm">
+          <section key={group.date} className="flex flex-col gap-3" aria-label={formatDateLong(group.date)}>
+            <h3 className="flex flex-wrap items-center gap-2.5 px-1 text-sm">
+              <span
+                aria-hidden="true"
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[15px] font-semibold [font-variant-numeric:tabular-nums] ${
+                  isToday
+                    ? 'bg-brand-600 text-white shadow-[0_4px_10px_rgba(15,123,134,0.3)]'
+                    : 'border border-adm-line-card bg-white text-adm-ink-700'
+                }`}
+              >
+                {Number(group.date.slice(8, 10))}
+              </span>
               {isNear && (
                 <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                    relative === 'Hoy' ? 'bg-adm-accent-deep text-white' : 'bg-adm-accent-soft text-adm-accent-ink'
+                  className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.06em] ${
+                    isToday ? 'bg-adm-accent-soft text-brand-600' : 'bg-adm-line-faint text-adm-ink-400'
                   }`}
                 >
                   {relative}
                 </span>
               )}
               <span className="font-semibold capitalize text-adm-ink-700">{formatDateLong(group.date)}</span>
-              <span className="text-adm-ink-300">
-                · {group.views.length} {group.views.length === 1 ? 'cita' : 'citas'}
+              <span className="rounded-full border border-adm-line-card bg-white px-2.5 py-0.5 text-xs font-medium text-adm-ink-400 [font-variant-numeric:tabular-nums]">
+                {group.views.length} {group.views.length === 1 ? 'cita' : 'citas'}
               </span>
             </h3>
             <ul className="flex flex-col gap-2.5">

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { CalendarX2 } from 'lucide-react';
-import SectionTitle from '../../components/common/SectionTitle';
+import { CalendarRange, CalendarX2 } from 'lucide-react';
+import PageHeader from '../../components/common/PageHeader';
 import EmptyState from '../../components/common/EmptyState';
 import Spinner from '../../components/common/Spinner';
 import AgendaGrid from '../../components/dashboard/AgendaGrid';
@@ -57,7 +57,7 @@ function BranchAgendaPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <SectionTitle title="Agenda" align="left" />
+      <PageHeader title="Agenda" icon={CalendarRange} subtitle="Las citas de la sede por día y hora." />
 
       <AppointmentFiltersBar filters={filters} onChange={setFilters} professionals={professionals} showDate={false} />
 

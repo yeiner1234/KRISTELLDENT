@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { CalendarX2 } from 'lucide-react';
-import SectionTitle from '../../components/common/SectionTitle';
+import { CalendarX2, ClipboardList } from 'lucide-react';
+import PageHeader from '../../components/common/PageHeader';
 import EmptyState from '../../components/common/EmptyState';
 import Spinner from '../../components/common/Spinner';
 import SearchInput from '../../components/common/SearchInput';
@@ -69,12 +69,7 @@ function MyAppointmentsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <SectionTitle title="Mis citas" align="left" />
-        <span className="text-[13px] text-adm-ink-300">
-          {views.length} {views.length === 1 ? 'cita' : 'citas'}
-        </span>
-      </div>
+      <PageHeader title="Mis citas" icon={ClipboardList} subtitle={`${views.length} ${views.length === 1 ? 'cita' : 'citas'}`} />
 
       <div className="flex flex-col gap-3 rounded-[14px] border border-adm-line-card bg-white p-4">
         <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">

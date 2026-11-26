@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { CalendarX2 } from 'lucide-react';
-import SectionTitle from '../../components/common/SectionTitle';
+import { CalendarRange, CalendarX2 } from 'lucide-react';
+import PageHeader from '../../components/common/PageHeader';
 import EmptyState from '../../components/common/EmptyState';
 import AgendaGrid from '../../components/dashboard/AgendaGrid';
 import AppointmentModal from '../../components/appointments/AppointmentModal';
@@ -44,7 +44,7 @@ function MyAgendaPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <SectionTitle title="Mi agenda" align="left" />
+      <PageHeader title="Mi agenda" icon={CalendarRange} subtitle="Tus citas de la semana por día y hora." />
 
       {error ? (
         <EmptyState icon={CalendarX2} title="No se pudieron cargar tus citas" description={error} />
