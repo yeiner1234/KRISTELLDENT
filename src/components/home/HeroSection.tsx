@@ -3,6 +3,7 @@ import { CalendarPlus, Check, Clock, SearchCheck, Sparkle, UserRoundCheck, Zap }
 import Button from '../common/Button';
 import { useProfessionals } from '../../hooks/useProfessionals';
 import { getInitials } from '../../utils/format';
+import clinicPhoto from '../../assets/images/home/consultorio.jpg';
 
 const easing: [number, number, number, number] = [0.22, 0.61, 0.36, 1];
 
@@ -130,13 +131,25 @@ function HeroSection() {
           className="relative mx-auto w-full min-w-0 max-w-md"
         >
           <div
-            aria-hidden="true"
-            className="aspect-[4/3] w-full rounded-[20px]"
+            className="relative aspect-[4/3] w-full overflow-hidden rounded-[20px]"
             style={{
               background: 'linear-gradient(135deg, #cfe6ea, #e4f0f3)',
               boxShadow: 'var(--shadow-hero-image)',
             }}
-          />
+          >
+            <img
+              src={clinicPhoto}
+              alt="Consultorio dental moderno y luminoso"
+              fetchPriority="high"
+              className="h-full w-full object-cover"
+            />
+            {/* Un velo suave en los colores de la marca une la foto con la página. */}
+            <div
+              aria-hidden="true"
+              className="absolute inset-0"
+              style={{ background: 'linear-gradient(160deg, rgba(15,123,134,0.10), rgba(18,35,43,0.18))' }}
+            />
+          </div>
 
           <motion.div
             className={`absolute bottom-[-14px] left-[-10px] w-[225px] rounded-2xl p-4 ${

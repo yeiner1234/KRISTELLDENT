@@ -1,6 +1,7 @@
 import { ExternalLink, MapPin, Phone } from 'lucide-react';
 import AnimatedSection, { RevealItem } from '../common/AnimatedSection';
 import SectionTitle from '../common/SectionTitle';
+import HorizontalCarousel from '../common/HorizontalCarousel';
 import BranchStatusBadge from '../common/BranchStatusBadge';
 import BranchMap from './BranchMap';
 import EmptyState from '../common/EmptyState';
@@ -33,11 +34,12 @@ function ContactSection() {
             <EmptyState icon={MapPin} title="No hay sedes registradas" description="Aún no se han publicado sedes disponibles." />
           </div>
         ) : (
-        <div className="mt-10 grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <div className="mt-10">
+        <HorizontalCarousel ariaLabel="Sedes" itemClassName="w-[88%] sm:w-[calc(60%-10px)] lg:w-[calc(50%-10px)]">
           {branches.map((branch, index) => (
-            <RevealItem key={branch.id} index={index} className="min-w-0">
-              <div className="overflow-hidden rounded-2xl border border-border bg-white">
-                <div className="p-5">
+            <RevealItem key={branch.id} index={index} className="h-full min-w-0">
+              <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-white" style={{ boxShadow: 'var(--shadow-soft)' }}>
+                <div className="flex-1 p-5">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5">
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-700">
@@ -87,6 +89,7 @@ function ContactSection() {
               </div>
             </RevealItem>
           ))}
+        </HorizontalCarousel>
         </div>
         )}
       </div>

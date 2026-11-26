@@ -1,6 +1,8 @@
 import { Eye, Target } from 'lucide-react';
 import { useReducedMotion } from 'framer-motion';
 import AnimatedSection, { RevealItem } from '../common/AnimatedSection';
+import HorizontalCarousel from '../common/HorizontalCarousel';
+import smilePhoto from '../../assets/images/home/sonrisa.jpg';
 
 function MissionVisionSection() {
   const shouldReduceMotion = useReducedMotion();
@@ -20,8 +22,32 @@ function MissionVisionSection() {
         />
       </svg>
 
-      <div className="relative mx-auto grid max-w-[1240px] min-w-0 grid-cols-1 gap-6 px-5 md:grid-cols-2">
-        <RevealItem index={0} className="min-w-0">
+      <div className="relative mx-auto max-w-[1240px] min-w-0 px-5">
+        <HorizontalCarousel
+          ariaLabel="Misión y visión"
+          itemClassName="w-[85%] sm:w-[calc(50%-10px)] lg:w-[calc(33.333%-14px)]"
+        >
+        <RevealItem index={0} className="h-full min-w-0">
+          <figure className="relative h-full min-h-[280px] overflow-hidden rounded-[20px]" style={{ boxShadow: 'var(--shadow-soft)' }}>
+            <img
+              src={smilePhoto}
+              alt="Paciente sonriendo con dientes sanos"
+              loading="lazy"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            <div
+              aria-hidden="true"
+              className="absolute inset-0"
+              style={{ background: 'linear-gradient(180deg, rgba(18,35,43,0) 35%, rgba(18,35,43,0.82) 100%)' }}
+            />
+            <figcaption className="absolute inset-x-0 bottom-0 p-7">
+              <p className="text-[12.5px] font-semibold uppercase tracking-[0.09em] text-white/80">Nuestro propósito</p>
+              <p className="mt-1 text-pretty text-xl font-semibold text-white">Sonrisas sanas, explicadas paso a paso.</p>
+            </figcaption>
+          </figure>
+        </RevealItem>
+
+        <RevealItem index={1} className="h-full min-w-0">
           <div
             className="h-full rounded-[20px] border border-border bg-white p-8"
             style={{ boxShadow: 'var(--shadow-soft)' }}
@@ -37,7 +63,7 @@ function MissionVisionSection() {
           </div>
         </RevealItem>
 
-        <RevealItem index={1} className="min-w-0">
+        <RevealItem index={2} className="h-full min-w-0">
           <div
             className="h-full rounded-[20px] p-8"
             style={{ background: 'linear-gradient(150deg, #12232b, #0a656e)' }}
@@ -55,6 +81,7 @@ function MissionVisionSection() {
             </p>
           </div>
         </RevealItem>
+        </HorizontalCarousel>
       </div>
     </AnimatedSection>
   );

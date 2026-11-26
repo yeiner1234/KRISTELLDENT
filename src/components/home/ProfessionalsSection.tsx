@@ -1,6 +1,7 @@
 import { UserRoundX } from 'lucide-react';
 import AnimatedSection, { RevealItem } from '../common/AnimatedSection';
 import SectionTitle from '../common/SectionTitle';
+import HorizontalCarousel from '../common/HorizontalCarousel';
 import ProfessionalCard from '../professionals/ProfessionalCard';
 import EmptyState from '../common/EmptyState';
 import Spinner from '../common/Spinner';
@@ -37,7 +38,11 @@ function ProfessionalsSection() {
             />
           </div>
         ) : (
-          <div className="mt-10 grid gap-5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(232px, 1fr))' }}>
+          <div className="mt-10">
+            <HorizontalCarousel
+              ariaLabel="Profesionales"
+              itemClassName="w-[75%] sm:w-[calc(33.333%-14px)] lg:w-[calc(25%-15px)]"
+            >
             {professionals.map((professional, index) => {
               const specialtyName = specialties
                 .filter((specialty) => professional.specialtyIds.includes(specialty.id))
@@ -45,11 +50,12 @@ function ProfessionalsSection() {
                 .join(', ');
 
               return (
-                <RevealItem key={professional.id} index={index} className="min-w-0">
+                <RevealItem key={professional.id} index={index} className="h-full min-w-0">
                   <ProfessionalCard professional={professional} specialtyName={specialtyName || undefined} />
                 </RevealItem>
               );
             })}
+            </HorizontalCarousel>
           </div>
         )}
       </div>

@@ -1,6 +1,7 @@
 import { ArrowRight, Smile } from 'lucide-react';
 import AnimatedSection, { RevealItem } from '../common/AnimatedSection';
 import SectionTitle from '../common/SectionTitle';
+import HorizontalCarousel from '../common/HorizontalCarousel';
 import EmptyState from '../common/EmptyState';
 import Spinner from '../common/Spinner';
 import { useSpecialties } from '../../hooks/useProfessionals';
@@ -36,12 +37,13 @@ function SpecialtiesSection() {
             />
           </div>
         ) : (
-        <div className="mt-10 grid gap-5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
+        <div className="mt-10">
+        <HorizontalCarousel ariaLabel="Especialidades">
           {specialties.map((specialty, index) => {
             const Icon = getSpecialtyIcon(specialty.name);
 
             return (
-              <RevealItem key={specialty.id} index={index} className="group min-w-0">
+              <RevealItem key={specialty.id} index={index} className="group h-full min-w-0">
                 <a
                   href="#especialidades"
                   className="flex h-full flex-col gap-3 rounded-2xl border border-border p-6 transition-all duration-200 hover:-translate-y-[5px] hover:border-brand-600/30"
@@ -66,6 +68,7 @@ function SpecialtiesSection() {
               </RevealItem>
             );
           })}
+        </HorizontalCarousel>
         </div>
         )}
       </div>

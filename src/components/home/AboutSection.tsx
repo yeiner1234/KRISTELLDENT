@@ -1,6 +1,7 @@
 import { Award, HeartHandshake, ScanLine } from 'lucide-react';
 import AnimatedSection from '../common/AnimatedSection';
 import SectionTitle from '../common/SectionTitle';
+import teamPhoto from '../../assets/images/home/doctora-paciente.jpg';
 
 const highlights = [
   {
@@ -26,10 +27,16 @@ function AboutSection() {
       <div className="mx-auto grid max-w-[1240px] min-w-0 grid-cols-1 items-center gap-[60px] px-5 lg:grid-cols-2">
         <div className="relative min-w-0">
           <div
-            aria-hidden="true"
-            className="aspect-[5/4] w-full rounded-[20px]"
-            style={{ background: 'linear-gradient(135deg, #dfeef1, #eff7f9)' }}
-          />
+            className="aspect-[5/4] w-full overflow-hidden rounded-[20px]"
+            style={{ background: 'linear-gradient(135deg, #dfeef1, #eff7f9)', boxShadow: 'var(--shadow-hero-image)' }}
+          >
+            <img
+              src={teamPhoto}
+              alt="Odontóloga atendiendo a una paciente en el consultorio"
+              loading="lazy"
+              className="h-full w-full object-cover"
+            />
+          </div>
           <div
             className="absolute rounded-2xl bg-white px-5 py-4"
             style={{ right: '-12px', bottom: '-18px', boxShadow: 'var(--shadow-soft-hover)' }}
