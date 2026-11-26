@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Users } from 'lucide-react';
 import Button from '../../components/common/Button';
 import PatientsOverview from '../../components/patients/PatientsOverview';
 import { useAllPatients } from '../../hooks/usePatients';
@@ -24,6 +24,7 @@ function PatientsPage() {
   return (
     <PatientsOverview
       title="Pacientes"
+      headerIcon={Users}
       patients={patients}
       appointments={appointments}
       professionals={professionals}

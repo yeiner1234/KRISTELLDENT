@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { MapPinPlus, Plus, Power, TriangleAlert, UserRound } from 'lucide-react';
-import SectionTitle from '../../components/common/SectionTitle';
+import PageHeader from '../../components/common/PageHeader';
 import SearchInput from '../../components/common/SearchInput';
 import Select from '../../components/common/Select';
 import Button from '../../components/common/Button';
@@ -107,17 +107,21 @@ function ProfessionalsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <SectionTitle title="Profesionales" align="left" />
-        <div className="flex flex-wrap gap-2">
+      <PageHeader
+        title="Profesionales"
+        icon={UserRound}
+        subtitle="Fichas, especialidades, sedes y horarios de cada profesional."
+        action={
+          <div className="flex flex-wrap gap-2">
           <Button type="button" variant="admin-outline" size="sm" icon={<MapPinPlus size={16} />} onClick={() => open({ kind: 'add' })}>
             {isAdminGlobal ? 'Agregar profesional a una sede' : 'Agregar profesional a mi sede'}
           </Button>
           <Button type="button" variant="admin-solid" size="sm" icon={<Plus size={16} />} onClick={() => open({ kind: 'create' })}>
             Nuevo profesional
           </Button>
-        </div>
-      </div>
+          </div>
+        }
+      />
 
       <div className="flex flex-wrap items-center gap-2.5 rounded-[14px] border border-adm-line-card bg-white p-4">
         <SearchInput

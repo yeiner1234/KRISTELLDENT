@@ -151,6 +151,26 @@
   --color-ag-line: #dfe5e9;
   --color-ag-orange: #e07b39;
 
+  /* Colores del logo (moños rosa, brackets aguamarina, cabello caramelo).
+     Acentos del panel admin junto al verde azulado de la marca. */
+  --color-kd-pink-50: #fdf0f5;
+  --color-kd-pink-100: #fadbe8;
+  --color-kd-pink-300: #f39ac0;
+  --color-kd-pink-500: #e0387f;
+  --color-kd-pink-700: #a8195a;
+
+  --color-kd-aqua-50: #ebf9fa;
+  --color-kd-aqua-100: #cdf1f3;
+  --color-kd-aqua-300: #8fdfe5;
+  --color-kd-aqua-500: #2bb8c4;
+  --color-kd-aqua-700: #0b7480;
+
+  --color-kd-caramel-50: #fbf3ee;
+  --color-kd-caramel-100: #f3e1d5;
+  --color-kd-caramel-300: #deb49c;
+  --color-kd-caramel-500: #c88868;
+  --color-kd-caramel-700: #87502f;
+
   --shadow-adm-elev-1: 0 6px 18px rgba(18, 35, 43, 0.07);
   --shadow-adm-elev-2: 0 12px 28px rgba(13, 43, 58, 0.09);
   --shadow-adm-modal: 0 24px 48px rgba(18, 35, 43, 0.22);

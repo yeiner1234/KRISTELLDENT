@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { CalendarCheck, Clock, Moon, Sparkles, Users, type LucideIcon } from 'lucide-react';
+import PageHeader from '../common/PageHeader';
 import SectionTitle from '../common/SectionTitle';
 import SearchInput from '../common/SearchInput';
 import Select from '../common/Select';
@@ -75,6 +76,8 @@ interface PatientsOverviewProps {
   // Mensaje cuando no hay ningún paciente (filtro "Todos" sin búsqueda).
   emptyDescription: string;
   headerAction?: ReactNode;
+  // Con icono, el encabezado de color del panel admin.
+  headerIcon?: LucideIcon;
 }
 
 // Lista de pacientes con el resumen de sus citas (próxima, última visita,
@@ -91,6 +94,7 @@ function PatientsOverview({
   error,
   emptyDescription,
   headerAction,
+  headerIcon,
 }: PatientsOverviewProps) {
   const todayIso = getTodayIsoDate();
   const summaries = useMemo(
@@ -107,21 +111,25 @@ function PatientsOverview({
     () => sortPatientSummaries(filterPatientSummaries(summaries, filter, query), sort),
     [summaries, filter, query, sort],
   );
+  const countLabel =
+    visibleSummaries.length === summaries.length
+      ? `${summaries.length} ${summaries.length === 1 ? 'paciente' : 'pacientes'}`
+      : `${visibleSummaries.length} de ${summaries.length} pacientes`;
   const selected = summaries.find((summary) => summary.patient.id === selectedId) ?? null;
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <SectionTitle title={title} align="left" />
-        <div className="flex items-center gap-3">
-          <span className="text-[13px] text-adm-ink-300">
-            {visibleSummaries.length === summaries.length
-              ? `${summaries.length} ${summaries.length === 1 ? 'paciente' : 'pacientes'}`
-              : `${visibleSummaries.length} de ${summaries.length} pacientes`}
-          </span>
-          {headerAction}
+      {headerIcon ? (
+        <PageHeader title={title} icon={headerIcon} subtitle={countLabel} action={headerAction} />
+      ) : (
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <SectionTitle title={title} align="left" />
+          <div className="flex items-center gap-3">
+            <span className="text-[13px] text-adm-ink-300">{countLabel}</span>
+            {headerAction}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="flex flex-col gap-3 rounded-[14px] border border-adm-line-card bg-white p-4">
         <div

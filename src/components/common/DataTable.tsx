@@ -28,7 +28,7 @@ function mobileMode<T>(column: DataTableColumn<T>): 'field' | 'actions' | 'hidde
 
 // Desde md, la celda de siempre.
 const desktopCellClasses =
-  'md:table-cell md:whitespace-nowrap md:border-t md:border-adm-line-div md:px-4 md:py-3.5 md:text-left md:group-hover:bg-adm-surface-hover';
+  'md:table-cell md:align-top md:border-t md:border-adm-line-div md:px-4 md:py-3.5 md:text-left md:group-hover:bg-adm-surface-hover';
 
 const mobileCellClasses = {
   field:

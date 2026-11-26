@@ -1,7 +1,7 @@
 import type { OfferProfessional, ServiceOfferStatus } from '../types/Offer';
 
 // Por qué una profesional asignada no hace visible el servicio en la reserva.
-function professionalLabel(professional: OfferProfessional): string {
+export function professionalLabel(professional: OfferProfessional): string {
   if (!professional.accountActive) return `${professional.fullName} (cuenta desactivada en Equipo)`;
   if (!professional.recordActive) return `${professional.fullName} (ficha desactivada)`;
   if (!professional.branchActive) return `${professional.fullName} (desactivada en esta sede)`;

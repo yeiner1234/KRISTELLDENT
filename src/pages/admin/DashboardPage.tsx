@@ -1,7 +1,8 @@
-import { CalendarCheck, Clock, Stethoscope, Users, Eye } from 'lucide-react';
+import { CalendarCheck, ChevronRight, Clock, LayoutDashboard, Stethoscope, Users } from 'lucide-react';
 import StatCard from '../../components/common/StatCard';
 import SectionTitle from '../../components/common/SectionTitle';
-import DataTable, { type DataTableColumn } from '../../components/common/DataTable';
+import PageHeader from '../../components/common/PageHeader';
+import Avatar from '../../components/common/Avatar';
 import ActivityChart from '../../components/dashboard/ActivityChart';
 import AppointmentStatus from '../../components/appointments/AppointmentStatus';
 import AppointmentModal from '../../components/appointments/AppointmentModal';
@@ -16,8 +17,8 @@ import { useAdminBranches } from '../../hooks/useAdminBranches';
 import { useAuth } from '../../hooks/useAuth';
 import { useAppointmentDetail } from '../../hooks/useAppointmentDetail';
 import { formatFullName } from '../../utils/format';
-import { getTodayIsoDate } from '../../utils/date';
-import type { Appointment } from '../../types/Appointment';
+import { formatDateLong, getTodayIsoDate } from '../../utils/date';
+import { formatRelativeDay } from '../../utils/patientSummary';
 import type { Patient } from '../../types/Patient';
 import type { Professional } from '../../types/Professional';
 
@@ -52,22 +53,6 @@ function DashboardPage() {
     .sort((a, b) => (a.date === b.date ? a.startTime.localeCompare(b.startTime) : a.date.localeCompare(b.date)))
     .slice(0, 6);
 
-  const columns: DataTableColumn<Appointment>[] = [
-    { key: 'time', header: 'Hora', render: (row) => `${row.startTime}` },
-    { key: 'patient', header: 'Paciente', render: (row) => patientName(patients, row.patientId) },
-    { key: 'professional', header: 'Profesional', render: (row) => professionalName(professionals, row.professionalId) },
-    { key: 'status', header: 'Estado', render: (row) => <AppointmentStatus status={row.status} theme="admin" /> },
-    {
-      key: 'actions',
-      header: '',
-      render: (row) => (
-        <Button type="button" variant="admin-outline" size="xs" icon={<Eye size={14} />} onClick={() => open(row)}>
-          Ver
-        </Button>
-      ),
-    },
-  ];
-
   if (isLoading) {
     return (
       <div className="flex justify-center py-16">
@@ -82,11 +67,23 @@ function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <PageHeader
+        title={user?.name ? `Hola, ${user.name.split(' ')[0]}` : 'Panel general'}
+        icon={LayoutDashboard}
+        subtitle={<span className="capitalize">{formatDateLong(today)} · Así va la clínica hoy.</span>}
+      />
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Citas de hoy" value={todayCount} icon={CalendarCheck} />
-        <StatCard label="Pacientes registrados" value={patients.length} icon={Users} />
-        <StatCard label="Profesionales activos" value={activeProfessionals} icon={Stethoscope} />
-        <StatCard label="Citas pendientes" value={pendingCount} icon={Clock} alert={pendingCount > 0} />
+        <StatCard label="Citas de hoy" value={todayCount} icon={CalendarCheck} tone="teal" />
+        <StatCard label="Pacientes registrados" value={patients.length} icon={Users} tone="pink" />
+        <StatCard label="Profesionales activos" value={activeProfessionals} icon={Stethoscope} tone="aqua" />
+        <StatCard
+          label="Citas pendientes"
+          value={pendingCount}
+          icon={Clock}
+          tone="caramel"
+          trend={pendingCount > 0 ? 'Por confirmar' : 'Todo al día'}
+        />
       </div>
 
       <ActivityChart appointments={appointments} />
@@ -105,7 +102,51 @@ function DashboardPage() {
             description="Las próximas citas aparecerán aquí cuando se registren reservas."
           />
         ) : (
-          <DataTable columns={columns} rows={upcoming} getRowId={(row) => row.id} pageSize={upcoming.length || 1} />
+          <ul className="flex flex-col gap-2.5" aria-label="Próximas citas">
+            {upcoming.map((appointment) => {
+              const name = patientName(patients, appointment.patientId);
+              return (
+                <li key={appointment.id}>
+                  <button
+                    type="button"
+                    onClick={() => open(appointment)}
+                    aria-label={`Ver cita de ${name}`}
+                    className="group flex w-full flex-wrap items-center gap-x-4 gap-y-3 rounded-[14px] border border-adm-line-card bg-white p-3.5 text-left shadow-soft transition-all hover:border-adm-accent-line hover:shadow-adm-elev-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-adm-accent-ring sm:flex-nowrap sm:px-5"
+                  >
+                    <span
+                      className={`flex w-[84px] shrink-0 flex-col items-center rounded-xl px-2 py-1.5 text-center text-white ${
+                        appointment.date === today
+                          ? 'bg-gradient-to-br from-kd-pink-500 to-kd-pink-300 shadow-[0_6px_14px_rgba(224,56,127,0.25)]'
+                          : 'bg-gradient-to-br from-brand-600 to-kd-aqua-500 shadow-[0_6px_14px_rgba(15,123,134,0.22)]'
+                      }`}
+                    >
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.05em]">
+                        {formatRelativeDay(appointment.date, today)}
+                      </span>
+                      <span className="text-base font-semibold [font-variant-numeric:tabular-nums]">{appointment.startTime}</span>
+                    </span>
+                    <span className="flex min-w-0 flex-1 items-center gap-3">
+                      <Avatar name={name} path={null} className="hidden h-9 w-9 text-xs sm:flex" />
+                      <span className="flex min-w-0 flex-col">
+                        <span className="truncate text-[15px] font-semibold text-adm-ink-700">{name}</span>
+                        <span className="truncate text-[13px] text-adm-ink-400">
+                          {professionalName(professionals, appointment.professionalId)}
+                        </span>
+                      </span>
+                    </span>
+                    <span className="flex items-center gap-3">
+                      <AppointmentStatus status={appointment.status} theme="admin" />
+                      <ChevronRight
+                        size={18}
+                        aria-hidden="true"
+                        className="shrink-0 text-adm-ink-100 transition-transform group-hover:translate-x-0.5 group-hover:text-adm-accent-deep"
+                      />
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </div>
 

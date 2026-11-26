@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
-import { Building2, CalendarOff, Clock, Pencil, Phone, Plus } from 'lucide-react';
-import SectionTitle from '../../components/common/SectionTitle';
+import { Building2, CalendarOff, Clock, MapPin, Pencil, Phone, Plus, Power } from 'lucide-react';
+import PageHeader from '../../components/common/PageHeader';
 import Button from '../../components/common/Button';
 import EmptyState from '../../components/common/EmptyState';
 import Spinner from '../../components/common/Spinner';
@@ -9,6 +9,8 @@ import FormError from '../../components/common/FormError';
 import Input from '../../components/common/Input';
 import StatusBadge from '../../components/common/StatusBadge';
 import ScheduleExceptionsPanel from '../../components/schedule/ScheduleExceptionsPanel';
+import { accentClasses, mutedAccent } from '../../components/common/accentClasses';
+import { accentToneFor } from '../../utils/accentTone';
 import { useAdminBranches } from '../../hooks/useAdminBranches';
 import { useAuth } from '../../hooks/useAuth';
 import { useManageableBranchIds } from '../../hooks/useManageableBranchIds';
@@ -181,14 +183,18 @@ function BranchesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <SectionTitle title="Sedes" align="left" />
-        {isAdminGlobal && (
-          <Button type="button" variant="admin-solid" size="sm" icon={<Plus size={16} />} onClick={openCreateModal}>
-            Nueva sede
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Sedes"
+        icon={Building2}
+        subtitle="Dirección, horario y feriados de cada sede de la clínica."
+        action={
+          isAdminGlobal && (
+            <Button type="button" variant="admin-solid" size="sm" icon={<Plus size={16} />} onClick={openCreateModal}>
+              Nueva sede
+            </Button>
+          )
+        }
+      />
 
       <FormError message={toggleError} />
 
@@ -205,84 +211,89 @@ function BranchesPage() {
           description="Crea la primera sede para empezar a asignar personal y operar desde el panel."
         />
       ) : (
-        <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
-          {branches.map((branch) => (
-            <div
+        <ul className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3" aria-label="Lista de sedes">
+          {branches.map((branch) => {
+            const accent = branch.active ? accentClasses[accentToneFor(branch.name)] : mutedAccent;
+            return (
+            <li
               key={branch.id}
-              className="flex flex-col gap-3.5 rounded-[14px] border border-adm-line-card bg-white p-5 shadow-soft"
+              className="relative flex flex-col gap-4 overflow-hidden rounded-[16px] border border-adm-line-card bg-white p-5 pt-6 shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-adm-elev-2"
             >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-adm-accent-soft text-adm-accent-deep">
-                    <Building2 size={20} />
-                  </span>
-                  <div className="flex min-w-0 flex-col">
-                    <p className="truncate text-[15.5px] font-semibold text-adm-ink-700">{branch.name}</p>
-                    <p className="truncate text-[13px] text-adm-ink-400">{branch.address}</p>
-                  </div>
+              <span aria-hidden="true" className={`absolute inset-x-0 top-0 h-1.5 ${accent.stripe}`} />
+              <div className="flex items-start gap-3">
+                <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${accent.tile}`}>
+                  <Building2 size={20} aria-hidden="true" />
+                </span>
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  <p className="text-pretty text-[15.5px] font-semibold leading-snug text-adm-ink-700">{branch.name}</p>
+                  {branch.region && <p className="text-[13px] text-adm-ink-300">{branch.region}</p>}
                 </div>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                {branch.phone && (
-                  <span className="flex items-center gap-1.5 text-[13px] text-adm-ink-400">
-                    <Phone size={14} strokeWidth={1.75} />
-                    {branch.phone}
-                  </span>
-                )}
                 <StatusBadge
                   label={branch.active ? 'Activa' : 'Inactiva'}
                   tone={branch.active ? 'adm-active' : 'adm-inactive'}
                 />
               </div>
 
-              <div className="flex gap-2 border-t border-adm-line-div pt-3.5">
-                {isAdminGlobal && (
-                  <Button
-                    type="button"
-                    variant="admin-outline"
-                    size="xs"
-                    className="flex-1"
-                    icon={<Pencil size={14} />}
-                    onClick={() => openEditModal(branch)}
-                  >
-                    Editar
-                  </Button>
-                )}
+              <div className={`flex flex-col gap-2 rounded-[12px] px-3.5 py-3 ${accent.soft}`}>
+                <span className="flex items-start gap-2 text-[13px] text-adm-ink-500">
+                  <MapPin size={14} strokeWidth={1.75} aria-hidden="true" className="mt-0.5 shrink-0 text-adm-ink-300" />
+                  <span className="text-pretty">{branch.address}</span>
+                </span>
+                <span className="flex items-center gap-2 text-[13px] text-adm-ink-500">
+                  <Phone size={14} strokeWidth={1.75} aria-hidden="true" className="shrink-0 text-adm-ink-300" />
+                  {branch.phone || <span className="italic text-adm-ink-200">Sin teléfono</span>}
+                </span>
+              </div>
+
+              <div className="mt-auto grid grid-cols-2 gap-2">
                 <Button
                   type="button"
                   variant="admin-outline"
                   size="xs"
-                  className="flex-1"
                   icon={<Clock size={14} />}
                   onClick={() => openScheduleModal(branch)}
                 >
                   Horario
                 </Button>
-              </div>
-              <Button
-                type="button"
-                variant="admin-outline"
-                size="xs"
-                icon={<CalendarOff size={14} />}
-                onClick={() => setClosuresBranch(branch)}
-              >
-                Feriados y cierres
-              </Button>
-              {isAdminGlobal && (
                 <Button
                   type="button"
-                  variant={branch.active ? 'admin-danger' : 'admin-outline'}
+                  variant="admin-outline"
                   size="xs"
-                  disabled={togglingId === branch.id}
-                  onClick={() => handleToggleActive(branch)}
+                  icon={<CalendarOff size={14} />}
+                  onClick={() => setClosuresBranch(branch)}
                 >
-                  {togglingId === branch.id ? 'Guardando…' : branch.active ? 'Desactivar' : 'Activar'}
+                  Feriados y cierres
                 </Button>
+              </div>
+
+              {isAdminGlobal && (
+                <div className="flex items-center justify-between gap-2 border-t border-adm-line-div pt-3.5">
+                  <Button
+                    type="button"
+                    variant="admin-ghost"
+                    size="xs"
+                    icon={togglingId === branch.id ? undefined : <Power size={14} />}
+                    disabled={togglingId === branch.id}
+                    onClick={() => handleToggleActive(branch)}
+                    className={branch.active ? 'hover:!text-adm-danger-text' : ''}
+                  >
+                    {togglingId === branch.id ? 'Guardando…' : branch.active ? 'Desactivar' : 'Activar'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="admin-solid"
+                    size="xs"
+                    icon={<Pencil size={14} />}
+                    onClick={() => openEditModal(branch)}
+                  >
+                    Editar
+                  </Button>
+                </div>
               )}
-            </div>
-          ))}
-        </div>
+            </li>
+            );
+          })}
+        </ul>
       )}
 
       <Modal

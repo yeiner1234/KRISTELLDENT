@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ClipboardList, Pencil, Plus } from 'lucide-react';
-import SectionTitle from '../../components/common/SectionTitle';
-import DataTable, { type DataTableColumn } from '../../components/common/DataTable';
+import { ClipboardList, Plus, Wrench } from 'lucide-react';
+import PageHeader from '../../components/common/PageHeader';
 import EmptyState from '../../components/common/EmptyState';
 import Spinner from '../../components/common/Spinner';
 import SearchInput from '../../components/common/SearchInput';
@@ -11,14 +10,15 @@ import Button from '../../components/common/Button';
 import FormError from '../../components/common/FormError';
 import StatusBadge from '../../components/common/StatusBadge';
 import ServiceFormModal, { type EditableService } from '../../components/services/ServiceFormModal';
-import OfferStatusBadge from '../../components/services/OfferStatusBadge';
+import ServiceRow from '../../components/services/ServiceRow';
+import { getSpecialtyIcon } from '../../components/booking/specialtyIcons';
+import { accentClasses } from '../../components/common/accentClasses';
+import { accentToneFor } from '../../utils/accentTone';
 import { useAdminBranches } from '../../hooks/useAdminBranches';
 import { useAdminSpecialties } from '../../hooks/useAdminSpecialties';
 import { useManageableBranchIds } from '../../hooks/useManageableBranchIds';
 import { useBranchOfferStatus } from '../../hooks/useOffer';
 import { setServiceActive } from '../../services/serviceService';
-import { formatCurrency } from '../../utils/format';
-import { professionalNames } from '../../utils/offer';
 import type { ServiceOfferStatus } from '../../types/Offer';
 
 interface Group {
@@ -105,64 +105,17 @@ function ServicesPage() {
     }
   };
 
-  const columns: DataTableColumn<ServiceOfferStatus>[] = [
-    { key: 'name', header: 'Servicio', render: (row) => <span className="font-medium">{row.name}</span> },
-    { key: 'price', header: 'Precio', render: (row) => formatCurrency(row.price) },
-    { key: 'duration', header: 'Duración', render: (row) => `${row.duration} min` },
-    {
-      key: 'professionals',
-      header: 'Profesionales',
-      render: (row) => <span className="block max-w-[220px] whitespace-normal">{professionalNames(row)}</span>,
-    },
-    { key: 'status', header: 'En la reserva', render: (row) => <OfferStatusBadge row={row} /> },
-    {
-      key: 'actions',
-      header: '',
-      render: (row) => (
-        <div className="flex gap-1.5">
-          <Button
-            type="button"
-            variant="admin-outline"
-            size="xs"
-            icon={<Pencil size={13} />}
-            aria-label={`Editar ${row.name}`}
-            onClick={() =>
-              setModal({
-                key: Date.now(),
-                editing: {
-                  id: row.serviceId,
-                  name: row.name,
-                  specialtyId: row.specialtyId,
-                  duration: row.duration,
-                  price: row.price,
-                },
-              })
-            }
-          >
-            Editar
-          </Button>
-          <Button
-            type="button"
-            variant={row.active ? 'admin-danger' : 'admin-outline'}
-            size="xs"
-            disabled={togglingId === row.serviceId}
-            onClick={() => handleToggle(row)}
-          >
-            {togglingId === row.serviceId ? 'Guardando…' : row.active ? 'Desactivar' : 'Activar'}
-          </Button>
-        </div>
-      ),
-    },
-  ];
-
   const isLoading = isLoadingBranches || isLoadingAccess || isLoadingRows;
   const loadError = branchesError ?? accessError ?? rowsError;
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <SectionTitle title="Servicios de la sede" align="left" />
-        {branchId && (
+      <PageHeader
+        title="Servicios de la sede"
+        icon={Wrench}
+        subtitle="Lo que ofrece cada sede, con su precio, duración y quién lo atiende."
+        action={
+          branchId && (
           <Button
             type="button"
             variant="admin-solid"
@@ -172,8 +125,9 @@ function ServicesPage() {
           >
             Nuevo servicio
           </Button>
-        )}
-      </div>
+          )
+        }
+      />
 
       <div className="flex flex-wrap items-center gap-2.5 rounded-[14px] border border-adm-line-card bg-white p-4">
         <div className="w-full max-w-[240px]">
@@ -241,17 +195,52 @@ function ServicesPage() {
         />
       ) : (
         <div className="flex flex-col gap-6">
-          {groups.map((group) => (
-            <section key={group.key} className="flex flex-col gap-2.5">
-              <h2 className="flex items-baseline gap-2 text-[15px] font-semibold text-adm-ink-700">
-                {group.title}
-                <span className="text-[13px] font-normal text-adm-ink-400">
-                  {group.rows.length} {group.rows.length === 1 ? 'servicio' : 'servicios'}
-                </span>
-              </h2>
-              <DataTable columns={columns} rows={group.rows} getRowId={(row) => row.serviceId} />
-            </section>
-          ))}
+          {groups.map((group) => {
+            const Icon = getSpecialtyIcon(group.title);
+            const accent = accentClasses[accentToneFor(group.title)];
+            const visibleCount = group.rows.filter((row) => row.bookable).length;
+            return (
+              <section
+                key={group.key}
+                aria-label={group.title}
+                className="overflow-hidden rounded-[16px] border border-adm-line-card bg-white shadow-soft"
+              >
+                <header className={`relative flex flex-wrap items-center gap-3 border-b border-adm-line-div px-4 py-3.5 sm:px-5 ${accent.soft}`}>
+                  <span aria-hidden="true" className={`absolute inset-y-0 left-0 w-1.5 ${accent.stripe}`} />
+                  <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${accent.tile}`}>
+                    <Icon size={18} aria-hidden="true" />
+                  </span>
+                  <h2 className="min-w-0 flex-1 text-[15px] font-semibold text-adm-ink-700">{group.title}</h2>
+                  <span className={`rounded-full bg-white/80 px-2.5 py-1 text-[12.5px] font-semibold [font-variant-numeric:tabular-nums] ${accent.text}`}>
+                    {group.rows.length} {group.rows.length === 1 ? 'servicio' : 'servicios'} · {visibleCount} en la reserva
+                  </span>
+                </header>
+                <ul className="divide-y divide-adm-line-div">
+                  {group.rows.map((row) => (
+                    <li key={row.serviceId}>
+                      <ServiceRow
+                        row={row}
+                        busy={togglingId === row.serviceId}
+                        onEdit={() =>
+                          setModal({
+                            key: Date.now(),
+                            editing: {
+                              id: row.serviceId,
+                              name: row.name,
+                              specialtyId: row.specialtyId,
+                              duration: row.duration,
+                              price: row.price,
+                            },
+                          })
+                        }
+                        onToggleActive={() => handleToggle(row)}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            );
+          })}
         </div>
       )}
 

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { CalendarX2, Plus } from 'lucide-react';
-import SectionTitle from '../../components/common/SectionTitle';
+import { CalendarX2, ClipboardList, Plus } from 'lucide-react';
+import PageHeader from '../../components/common/PageHeader';
 import EmptyState from '../../components/common/EmptyState';
 import Button from '../../components/common/Button';
 import Spinner from '../../components/common/Spinner';
@@ -81,13 +81,16 @@ function AppointmentsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <SectionTitle title="Citas" align="left" />
-        <span className="text-[13px] text-adm-ink-300">
-          {filteredViews.length} {filteredViews.length === 1 ? 'cita' : 'citas'}
-          {filters.date && <span className="capitalize"> · {formatDateLong(filters.date)}</span>}
-        </span>
-      </div>
+      <PageHeader
+        title="Citas"
+        icon={ClipboardList}
+        subtitle={
+          <>
+            {filteredViews.length} {filteredViews.length === 1 ? 'cita' : 'citas'}
+            {filters.date && <span className="capitalize"> · {formatDateLong(filters.date)}</span>}
+          </>
+        }
+      />
 
       <AppointmentFiltersBar
         filters={filters}

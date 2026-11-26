@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { ArrowRight, Camera, Mail, MapPin, Plus, Power, UsersRound } from 'lucide-react';
-import SectionTitle from '../../components/common/SectionTitle';
+import PageHeader from '../../components/common/PageHeader';
 import { canManageProfilePhoto } from '../../utils/avatar';
 import Avatar from '../../components/common/Avatar';
 import AvatarUploadModal from '../../components/profile/AvatarUploadModal';
@@ -166,20 +166,25 @@ function TeamPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <SectionTitle title="Equipo" align="left" />
-        <div className="flex items-center gap-3">
-          {members.length > 0 && (
-            <span className="text-[13px] text-adm-ink-300">
+      <PageHeader
+        title="Equipo"
+        icon={UsersRound}
+        subtitle={
+          members.length > 0 ? (
+            <>
               {hasFilters ? `${filteredMembers.length} de ${members.length}` : members.length}{' '}
-              {members.length === 1 ? 'persona' : 'personas'}
-            </span>
-          )}
+              {members.length === 1 ? 'persona' : 'personas'} con acceso al sistema
+            </>
+          ) : (
+            'Cuentas del personal y sus permisos.'
+          )
+        }
+        action={
           <Button type="button" variant="admin-solid" size="sm" icon={<Plus size={16} />} onClick={openModal}>
             Invitar usuario
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       {members.length > 0 && (
         <div className="flex flex-col gap-3 rounded-[14px] border border-adm-line-card bg-white p-4">

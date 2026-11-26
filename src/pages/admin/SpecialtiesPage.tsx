@@ -1,8 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { Pencil, Plus, Stethoscope, Trash2 } from 'lucide-react';
-import SectionTitle from '../../components/common/SectionTitle';
+import { CircleCheck, CircleOff, Layers, Plus, Stethoscope, Tags } from 'lucide-react';
+import PageHeader from '../../components/common/PageHeader';
 import { useAuth } from '../../hooks/useAuth';
-import DataTable, { type DataTableColumn } from '../../components/common/DataTable';
 import EmptyState from '../../components/common/EmptyState';
 import Spinner from '../../components/common/Spinner';
 import SearchInput from '../../components/common/SearchInput';
@@ -10,7 +9,8 @@ import Button from '../../components/common/Button';
 import Modal from '../../components/common/Modal';
 import FormError from '../../components/common/FormError';
 import Input from '../../components/common/Input';
-import StatusBadge from '../../components/common/StatusBadge';
+import FilterTabs from '../../components/common/FilterTabs';
+import SpecialtyCard from '../../components/specialties/SpecialtyCard';
 import { useSpecialtiesAdmin } from '../../hooks/useOffer';
 import {
   createSpecialty,
@@ -24,6 +24,8 @@ import type { AdminSpecialty } from '../../types/Offer';
 
 const emptyForm: SpecialtyInput = { name: '', description: '' };
 
+type StatusFilter = 'all' | 'active' | 'inactive';
+
 // Lista compartida de especialidades (spec 10.3). Las dos administradoras
 // agregan; solo admin_global renombra, desactiva y borra, porque afecta a
 // todas las sedes.
@@ -32,6 +34,7 @@ function SpecialtiesPage() {
   const isAdminGlobal = user?.role === 'admin_global';
   const { data: specialties, isLoading, error, refetch } = useSpecialtiesAdmin();
   const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<AdminSpecialty | null>(null);
@@ -97,100 +100,58 @@ function SpecialtiesPage() {
     }
   };
 
-  const columns: DataTableColumn<AdminSpecialty>[] = [
-    { key: 'name', header: 'Especialidad', render: (row) => <span className="font-medium">{row.name}</span> },
-    {
-      key: 'description',
-      header: 'Descripción',
-      render: (row) => <span className="block min-w-[160px] max-w-[300px] whitespace-normal">{row.description ?? '—'}</span>,
-    },
-    {
-      key: 'branches',
-      header: 'Sedes que la ofrecen',
-      render: (row) => (row.branchNames.length > 0 ? row.branchNames.join(', ') : '—'),
-    },
-    { key: 'createdBy', header: 'Agregada por', render: (row) => row.createdByName ?? '—' },
-    {
-      key: 'status',
-      header: 'Estado',
-      render: (row) => <StatusBadge label={row.active ? 'Activa' : 'Inactiva'} tone={row.active ? 'adm-active' : 'adm-inactive'} />,
-    },
-    ...(isAdminGlobal
-      ? [
-          {
-            key: 'actions',
-            header: '',
-            render: (row: AdminSpecialty) =>
-              confirmDeleteId === row.id ? (
-                <div className="flex gap-1.5">
-                  <Button
-                    type="button"
-                    variant="admin-danger"
-                    size="xs"
-                    disabled={busyId === row.id}
-                    onClick={() => runAction(row.id, () => deleteSpecialty(row.id))}
-                  >
-                    Sí, borrar
-                  </Button>
-                  <Button type="button" variant="admin-outline" size="xs" onClick={() => setConfirmDeleteId(null)}>
-                    No
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex gap-1.5">
-                  <Button type="button" variant="admin-outline" size="xs" icon={<Pencil size={13} />} onClick={() => openEditModal(row)}>
-                    Editar
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={row.active ? 'admin-danger' : 'admin-outline'}
-                    size="xs"
-                    disabled={busyId === row.id}
-                    onClick={() => runAction(row.id, () => setSpecialtyActive(row.id, !row.active))}
-                  >
-                    {busyId === row.id ? 'Guardando…' : row.active ? 'Desactivar' : 'Activar'}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="admin-outline"
-                    size="xs"
-                    icon={<Trash2 size={13} />}
-                    aria-label={`Borrar ${row.name}`}
-                    onClick={() => setConfirmDeleteId(row.id)}
-                  >
-                    Borrar
-                  </Button>
-                </div>
-              ),
-          },
-        ]
-      : []),
-  ];
+  const activeCount = specialties.filter((specialty) => specialty.active).length;
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
-    if (!term) return specialties;
-    return specialties.filter((specialty) => specialty.name.toLowerCase().includes(term));
-  }, [query, specialties]);
+    return specialties
+      .filter((specialty) => statusFilter === 'all' || specialty.active === (statusFilter === 'active'))
+      .filter((specialty) => !term || specialty.name.toLowerCase().includes(term));
+  }, [query, specialties, statusFilter]);
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <SectionTitle title="Especialidades" align="left" />
-        <Button type="button" variant="admin-solid" size="sm" icon={<Plus size={16} />} onClick={openCreateModal}>
-          Agregar especialidad
-        </Button>
-      </div>
+      <PageHeader
+        title="Especialidades"
+        icon={Tags}
+        subtitle={`Lista compartida por todas las sedes.${
+          isAdminGlobal ? '' : ' Para renombrar o desactivar una especialidad, pídelo a la administración general.'
+        }`}
+        action={
+          <Button type="button" variant="admin-solid" size="sm" icon={<Plus size={16} />} onClick={openCreateModal}>
+            Agregar especialidad
+          </Button>
+        }
+      />
 
-      <p className="text-[13px] text-adm-ink-400">
-        Lista compartida por todas las sedes. {isAdminGlobal ? '' : 'Para renombrar o desactivar una especialidad, pídelo a la administración general.'}
-      </p>
-
-      <div className="flex flex-wrap items-center gap-2.5 rounded-[14px] border border-adm-line-card bg-white p-4">
+      <div className="flex flex-col gap-3 rounded-[14px] border border-adm-line-card bg-white p-4 lg:flex-row lg:items-center">
+        <FilterTabs
+          ariaLabel="Filtrar especialidades"
+          value={statusFilter}
+          onChange={setStatusFilter}
+          tabs={[
+            { value: 'all', label: 'Todas', icon: Layers, count: specialties.length },
+            {
+              value: 'active',
+              label: 'Activas',
+              icon: CircleCheck,
+              count: activeCount,
+              activeClassName: 'border-adm-status-confirmed-solid bg-adm-status-confirmed-solid text-white',
+            },
+            {
+              value: 'inactive',
+              label: 'Inactivas',
+              icon: CircleOff,
+              count: specialties.length - activeCount,
+              activeClassName: 'border-adm-status-completed-solid bg-adm-status-completed-solid text-white',
+            },
+          ]}
+        />
         <SearchInput
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Buscar especialidad..."
+          aria-label="Buscar especialidad"
           wrapperClassName="min-w-[180px] flex-1"
         />
       </div>
@@ -203,10 +164,28 @@ function SpecialtiesPage() {
         </div>
       ) : error ? (
         <EmptyState icon={Stethoscope} title="No se pudieron cargar las especialidades" description={error} />
-      ) : filtered.length === 0 ? (
+      ) : specialties.length === 0 ? (
         <EmptyState icon={Stethoscope} title="No hay especialidades registradas" description="Aún no se han agregado especialidades." />
+      ) : filtered.length === 0 ? (
+        <EmptyState icon={Stethoscope} title="Sin especialidades para mostrar" description="Ninguna especialidad coincide con la búsqueda o el filtro." />
       ) : (
-        <DataTable columns={columns} rows={filtered} getRowId={(row) => row.id} />
+        <ul className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3" aria-label="Lista de especialidades">
+          {filtered.map((specialty) => (
+            <li key={specialty.id} className="flex">
+              <SpecialtyCard
+                specialty={specialty}
+                canManage={isAdminGlobal}
+                busy={busyId === specialty.id}
+                confirmingDelete={confirmDeleteId === specialty.id}
+                onEdit={() => openEditModal(specialty)}
+                onToggleActive={() => runAction(specialty.id, () => setSpecialtyActive(specialty.id, !specialty.active))}
+                onAskDelete={() => setConfirmDeleteId(specialty.id)}
+                onCancelDelete={() => setConfirmDeleteId(null)}
+                onConfirmDelete={() => runAction(specialty.id, () => deleteSpecialty(specialty.id))}
+              />
+            </li>
+          ))}
+        </ul>
       )}
 
       <Modal

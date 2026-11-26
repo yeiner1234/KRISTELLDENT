@@ -60,7 +60,7 @@ function AdminSidebar() {
         <img src={logo} alt="" className="h-[30px] w-[30px] rounded-[9px]" />
         <div className="flex flex-col leading-tight">
           <span className="text-[15px] font-semibold text-white">KristellDent</span>
-          <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-[#7fa3ab]">Admin</span>
+          <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-kd-pink-300">Admin</span>
         </div>
       </div>
 
@@ -76,8 +76,10 @@ function AdminSidebar() {
               to={to}
               end={end}
               className={({ isActive }) =>
-                `flex h-10 items-center gap-2.5 rounded-[9px] px-[11px] text-sm transition-colors duration-[140ms] ${
-                  isActive ? 'bg-brand-600 font-medium text-white' : 'text-[#93a8b0] hover:bg-white/5'
+                `relative flex h-10 items-center gap-2.5 rounded-[9px] px-[11px] text-sm transition-colors duration-[140ms] ${
+                  isActive
+                    ? 'bg-brand-600 bg-gradient-to-r from-brand-600 to-kd-aqua-500 font-medium text-white shadow-[0_6px_16px_rgba(15,123,134,0.35)] before:absolute before:-left-[14px] before:top-2 before:h-6 before:w-1 before:rounded-r-full before:bg-kd-pink-500'
+                    : 'text-[#93a8b0] hover:bg-white/5 hover:text-white'
                 }`
               }
             >

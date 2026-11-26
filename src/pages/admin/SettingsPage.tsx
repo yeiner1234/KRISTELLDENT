@@ -1,4 +1,5 @@
-import SectionTitle from '../../components/common/SectionTitle';
+import { Settings2 } from 'lucide-react';
+import PageHeader from '../../components/common/PageHeader';
 import Input from '../../components/common/Input';
 import Select from '../../components/common/Select';
 import Button from '../../components/common/Button';
@@ -6,7 +7,7 @@ import Button from '../../components/common/Button';
 function SettingsPage() {
   return (
     <div className="flex flex-col gap-6">
-      <SectionTitle title="Configuración de la clínica" align="left" />
+      <PageHeader title="Configuración de la clínica" icon={Settings2} subtitle="Datos generales de KristellDent." />
 
       <form
         onSubmit={(event) => event.preventDefault()}
