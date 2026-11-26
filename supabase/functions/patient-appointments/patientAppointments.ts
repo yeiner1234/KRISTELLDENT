@@ -156,3 +156,40 @@ export function serviceSnapshot(
     serviceDuration: row.service_duration_minutes ?? current?.duration_minutes ?? null,
   };
 }
+
+// HU15 caso límite 1: tras 3 códigos incorrectos para un DNI, la consulta se
+// bloquea 5 minutos. Vale igual para un DNI no registrado (caso límite 2: el
+// bloqueo no revela si el DNI existe).
+export const MAX_FAILED_ATTEMPTS = 3;
+export const LOCK_MINUTES = 5;
+// Los fallos cuentan si caen dentro de esta ventana; los más viejos se olvidan.
+export const FAILURE_WINDOW_MINUTES = 15;
+export const LOCKED_ERROR = `Demasiados intentos incorrectos. Espera ${LOCK_MINUTES} minutos e inténtalo de nuevo.`;
+
+// Desde la tabla patient_access_failures: hasta dónde mirar hacia atrás.
+export const FAILURE_LOOKBACK_MINUTES = FAILURE_WINDOW_MINUTES + LOCK_MINUTES;
+
+export function accessLockState(
+  failuresIso: string[],
+  now: Date,
+): { locked: boolean; retryAfterSeconds: number } {
+  const lockMs = LOCK_MINUTES * 60 * 1000;
+  const windowMs = FAILURE_WINDOW_MINUTES * 60 * 1000;
+  const failures = failuresIso.map((iso) => Date.parse(iso)).sort((a, b) => a - b);
+
+  let lockedUntil = 0;
+  let streak: number[] = [];
+  for (const failure of failures) {
+    // Un bloqueo cumplido deja la cuenta en cero.
+    if (failure < lockedUntil) continue;
+    streak = streak.filter((previous) => failure - previous < windowMs);
+    streak.push(failure);
+    if (streak.length >= MAX_FAILED_ATTEMPTS) {
+      lockedUntil = failure + lockMs;
+      streak = [];
+    }
+  }
+
+  const remaining = lockedUntil - now.getTime();
+  return remaining > 0 ? { locked: true, retryAfterSeconds: Math.ceil(remaining / 1000) } : { locked: false, retryAfterSeconds: 0 };
+}

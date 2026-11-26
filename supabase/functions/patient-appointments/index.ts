@@ -26,7 +26,10 @@ import {
 import { sendEmail } from '../_shared/email.ts';
 import { appointmentCodesEmail } from '../_shared/emailTemplates.ts';
 import {
+  accessLockState,
   canAccessAppointment,
+  FAILURE_LOOKBACK_MINUTES,
+  LOCKED_ERROR,
   MISMATCH_ERROR,
   RESEND_CODE_LIMIT_PER_HOUR,
   RESEND_CODE_MESSAGE,
@@ -161,6 +164,28 @@ async function withNames(client: SupabaseClient, rows: AppointmentRow[]) {
   });
 }
 
+// HU15 caso límite 1: ¿este DNI está bloqueado por códigos incorrectos?
+async function isLocked(client: SupabaseClient, dni: string): Promise<boolean> {
+  const since = new Date(Date.now() - FAILURE_LOOKBACK_MINUTES * 60 * 1000).toISOString();
+  const { data, error } = await client
+    .from('patient_access_failures')
+    .select('failed_at')
+    .eq('dni', dni)
+    .gte('failed_at', since);
+  if (error) throw error;
+  return accessLockState((data ?? []).map((row) => row.failed_at as string), new Date()).locked;
+}
+
+// Registra un código incorrecto y dice si con él quedó bloqueado.
+async function registerFailure(client: SupabaseClient, dni: string): Promise<boolean> {
+  const { error } = await client.from('patient_access_failures').insert({ dni });
+  if (error) throw error;
+  // Limpieza de todos los DNIs: lo de más de un día ya no cuenta.
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  await client.from('patient_access_failures').delete().lt('failed_at', oneDayAgo);
+  return isLocked(client, dni);
+}
+
 // Envía los códigos de las próximas citas al correo registrado del DNI. La
 // respuesta es siempre la misma (RESEND_CODE_MESSAGE): quien llama no sabe si
 // el DNI existe, si tiene citas ni a qué correo se envió.
@@ -264,11 +289,19 @@ Deno.serve(async (req) => {
       return jsonResponse({ message: RESEND_CODE_MESSAGE });
     }
 
+    // Bloqueado: no se comprueba el código, ni siquiera el correcto.
+    if (await isLocked(adminClient, request.dni)) {
+      return jsonResponse({ error: LOCKED_ERROR }, 429);
+    }
+
     const access = await findPatient(adminClient, request.dni, request.code);
     if (!access) {
-      return jsonResponse({ error: MISMATCH_ERROR }, 404);
+      const lockedNow = await registerFailure(adminClient, request.dni);
+      return lockedNow ? jsonResponse({ error: LOCKED_ERROR }, 429) : jsonResponse({ error: MISMATCH_ERROR }, 404);
     }
     const { patient } = access;
+    // Entró bien: los fallos anteriores ya no cuentan.
+    await adminClient.from('patient_access_failures').delete().eq('dni', request.dni);
 
     if (request.action === 'list') {
       const appointments = await listAppointments(adminClient, access);

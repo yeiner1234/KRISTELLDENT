@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  accessLockState,
   canAccessAppointment,
+  LOCKED_ERROR,
   MISMATCH_ERROR,
   RESEND_CODE_MESSAGE,
   modificationError,
@@ -170,5 +172,47 @@ describe('serviceSnapshot', () => {
     const row = { service_id: null, service_name: null, service_duration_minutes: null };
 
     expect(serviceSnapshot(row, new Map())).toEqual({ serviceName: null, serviceDuration: null });
+  });
+});
+
+// HU15 caso límite 1: 3 códigos incorrectos bloquean la consulta 5 minutos.
+describe('accessLockState', () => {
+  const at = (time: string) => `2026-11-25T${time}Z`;
+  const now = (time: string) => new Date(at(time));
+
+  it('sin fallos o con menos de 3 no bloquea', () => {
+    expect(accessLockState([], now('10:00:00')).locked).toBe(false);
+    expect(accessLockState([at('09:58:00'), at('09:59:00')], now('10:00:00')).locked).toBe(false);
+  });
+
+  it('el 3.º fallo bloquea 5 minutos contados desde ese fallo', () => {
+    const failures = [at('10:00:00'), at('10:01:00'), at('10:02:00')];
+
+    expect(accessLockState(failures, now('10:02:00'))).toEqual({ locked: true, retryAfterSeconds: 300 });
+    expect(accessLockState(failures, now('10:06:30'))).toEqual({ locked: true, retryAfterSeconds: 30 });
+    expect(accessLockState(failures, now('10:07:00')).locked).toBe(false);
+  });
+
+  it('los fallos se cuentan dentro de 15 minutos: tres muy separados no bloquean', () => {
+    const failures = [at('09:00:00'), at('09:20:00'), at('09:40:00')];
+
+    expect(accessLockState(failures, now('09:40:00')).locked).toBe(false);
+  });
+
+  it('tras cumplir el bloqueo, la cuenta empieza de cero', () => {
+    const failures = [at('10:00:00'), at('10:01:00'), at('10:02:00'), at('10:08:00')];
+
+    expect(accessLockState(failures, now('10:08:00')).locked).toBe(false);
+  });
+
+  it('el orden de llegada de los fallos no importa', () => {
+    const failures = [at('10:02:00'), at('10:00:00'), at('10:01:00')];
+
+    expect(accessLockState(failures, now('10:03:00')).locked).toBe(true);
+  });
+
+  it('el mensaje de bloqueo no revela si el DNI existe', () => {
+    expect(LOCKED_ERROR).not.toMatch(/registrad|existe/i);
+    expect(LOCKED_ERROR).toContain('5 minutos');
   });
 });
