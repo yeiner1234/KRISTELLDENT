@@ -82,7 +82,7 @@ function renderPage(selectedBranchId = '') {
 }
 
 function rowOf(code: string) {
-  return screen.getByText(code).closest('tr') as HTMLElement;
+  return screen.getByText(code).closest('[data-appointment-row]') as HTMLElement;
 }
 
 describe('BranchAppointmentsPage (técnica)', () => {

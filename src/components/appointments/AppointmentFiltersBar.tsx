@@ -16,6 +16,8 @@ interface AppointmentFiltersBarProps {
   // Solo para admin_global: el resto ve únicamente su sede.
   branches?: { id: string; name: string }[];
   showDate?: boolean;
+  // false cuando la pantalla filtra el estado con AppointmentStatusTabs.
+  showStatus?: boolean;
   actions?: ReactNode;
 }
 
@@ -34,12 +36,13 @@ function AppointmentFiltersBar({
   professionals,
   branches,
   showDate = true,
+  showStatus = true,
   actions,
 }: AppointmentFiltersBarProps) {
   const update = (patch: Partial<AppointmentFilters>) => onChange({ ...filters, ...patch });
   const [showFilters, setShowFilters] = useState(false);
   const fieldsId = useId();
-  const activeCount = [filters.professionalId, filters.status, branches ? filters.branchId : ''].filter(Boolean).length;
+  const activeCount = [filters.professionalId, showStatus ? filters.status : '', branches ? filters.branchId : ''].filter(Boolean).length;
 
   return (
     <div className="flex flex-wrap items-end gap-2.5 rounded-[14px] border border-adm-line-card bg-white p-4">
@@ -82,6 +85,7 @@ function AppointmentFiltersBar({
             onChange={(professionalId) => update({ professionalId })}
           />
         </div>
+        {showStatus && (
         <div className="w-full sm:w-[170px]">
           <Select
             label="Estado"
@@ -90,6 +94,7 @@ function AppointmentFiltersBar({
             onChange={(event) => update({ status: event.target.value as AppointmentStatus | '' })}
           />
         </div>
+        )}
         {branches && (
           <div className="w-full sm:w-[190px]">
             <Select

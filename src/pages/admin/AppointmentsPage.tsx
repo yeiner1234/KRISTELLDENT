@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react';
-import { CalendarX2, Eye, Plus } from 'lucide-react';
+import { CalendarX2, Plus } from 'lucide-react';
 import SectionTitle from '../../components/common/SectionTitle';
-import DataTable, { type DataTableColumn } from '../../components/common/DataTable';
 import EmptyState from '../../components/common/EmptyState';
 import Button from '../../components/common/Button';
 import Spinner from '../../components/common/Spinner';
 import AppointmentModal from '../../components/appointments/AppointmentModal';
-import AppointmentStatus from '../../components/appointments/AppointmentStatus';
-import AppointmentActionButtons from '../../components/appointments/AppointmentActionButtons';
+import AppointmentRow from '../../components/appointments/AppointmentRow';
+import AppointmentDayList from '../../components/appointments/AppointmentDayList';
+import AppointmentStatusTabs from '../../components/appointments/AppointmentStatusTabs';
 import AppointmentFiltersBar from '../../components/appointments/AppointmentFiltersBar';
 import NewAppointmentModal from '../../components/appointments/NewAppointmentModal';
 import RescheduleAppointmentModal from '../../components/appointments/RescheduleAppointmentModal';
@@ -23,11 +23,11 @@ import { useAdminServices } from '../../hooks/useAdminServices';
 import { useServices } from '../../hooks/useServices';
 import {
   buildAppointmentViews,
+  countAppointmentsByStatus,
   filterAppointmentViews,
   type AppointmentFilters,
-  type AppointmentView,
 } from '../../utils/appointmentViews';
-import { formatDateLong, formatTimeRange, getTodayIsoDate } from '../../utils/date';
+import { formatDateLong, getTodayIsoDate } from '../../utils/date';
 
 function AppointmentsPage() {
   const { user } = useAuth();
@@ -71,64 +71,13 @@ function AppointmentsPage() {
     [appointments, patients, professionals, services],
   );
   const filteredViews = useMemo(() => filterAppointmentViews(views, filters), [views, filters]);
+  // Las pestañas cuentan con todos los filtros menos el de estado.
+  const statusCounts = useMemo(
+    () => countAppointmentsByStatus(filterAppointmentViews(views, { ...filters, status: '' })),
+    [views, filters],
+  );
+  const todayIso = getTodayIsoDate();
   const selectedView = views.find((view) => view.appointment.id === selected?.id);
-
-  const columns: DataTableColumn<AppointmentView>[] = [
-    ...(filters.date
-      ? []
-      : [
-          {
-            key: 'date',
-            header: 'Fecha',
-            render: (row: AppointmentView) => <span className="capitalize">{formatDateLong(row.appointment.date)}</span>,
-          },
-        ]),
-    {
-      key: 'time',
-      header: 'Hora',
-      render: (row) => (
-        <span className="[font-variant-numeric:tabular-nums]">
-          {formatTimeRange(row.appointment.startTime, row.appointment.endTime)}
-        </span>
-      ),
-    },
-    { key: 'code', header: 'Código', render: (row) => <span className="font-medium">{row.appointment.code}</span> },
-    {
-      key: 'patient',
-      header: 'Paciente',
-      render: (row) => (
-        <div className="flex flex-col">
-          <span>{row.patientName}</span>
-          {row.patientDni && <span className="text-xs text-adm-ink-300">DNI {row.patientDni}</span>}
-        </div>
-      ),
-    },
-    { key: 'professional', header: 'Profesional', render: (row) => row.professionalName },
-    { key: 'service', header: 'Servicio', render: (row) => row.serviceName },
-    { key: 'status', header: 'Estado', render: (row) => <AppointmentStatus status={row.appointment.status} theme="admin" /> },
-    {
-      key: 'actions',
-      header: 'Acciones',
-      render: (row) => (
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => openDetail(row.appointment)}
-            aria-label="Ver detalle de la cita"
-            className="rounded-[7px] border border-adm-line-control p-1.5 text-adm-ink-400 transition-colors hover:bg-adm-surface-hover"
-          >
-            <Eye size={16} />
-          </button>
-          <AppointmentActionButtons
-            appointment={row.appointment}
-            role={role}
-            busy={statusAction.pendingId === row.appointment.id}
-            onAction={handleAction}
-          />
-        </div>
-      ),
-    },
-  ];
 
   return (
     <div className="flex flex-col gap-6">
@@ -143,6 +92,7 @@ function AppointmentsPage() {
       <AppointmentFiltersBar
         filters={filters}
         onChange={setFilters}
+        showStatus={false}
         professionals={namedProfessionals}
         branches={isAdminGlobal ? branches : undefined}
         actions={
@@ -150,6 +100,12 @@ function AppointmentsPage() {
             Nueva cita
           </Button>
         }
+      />
+
+      <AppointmentStatusTabs
+        value={filters.status}
+        onChange={(status) => setFilters({ ...filters, status })}
+        counts={statusCounts}
       />
 
       {catalogError && (
@@ -183,12 +139,19 @@ function AppointmentsPage() {
           description="No hay citas con estos filtros. Cambia la fecha, el profesional o el estado."
         />
       ) : (
-        // Las citas del día se ven en una sola pantalla: sin paginar.
-        <DataTable
-          columns={columns}
-          rows={filteredViews}
-          getRowId={(row) => row.appointment.id}
-          pageSize={Math.max(filteredViews.length, 1)}
+        <AppointmentDayList
+          views={filteredViews}
+          todayIso={todayIso}
+          renderRow={(view) => (
+            <AppointmentRow
+              view={view}
+              role={role}
+              busy={statusAction.pendingId === view.appointment.id}
+              onAction={handleAction}
+              onOpen={openDetail}
+              branchName={isAdminGlobal ? branches.find((branch) => branch.id === view.appointment.branchId)?.name : undefined}
+            />
+          )}
         />
       )}
 

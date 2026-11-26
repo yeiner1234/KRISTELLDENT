@@ -71,3 +71,28 @@ export function patientsOfAppointments(patients: Patient[], appointments: Appoin
   const patientIds = new Set(appointments.map((appointment) => appointment.patientId));
   return patients.filter((patient) => patientIds.has(patient.id));
 }
+
+// Cuántas citas hay en cada estado ('' = todas), para las pestañas de estado.
+export function countAppointmentsByStatus(views: AppointmentView[]): Record<AppointmentStatus | '', number> {
+  const counts: Record<AppointmentStatus | '', number> = {
+    '': views.length,
+    pending: 0,
+    confirmed: 0,
+    in_room: 0,
+    completed: 0,
+    cancelled: 0,
+  };
+  for (const { appointment } of views) counts[appointment.status] += 1;
+  return counts;
+}
+
+// Citas agrupadas por día, en el orden en que llegan.
+export function groupAppointmentViewsByDate(views: AppointmentView[]): { date: string; views: AppointmentView[] }[] {
+  const groups: { date: string; views: AppointmentView[] }[] = [];
+  for (const view of views) {
+    const last = groups.at(-1);
+    if (last && last.date === view.appointment.date) last.views.push(view);
+    else groups.push({ date: view.appointment.date, views: [view] });
+  }
+  return groups;
+}

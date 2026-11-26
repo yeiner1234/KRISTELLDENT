@@ -97,7 +97,7 @@ function renderPage() {
 }
 
 function rowOf(code: string) {
-  return screen.getByText(code).closest('tr') as HTMLElement;
+  return screen.getByText(code).closest('[data-appointment-row]') as HTMLElement;
 }
 
 describe('AppointmentsPage (admin)', () => {
@@ -134,7 +134,8 @@ describe('AppointmentsPage (admin)', () => {
   it('filtra por estado En sala', async () => {
     renderPage();
 
-    await userEvent.selectOptions(screen.getByLabelText('Estado'), 'in_room');
+    expect(screen.getByRole('tab', { name: /En sala/ })).toHaveTextContent('1');
+    await userEvent.click(screen.getByRole('tab', { name: /En sala/ }));
 
     expect(screen.queryByText('KD-AAA111')).not.toBeInTheDocument();
     expect(screen.getByText('KD-CCC333')).toBeInTheDocument();

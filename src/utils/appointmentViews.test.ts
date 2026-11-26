@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { buildAppointmentViews, filterAppointmentViews, patientsOfAppointments } from './appointmentViews';
+import {
+  buildAppointmentViews,
+  countAppointmentsByStatus,
+  filterAppointmentViews,
+  groupAppointmentViewsByDate,
+  patientsOfAppointments,
+} from './appointmentViews';
 import type { Appointment } from '../types/Appointment';
 import type { Patient } from '../types/Patient';
 import type { Professional } from '../types/Professional';
@@ -104,5 +110,48 @@ describe('filterAppointmentViews', () => {
 describe('patientsOfAppointments', () => {
   it('deja solo los pacientes que tienen alguna de esas citas', () => {
     expect(patientsOfAppointments(patients, [appointments[2]]).map((patient) => patient.id)).toEqual(['pt1']);
+  });
+});
+
+describe('countAppointmentsByStatus', () => {
+  it('cuenta cada estado y el total', () => {
+    const views = buildAppointmentViews(
+      [
+        appointment({ id: 'a1', status: 'pending' }),
+        appointment({ id: 'a2', status: 'pending', startTime: '10:00' }),
+        appointment({ id: 'a3', status: 'in_room', startTime: '11:00' }),
+        appointment({ id: 'a4', status: 'cancelled', startTime: '12:00' }),
+      ],
+      { patients: [], professionals: [], services: [] },
+    );
+
+    expect(countAppointmentsByStatus(views)).toEqual({
+      '': 4,
+      pending: 2,
+      confirmed: 0,
+      in_room: 1,
+      completed: 0,
+      cancelled: 1,
+    });
+  });
+});
+
+describe('groupAppointmentViewsByDate', () => {
+  it('agrupa por fecha manteniendo el orden', () => {
+    const views = buildAppointmentViews(
+      [
+        appointment({ id: 'a1', date: '2026-11-26' }),
+        appointment({ id: 'a2', date: '2026-11-25' }),
+        appointment({ id: 'a3', date: '2026-11-26', startTime: '10:00' }),
+      ],
+      { patients: [], professionals: [], services: [] },
+    );
+
+    expect(
+      groupAppointmentViewsByDate(views).map((group) => [group.date, group.views.map((view) => view.appointment.id)]),
+    ).toEqual([
+      ['2026-11-25', ['a2']],
+      ['2026-11-26', ['a1', 'a3']],
+    ]);
   });
 });

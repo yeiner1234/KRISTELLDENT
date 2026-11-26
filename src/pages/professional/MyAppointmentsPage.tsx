@@ -1,11 +1,12 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { CalendarX2 } from 'lucide-react';
 import SectionTitle from '../../components/common/SectionTitle';
 import EmptyState from '../../components/common/EmptyState';
 import Spinner from '../../components/common/Spinner';
-import AppointmentStatus from '../../components/appointments/AppointmentStatus';
-import AppointmentActionButtons from '../../components/appointments/AppointmentActionButtons';
-import BranchTag from '../../components/appointments/BranchTag';
+import SearchInput from '../../components/common/SearchInput';
+import AppointmentRow from '../../components/appointments/AppointmentRow';
+import AppointmentDayList from '../../components/appointments/AppointmentDayList';
+import AppointmentStatusTabs from '../../components/appointments/AppointmentStatusTabs';
 import { useAuth } from '../../hooks/useAuth';
 import { useMyAppointments } from '../../hooks/useAppointments';
 import { useAppointmentStatusAction } from '../../hooks/useAppointmentStatusAction';
@@ -14,9 +15,16 @@ import { useServices } from '../../hooks/useServices';
 import { usePanelBranch } from '../../hooks/usePanelBranch';
 import { filterByPanelBranch } from '../../utils/panelBranch';
 import { ACTION_TARGET_STATUS, type AppointmentAction } from '../../utils/appointmentActions';
-import { buildAppointmentViews } from '../../utils/appointmentViews';
-import { formatDateLong, formatTimeRange } from '../../utils/date';
-import type { Appointment } from '../../types/Appointment';
+import { buildAppointmentViews, countAppointmentsByStatus, filterAppointmentViews } from '../../utils/appointmentViews';
+import { getTodayIsoDate } from '../../utils/date';
+import type { Appointment, AppointmentStatus } from '../../types/Appointment';
+
+type Scope = 'upcoming' | 'past';
+
+const scopes: { value: Scope; label: string }[] = [
+  { value: 'upcoming', label: 'Próximas' },
+  { value: 'past', label: 'Historial' },
+];
 
 function MyAppointmentsPage() {
   const { user } = useAuth();
@@ -27,17 +35,30 @@ function MyAppointmentsPage() {
   const error = appointmentsError ?? patientsError ?? servicesError;
   const statusAction = useAppointmentStatusAction(refetch);
   const isLoading = isLoadingAppointments || isLoadingPatients;
-  const { selectedBranchId } = usePanelBranch();
+  const { selectedBranchId, branchName } = usePanelBranch();
+  const todayIso = getTodayIsoDate();
+  const [scope, setScope] = useState<Scope>('upcoming');
+  const [status, setStatus] = useState<AppointmentStatus | ''>('');
+  const [query, setQuery] = useState('');
 
-  // Las más recientes primero, de la sede elegida arriba.
+  // De la sede elegida arriba. Próximas: de hoy en adelante, la más cercana
+  // primero. Historial: lo anterior a hoy, lo más reciente primero.
+  const scopedViews = useMemo(() => {
+    const views = buildAppointmentViews(filterByPanelBranch(appointments, selectedBranchId), {
+      patients,
+      professionals: [],
+      services,
+    });
+    const inScope = views.filter((view) =>
+      scope === 'upcoming' ? view.appointment.date >= todayIso : view.appointment.date < todayIso,
+    );
+    return filterAppointmentViews(scope === 'past' ? inScope.reverse() : inScope, { query });
+  }, [appointments, selectedBranchId, patients, services, scope, todayIso, query]);
+
+  const statusCounts = useMemo(() => countAppointmentsByStatus(scopedViews), [scopedViews]);
   const views = useMemo(
-    () =>
-      buildAppointmentViews(filterByPanelBranch(appointments, selectedBranchId), {
-        patients,
-        professionals: [],
-        services,
-      }).reverse(),
-    [appointments, selectedBranchId, patients, services],
+    () => (status ? scopedViews.filter((view) => view.appointment.status === status) : scopedViews),
+    [scopedViews, status],
   );
 
   const handleAction = (appointment: Appointment, action: AppointmentAction) => {
@@ -50,7 +71,42 @@ function MyAppointmentsPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <SectionTitle title="Mis citas" align="left" />
-        <span className="text-[13px] text-adm-ink-300">{views.length} citas</span>
+        <span className="text-[13px] text-adm-ink-300">
+          {views.length} {views.length === 1 ? 'cita' : 'citas'}
+        </span>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-[14px] border border-adm-line-card bg-white p-4">
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
+          <div
+            role="tablist"
+            aria-label="Periodo"
+            className="inline-flex shrink-0 rounded-[10px] border border-adm-line-control bg-adm-surface-app p-1"
+          >
+            {scopes.map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                role="tab"
+                aria-selected={scope === item.value}
+                onClick={() => setScope(item.value)}
+                className={`flex-1 rounded-[7px] px-4 py-1.5 text-sm font-medium transition-colors sm:flex-initial ${
+                  scope === item.value ? 'bg-white text-adm-accent-deep shadow-soft' : 'text-adm-ink-400 hover:text-adm-ink-700'
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <SearchInput
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Buscar paciente, DNI o código..."
+            aria-label="Buscar citas"
+            wrapperClassName="min-w-[180px] flex-1"
+          />
+        </div>
+        <AppointmentStatusTabs value={status} onChange={setStatus} counts={statusCounts} />
       </div>
 
       {statusAction.error && (
@@ -71,37 +127,28 @@ function MyAppointmentsPage() {
       ) : views.length === 0 ? (
         <EmptyState
           icon={CalendarX2}
-          title="Sin citas registradas"
-          description="Cuando tengas citas asignadas, aparecerán en esta lista."
+          title={scope === 'upcoming' ? 'Sin citas próximas' : 'Sin citas anteriores'}
+          description={
+            scope === 'upcoming'
+              ? 'Cuando tengas citas asignadas, aparecerán en esta lista.'
+              : 'Aquí verás las citas de días anteriores.'
+          }
         />
       ) : (
-        <div className="flex flex-col gap-3">
-          {views.map((view) => (
-            <div
-              key={view.appointment.id}
-              className="flex flex-wrap items-center gap-x-[18px] gap-y-2 rounded-[14px] border border-adm-line-card bg-white p-[16px_20px] shadow-soft"
-            >
-              <div className="flex min-w-[170px] flex-col">
-                <span className="text-sm font-semibold capitalize text-adm-ink-700">{formatDateLong(view.appointment.date)}</span>
-                <span className="text-sm text-adm-ink-400 sm:text-[13px] [font-variant-numeric:tabular-nums]">
-                  {formatTimeRange(view.appointment.startTime, view.appointment.endTime)} · {view.appointment.code}
-                </span>
-              </div>
-              <div className="flex min-w-[160px] flex-1 flex-col">
-                <span className="text-sm font-medium text-adm-ink-700">{view.patientName}</span>
-                <span className="text-sm text-adm-ink-400 sm:text-[13px]">{view.serviceName}</span>
-              </div>
-              <BranchTag branchId={view.appointment.branchId} />
-              <AppointmentStatus status={view.appointment.status} theme="admin" />
-              <AppointmentActionButtons
-                appointment={view.appointment}
-                role={role}
-                busy={statusAction.pendingId === view.appointment.id}
-                onAction={handleAction}
-              />
-            </div>
-          ))}
-        </div>
+        <AppointmentDayList
+          views={views}
+          todayIso={todayIso}
+          renderRow={(view) => (
+            <AppointmentRow
+              view={view}
+              role={role}
+              busy={statusAction.pendingId === view.appointment.id}
+              onAction={handleAction}
+              showProfessional={false}
+              branchName={branchName(view.appointment.branchId)}
+            />
+          )}
+        />
       )}
     </div>
   );
