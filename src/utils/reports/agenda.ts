@@ -255,3 +255,12 @@ export function branchHoursLabel(branchName: string, hours: WeeklyHours, isoDate
   const day = hours[WEEKDAY_KEYS[weekdayIndex(isoDate)]];
   return day ? `Sede ${branchName} · ${day.open} – ${day.close}` : 'Sede cerrada';
 }
+
+// En pantalla, la hoja A4 (contentWidth px) se achica para caber entera en el
+// ancho disponible (containerWidth px); nunca se agranda. Al imprimir no se usa.
+export function sheetFitScale(containerWidth: number, contentWidth: number): number {
+  if (containerWidth <= 0 || contentWidth <= 0) {
+    return 1;
+  }
+  return Math.min(1, containerWidth / contentWidth);
+}

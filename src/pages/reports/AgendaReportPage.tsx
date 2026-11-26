@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { CalendarX2, Printer } from 'lucide-react';
 import Button from '../../components/common/Button';
 import EmptyState from '../../components/common/EmptyState';
@@ -32,6 +32,7 @@ import {
   summarizeAgenda,
   type AgendaShift,
   type AgendaStatusFilter,
+  sheetFitScale,
 } from '../../utils/reports/agenda';
 import type { AppointmentStatus } from '../../types/Appointment';
 import icon from '../../../imagenes/kristelldent-icon.png';
@@ -41,8 +42,23 @@ import '../../styles/agenda-report.css';
 // Reporte operativo "Agenda de citas de la sede": una hoja A4 que se imprime
 // (o se guarda como PDF) con la impresión del navegador. La RLS ya limita las
 // citas de la técnica y de la admin de sede a sus sedes.
+// Ancho real de la hoja A4 en pantalla (210 mm a 96 ppp).
+const SHEET_WIDTH_PX = 794;
+
 function AgendaReportPage() {
   const { user } = useAuth();
+  // En celular la hoja se achica para verse entera (ver sheetFitScale).
+  const [frameWidth, setFrameWidth] = useState(0);
+  const frameRef = useCallback((node: HTMLDivElement | null) => {
+    if (!node) return undefined;
+    const measure = () => setFrameWidth(node.clientWidth);
+    measure();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+  const sheetScale = sheetFitScale(frameWidth, SHEET_WIDTH_PX);
   const { appointments, isLoading: isLoadingAppointments, error: appointmentsError } = useAllAppointments();
   const { patients, isLoading: isLoadingPatients } = useAllPatients();
   // get_public_professionals: la técnica no puede leer profiles.
@@ -121,8 +137,7 @@ function AgendaReportPage() {
   return (
     <div className="agenda-report flex flex-col gap-5">
       {/* En celular los filtros van de a dos por fila, con etiquetas más chicas,
-          para llegar rápido a la hoja; desde sm, la fila de siempre. La hoja se
-          desplaza en su contenedor. */}
+          para llegar rápido a la hoja; desde sm, la fila de siempre. */}
       <div className="agenda-toolbar grid grid-cols-2 items-end gap-x-2.5 gap-y-2.5 rounded-[14px] border border-adm-line-card bg-white p-3 [&_label]:text-[12.5px] sm:flex sm:flex-wrap sm:gap-3 sm:p-4 sm:[&>*]:w-auto sm:[&_label]:text-sm">
         <Input
           label="Fecha"
@@ -183,7 +198,9 @@ function AgendaReportPage() {
         </Button>
       </div>
 
-      <article className="agenda-sheet">
+      {/* zoom (y no transform) para que también se achique el alto que ocupa. */}
+      <div ref={frameRef} className="w-full">
+      <article className="agenda-sheet" style={sheetScale < 1 ? { zoom: sheetScale } : undefined}>
         {/* 1. Encabezado */}
         <div className="flex items-start justify-between gap-6">
           <div className="flex items-start gap-3">
@@ -339,6 +356,7 @@ function AgendaReportPage() {
           </span>
         </div>
       </article>
+      </div>
     </div>
   );
 }

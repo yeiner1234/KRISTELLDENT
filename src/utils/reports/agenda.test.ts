@@ -14,6 +14,7 @@ import {
   matchesStatusFilter,
   reportRoleLabel,
   summarizeAgenda,
+  sheetFitScale,
 } from './agenda';
 import type { Appointment, AppointmentStatus } from '../../types/Appointment';
 import type { Patient } from '../../types/Patient';
@@ -213,5 +214,22 @@ describe('branchHoursLabel', () => {
 
   it('dice "Sede cerrada" si ese día no abre', () => {
     expect(branchHoursLabel('Bagua', hours, '2026-10-18')).toBe('Sede cerrada');
+  });
+});
+
+// En pantallas angostas la hoja A4 se achica para verse entera (nunca se agranda).
+describe('sheetFitScale', () => {
+  it('en un celular de 360 px achica la hoja de 794 px para que quepa entera', () => {
+    expect(sheetFitScale(360, 794)).toBeCloseTo(360 / 794, 4);
+  });
+
+  it('en pantallas anchas la deja a tamaño real', () => {
+    expect(sheetFitScale(1200, 794)).toBe(1);
+    expect(sheetFitScale(794, 794)).toBe(1);
+  });
+
+  it('sin medidas todavía (0) la deja a tamaño real', () => {
+    expect(sheetFitScale(0, 794)).toBe(1);
+    expect(sheetFitScale(360, 0)).toBe(1);
   });
 });

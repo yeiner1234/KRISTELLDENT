@@ -21,7 +21,9 @@
   text-wrap: wrap;
 }
 
-/* La hoja necesita sus 210 mm: en pantallas angostas se desplaza su contenedor, no la página. */
+/* La hoja necesita sus 210 mm: en pantallas angostas se achica con zoom
+   (AgendaReportPage, sheetFitScale). Si el navegador no soporta zoom, se
+   desplaza su contenedor, no la página. */
 .agenda-report {
   overflow-x: auto;
 }
@@ -80,6 +82,8 @@
   }
 
   .agenda-sheet {
+    /* La vista achicada del celular no llega al papel: siempre tamaño real. */
+    zoom: 1 !important;
     width: auto;
     min-height: 0;
     padding: 0;
