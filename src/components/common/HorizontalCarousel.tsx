@@ -10,11 +10,14 @@ interface HorizontalCarouselProps {
   itemClassName?: string;
 }
 
-const DEFAULT_ITEM = 'w-[85%] sm:w-[calc(50%-10px)] lg:w-[calc(33.333%-14px)]';
+// En celular la fila ocupa todo el ancho de la pantalla (100vw): con tarjetas
+// de 80vw y 10vw de margen a cada lado, la tarjeta queda centrada y asoman la
+// anterior y la siguiente. Desde sm, alineadas a la izquierda.
+const DEFAULT_ITEM = 'w-[80vw] sm:w-[calc(50%-10px)] lg:w-[calc(33.333%-14px)]';
 
 // Tarjetas en una sola fila que se desliza de lado (con el dedo, la rueda o
-// las flechas) y se detiene en cada tarjeta. En celular la fila llega al borde
-// de la pantalla para que se note que hay más tarjetas a la derecha.
+// las flechas) y se detiene en cada tarjeta. En celular la tarjeta queda al
+// centro y asoman las de los lados, para que se note que hay más.
 function HorizontalCarousel({ children, ariaLabel, itemClassName = DEFAULT_ITEM }: HorizontalCarouselProps) {
   const trackRef = useRef<HTMLUListElement>(null);
   const items = Children.toArray(children);
@@ -71,10 +74,10 @@ function HorizontalCarousel({ children, ariaLabel, itemClassName = DEFAULT_ITEM 
       <ul
         ref={trackRef}
         aria-label={ariaLabel}
-        className="-mx-5 flex snap-x snap-mandatory scroll-px-5 gap-5 overflow-x-auto scroll-smooth px-5 pb-3 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="-mx-5 flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth px-[10vw] pb-3 pt-1 [scrollbar-width:none] sm:scroll-px-5 sm:px-5 [&::-webkit-scrollbar]:hidden"
       >
         {items.map((item, index) => (
-          <li key={index} className={`flex shrink-0 snap-start ${itemClassName}`}>
+          <li key={index} className={`flex shrink-0 snap-center sm:snap-start ${itemClassName}`}>
             <div className="w-full">{item}</div>
           </li>
         ))}

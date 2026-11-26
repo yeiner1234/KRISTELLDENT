@@ -35,7 +35,7 @@ function ContactSection() {
           </div>
         ) : (
         <div className="mt-10">
-        <HorizontalCarousel ariaLabel="Sedes" itemClassName="w-[88%] sm:w-[calc(60%-10px)] lg:w-[calc(50%-10px)]">
+        <HorizontalCarousel ariaLabel="Sedes" itemClassName="w-[80vw] sm:w-[calc(60%-10px)] lg:w-[calc(50%-10px)]">
           {branches.map((branch, index) => (
             <RevealItem key={branch.id} index={index} className="h-full min-w-0">
               <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-white" style={{ boxShadow: 'var(--shadow-soft)' }}>

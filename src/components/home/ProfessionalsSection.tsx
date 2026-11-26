@@ -41,7 +41,7 @@ function ProfessionalsSection() {
           <div className="mt-10">
             <HorizontalCarousel
               ariaLabel="Profesionales"
-              itemClassName="w-[75%] sm:w-[calc(33.333%-14px)] lg:w-[calc(25%-15px)]"
+              itemClassName="w-[80vw] sm:w-[calc(33.333%-14px)] lg:w-[calc(25%-15px)]"
             >
             {professionals.map((professional, index) => {
               const specialtyName = specialties

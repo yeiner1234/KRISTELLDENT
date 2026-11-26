@@ -25,7 +25,7 @@ function MissionVisionSection() {
       <div className="relative mx-auto max-w-[1240px] min-w-0 px-5">
         <HorizontalCarousel
           ariaLabel="Misión y visión"
-          itemClassName="w-[85%] sm:w-[calc(50%-10px)] lg:w-[calc(33.333%-14px)]"
+          itemClassName="w-[80vw] sm:w-[calc(50%-10px)] lg:w-[calc(33.333%-14px)]"
         >
         <RevealItem index={0} className="h-full min-w-0">
           <figure className="relative h-full min-h-[280px] overflow-hidden rounded-[20px]" style={{ boxShadow: 'var(--shadow-soft)' }}>
