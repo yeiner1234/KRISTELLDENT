@@ -30,6 +30,7 @@ import AdminProfessionalsPage from '../pages/admin/ProfessionalsPage';
 import AdminSpecialtiesPage from '../pages/admin/SpecialtiesPage';
 import AdminServicesPage from '../pages/admin/ServicesPage';
 import AdminSettingsPage from '../pages/admin/SettingsPage';
+import AdminIndicatorsPage from '../pages/admin/IndicatorsPage';
 
 import ProfessionalHomePage from '../pages/professional/HomePage';
 import ProfessionalMyAgendaPage from '../pages/professional/MyAgendaPage';
@@ -64,6 +65,7 @@ function AppRouter() {
           <Route element={<RoleRoute allowedRoles={['admin_global', 'admin_sede']} />}>
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboardPage />} />
+              <Route path="indicadores" element={<AdminIndicatorsPage />} />
               <Route path="sedes" element={<AdminBranchesPage />} />
               <Route path="equipo" element={<AdminTeamPage />} />
               <Route path="agenda" element={<AdminAgendaPage />} />

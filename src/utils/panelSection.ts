@@ -4,6 +4,7 @@ import type { AppRole } from '../types/User';
 // Debe coincidir con las etiquetas de AdminSidebar y ProfessionalSidebar.
 const SECTION_TITLES: Record<string, string> = {
   '/admin': 'Dashboard',
+  '/admin/indicadores': 'Indicadores',
   '/admin/sedes': 'Sedes',
   '/admin/equipo': 'Equipo',
   '/admin/agenda': 'Agenda',

@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import {
+  BarChart3,
   Building2,
   CalendarRange,
   CircleHelp,
@@ -38,6 +39,7 @@ type SidebarEntry = SidebarItem | SidebarGroup;
 
 const items: SidebarEntry[] = [
   { label: 'Dashboard', to: '/admin', icon: LayoutDashboard, end: true },
+  { label: 'Indicadores', to: '/admin/indicadores', icon: BarChart3 },
   { label: 'Sedes', to: '/admin/sedes', icon: Building2 },
   { label: 'Equipo', to: '/admin/equipo', icon: UsersRound },
   { label: 'Agenda', to: '/admin/agenda', icon: CalendarRange },
