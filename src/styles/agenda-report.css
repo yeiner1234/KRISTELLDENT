@@ -21,9 +21,13 @@
   text-wrap: wrap;
 }
 
-/* La hoja necesita sus 210 mm: en pantallas angostas se desplaza su contenedor, no la página. */
-.agenda-report {
+/* La hoja necesita sus 210 mm: en pantallas angostas se desplaza solo ella,
+   dentro de su marco; los filtros y la página quedan quietos. */
+.agenda-sheet-scroll {
+  max-width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
 }
 
 @page agenda {
@@ -75,7 +79,7 @@
     padding: 0 !important;
   }
 
-  .agenda-report {
+  .agenda-sheet-scroll {
     overflow: visible;
   }
 

@@ -183,6 +183,7 @@ function AgendaReportPage() {
         </Button>
       </div>
 
+      <div className="agenda-sheet-scroll">
       <article className="agenda-sheet">
         {/* 1. Encabezado */}
         <div className="flex items-start justify-between gap-6">
@@ -339,6 +340,7 @@ function AgendaReportPage() {
           </span>
         </div>
       </article>
+      </div>
     </div>
   );
 }
