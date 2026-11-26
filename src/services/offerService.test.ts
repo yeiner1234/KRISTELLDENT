@@ -5,7 +5,6 @@ import {
   getBookableServices,
   getBranchOfferStatus,
   getBranchSpecialties,
-  getOfferOverview,
   getSpecialtiesAdmin,
   searchProfessionalsDirectory,
 } from './offerService';
@@ -64,40 +63,6 @@ describe('offerService', () => {
         reason: 'No visible en reservas: la profesional asignada no tiene horario en esta sede.',
       },
     ]);
-  });
-
-  it('getOfferOverview convierte las celdas sede × especialidad', async () => {
-    rpcReturns([
-      {
-        branch_id: 'jaen',
-        branch_name: 'Jaén',
-        branch_active: true,
-        specialty_id: 'orto',
-        specialty_name: 'Ortodoncia',
-        specialty_active: true,
-        services_count: 3,
-        active_count: 2,
-        bookable_count: 1,
-        min_price: '50',
-        max_price: null,
-      },
-    ]);
-
-    const [cell] = await getOfferOverview();
-
-    expect(cell).toEqual({
-      branchId: 'jaen',
-      branchName: 'Jaén',
-      branchActive: true,
-      specialtyId: 'orto',
-      specialtyName: 'Ortodoncia',
-      specialtyActive: true,
-      servicesCount: 3,
-      activeCount: 2,
-      bookableCount: 1,
-      minPrice: 50,
-      maxPrice: null,
-    });
   });
 
   it('getSpecialtiesAdmin trae quién la agregó y dónde se ofrece', async () => {

@@ -31,21 +31,6 @@ export interface ServiceOfferStatus {
   reason: string | null;
 }
 
-// Una celda de "Oferta por sede": una sede y una especialidad.
-export interface OfferOverviewCell {
-  branchId: string;
-  branchName: string;
-  branchActive: boolean;
-  specialtyId: string;
-  specialtyName: string;
-  specialtyActive: boolean;
-  servicesCount: number;
-  activeCount: number;
-  bookableCount: number;
-  minPrice: number | null;
-  maxPrice: number | null;
-}
-
 // Especialidad de la lista compartida, como la ve el panel.
 export interface AdminSpecialty {
   id: string;

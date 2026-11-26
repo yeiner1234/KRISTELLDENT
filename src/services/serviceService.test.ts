@@ -2,10 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { supabase } from '../lib/supabase';
 import { findCall, mockQuery } from '../test/mockQuery';
 import {
-  assignServiceBranch,
   createService,
   deleteService,
-  getServicesWithoutBranch,
   updateService,
   validateServiceInput,
 } from './serviceService';
@@ -103,25 +101,6 @@ describe('serviceService', () => {
     );
 
     await expect(updateService('s1', input)).rejects.toThrow('No tienes permiso para modificar esta sede.');
-  });
-
-  it('servicios sin sede (de la migración)', async () => {
-    const query = mockQuery({ data: [{ ...row, branch_id: null, active: false }] });
-    vi.mocked(supabase.from).mockReturnValue(query as never);
-
-    const services = await getServicesWithoutBranch();
-
-    expect(findCall(query, 'is')?.args).toEqual(['branch_id', null]);
-    expect(services[0].branchId).toBeNull();
-  });
-
-  it('asigna un servicio sin sede a una sede', async () => {
-    const query = mockQuery({ data: row });
-    vi.mocked(supabase.from).mockReturnValue(query as never);
-
-    await assignServiceBranch('s1', 'jaen');
-
-    expect(findCall(query, 'update')?.args[0]).toEqual({ branch_id: 'jaen' });
   });
 
   it('borrar un servicio con citas explica que se desactive', async () => {

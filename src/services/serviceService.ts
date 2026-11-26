@@ -53,21 +53,6 @@ export async function getAllServicesForAdmin(): Promise<Service[]> {
   return (data ?? []).map(mapRow);
 }
 
-// Servicios viejos sin uso que la migración dejó sin sede.
-export async function getServicesWithoutBranch(): Promise<Service[]> {
-  const { data, error } = await supabase
-    .from('services')
-    .select(SELECT_COLUMNS)
-    .is('branch_id', null)
-    .order('name', { ascending: true });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return (data ?? []).map(mapRow);
-}
-
 export interface ServiceInput {
   name: string;
   specialtyId: string;
@@ -140,22 +125,6 @@ export async function updateService(id: string, input: ServiceInput): Promise<Se
 
 export async function setServiceActive(id: string, active: boolean): Promise<Service> {
   const { data, error } = await supabase.from('services').update({ active }).eq('id', id).select(SELECT_COLUMNS).single();
-
-  if (error) {
-    throw new Error(friendlyWriteError(error.message));
-  }
-
-  return mapRow(data);
-}
-
-// Solo para un servicio "sin sede" (la base no deja mover uno que ya tiene).
-export async function assignServiceBranch(id: string, branchId: string): Promise<Service> {
-  const { data, error } = await supabase
-    .from('services')
-    .update({ branch_id: branchId })
-    .eq('id', id)
-    .select(SELECT_COLUMNS)
-    .single();
 
   if (error) {
     throw new Error(friendlyWriteError(error.message));

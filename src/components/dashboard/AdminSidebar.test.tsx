@@ -11,7 +11,7 @@ vi.mock('../../hooks/useAuth', () => ({
 }));
 
 function renderSidebar() {
-  render(
+  return render(
     <MemoryRouter>
       <AdminSidebar />
     </MemoryRouter>,
@@ -19,19 +19,15 @@ function renderSidebar() {
 }
 
 describe('AdminSidebar', () => {
-  it('admin_sede no ve "Oferta por sede"', () => {
-    access.role = 'admin_sede';
-    renderSidebar();
+  it('ningún rol ve "Oferta por sede" (se quitó)', () => {
+    for (const role of ['admin_sede', 'admin_global']) {
+      access.role = role;
+      const { unmount } = renderSidebar();
 
-    expect(screen.getByRole('link', { name: /Servicios de la sede/ })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /Oferta por sede/ })).not.toBeInTheDocument();
-  });
-
-  it('admin_global sí la ve', () => {
-    access.role = 'admin_global';
-    renderSidebar();
-
-    expect(screen.getByRole('link', { name: /Oferta por sede/ })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /Servicios de la sede/ })).toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: /Oferta por sede/ })).not.toBeInTheDocument();
+      unmount();
+    }
   });
 });
 

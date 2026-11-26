@@ -5,7 +5,6 @@ import type {
   BookableService,
   BranchSpecialty,
   DirectoryProfessional,
-  OfferOverviewCell,
   ServiceOfferStatus,
 } from '../types/Offer';
 import type { AppRole } from '../types/User';
@@ -24,7 +23,6 @@ async function callRpc<T>(name: string, args?: Record<string, unknown>): Promise
 
 // numeric llega como texto desde PostgREST.
 const toNumber = (value: number | string) => Number(value);
-const toNumberOrNull = (value: number | string | null) => (value === null ? null : Number(value));
 
 interface OfferProfessionalRow {
   id: string;
@@ -75,37 +73,6 @@ export async function getBranchOfferStatus(branchId: string): Promise<ServiceOff
     })),
     bookable: row.bookable,
     reason: row.reason,
-  }));
-}
-
-interface OverviewRow {
-  branch_id: string;
-  branch_name: string;
-  branch_active: boolean;
-  specialty_id: string;
-  specialty_name: string;
-  specialty_active: boolean;
-  services_count: number;
-  active_count: number;
-  bookable_count: number;
-  min_price: number | string | null;
-  max_price: number | string | null;
-}
-
-export async function getOfferOverview(): Promise<OfferOverviewCell[]> {
-  const rows = await callRpc<OverviewRow>('get_offer_overview');
-  return rows.map((row) => ({
-    branchId: row.branch_id,
-    branchName: row.branch_name,
-    branchActive: row.branch_active,
-    specialtyId: row.specialty_id,
-    specialtyName: row.specialty_name,
-    specialtyActive: row.specialty_active,
-    servicesCount: row.services_count,
-    activeCount: row.active_count,
-    bookableCount: row.bookable_count,
-    minPrice: toNumberOrNull(row.min_price),
-    maxPrice: toNumberOrNull(row.max_price),
   }));
 }
 

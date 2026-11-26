@@ -13,7 +13,6 @@ const SECTION_TITLES: Record<string, string> = {
   '/admin/profesionales': 'Profesionales',
   '/admin/especialidades': 'Especialidades',
   '/admin/servicios': 'Servicios de la sede',
-  '/admin/oferta': 'Oferta por sede',
   '/admin/configuracion': 'Configuración',
   '/profesional/agenda': 'Mi agenda',
   '/profesional/pacientes': 'Mis pacientes',

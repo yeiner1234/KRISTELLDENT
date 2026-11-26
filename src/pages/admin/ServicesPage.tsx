@@ -39,7 +39,7 @@ function groupBySpecialty(rows: ServiceOfferStatus[]): Group[] {
 
 // "Servicios de la sede" (spec 10.1): cada sede declara sus servicios, con su
 // precio y duración. admin_sede elige entre sus sedes; admin_global, entre
-// todas. ?sede= y ?especialidad= llegan desde "Oferta por sede".
+// todas. ?sede= y ?especialidad= dejan la sede y el filtro en la dirección.
 function ServicesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { branches, isLoading: isLoadingBranches, error: branchesError } = useAdminBranches();

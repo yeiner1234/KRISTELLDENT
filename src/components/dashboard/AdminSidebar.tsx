@@ -2,7 +2,6 @@ import { NavLink } from 'react-router-dom';
 import {
   Building2,
   CalendarRange,
-  LayoutGrid,
   CircleHelp,
   ClipboardList,
   LayoutDashboard,
@@ -48,7 +47,6 @@ const items: SidebarEntry[] = [
   { label: 'Profesionales', to: '/admin/profesionales', icon: UserRound },
   { label: 'Especialidades', to: '/admin/especialidades', icon: Tags },
   { label: 'Servicios de la sede', to: '/admin/servicios', icon: Wrench },
-  { label: 'Oferta por sede', to: '/admin/oferta', icon: LayoutGrid, roles: ['admin_global'] },
   { label: 'Configuración', to: '/admin/configuracion', icon: Settings2 },
 ];
 
