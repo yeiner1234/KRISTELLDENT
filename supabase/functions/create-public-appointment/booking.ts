@@ -210,3 +210,26 @@ export const SERVICE_NOT_OFFERED = 'Este servicio no se brinda en esta sede.';
 export function serviceOfferError(isBookable: unknown): string | null {
   return isBookable === true ? null : SERVICE_NOT_OFFERED;
 }
+
+// Regla del paciente (no del personal): el mismo día no puede tener citas en
+// dos sedes distintas. En la misma sede sí, mientras no se crucen (eso lo
+// impide appointments_no_patient_overlap). Las canceladas no cuentan.
+export const OTHER_BRANCH_SAME_DAY =
+  'Ya tienes una cita ese día en otra sede. Elige otro día o reserva en la misma sede.';
+
+export function otherBranchSameDayError(
+  sameDayAppointments: { branch_id: string; status: string }[],
+  branchId: string,
+): string | null {
+  const conflict = sameDayAppointments.some(
+    (appointment) => appointment.status !== 'cancelled' && appointment.branch_id !== branchId,
+  );
+  return conflict ? OTHER_BRANCH_SAME_DAY : null;
+}
+
+const STAFF_ROLES = ['admin_global', 'admin_sede', 'especialista', 'odontologa_general', 'tecnica'];
+
+// Quien reserva con sesión de personal (p. ej. "Nueva cita" del panel).
+export function isStaffRole(role: string | null | undefined): boolean {
+  return role !== null && role !== undefined && STAFF_ROLES.includes(role);
+}

@@ -20,6 +20,7 @@ import {
   addMinutes,
   limaNow,
   limaToday,
+  otherBranchSameDayError,
   overlapErrorMessage,
   serviceOfferError,
 } from '../create-public-appointment/booking.ts';
@@ -361,6 +362,20 @@ Deno.serve(async (req) => {
 
     if (request.date < now.date) {
       return jsonResponse({ error: 'No se puede reprogramar a una fecha pasada.' }, 400);
+    }
+
+    // Igual que al reservar: ese día no puede tener citas en otra sede (sin
+    // contar la que se está moviendo).
+    const { data: sameDay, error: sameDayError } = await adminClient
+      .from('appointments')
+      .select('branch_id, status')
+      .eq('patient_id', patient.id)
+      .eq('appointment_date', request.date)
+      .neq('id', target.id);
+    if (sameDayError) throw sameDayError;
+    const sameDayConflict = otherBranchSameDayError(sameDay ?? [], target.branch_id);
+    if (sameDayConflict) {
+      return jsonResponse({ error: sameDayConflict }, 409);
     }
 
     const [serviceResult, offerResult, slotsResult] = await Promise.all([

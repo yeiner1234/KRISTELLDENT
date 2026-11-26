@@ -17,13 +17,15 @@
 //
 // Tras crear la cita se envía el código al correo del paciente. El correo
 // nunca rompe la reserva: si falla, la respuesta lleva emailSent: false.
-import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 import { sendEmail } from '../_shared/email.ts';
 import { bookingEmail } from '../_shared/emailTemplates.ts';
 import {
   addMinutes,
   bookingMatchesPatient,
+  isStaffRole,
   limaToday,
+  otherBranchSameDayError,
   missingPatientFields,
   overlapErrorMessage,
   serviceOfferError,
@@ -43,6 +45,22 @@ function jsonResponse(body: unknown, status = 200): Response {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+// "Nueva cita" del panel llama con la sesión del personal; el paciente, sin
+// sesión (con la clave publishable, que no es un JWT). Solo un token válido de
+// una cuenta interna activa cuenta como personal: no se puede falsificar.
+async function callerIsStaff(req: Request, client: SupabaseClient): Promise<boolean> {
+  const token = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '') ?? '';
+  if (!token.startsWith('ey')) {
+    return false;
+  }
+  const { data, error } = await client.auth.getUser(token);
+  if (error || !data.user) {
+    return false;
+  }
+  const { data: profile } = await client.from('profiles').select('role, active').eq('id', data.user.id).maybeSingle();
+  return Boolean(profile?.active) && isStaffRole(profile?.role);
 }
 
 Deno.serve(async (req) => {
@@ -120,6 +138,23 @@ Deno.serve(async (req) => {
   );
   if (!stillAvailable) {
     return jsonResponse({ error: SLOT_TAKEN }, 409);
+  }
+
+  // Regla del paciente: ese día no puede tener citas en otra sede. Un DNI
+  // nuevo no tiene citas; el personal puede saltarse la regla.
+  if (patientResult.data && !(await callerIsStaff(req, adminClient))) {
+    const { data: sameDay, error: sameDayError } = await adminClient
+      .from('appointments')
+      .select('branch_id, status')
+      .eq('patient_id', patientResult.data.id)
+      .eq('appointment_date', booking.date);
+    if (sameDayError) {
+      return jsonResponse({ error: 'No se pudo verificar la disponibilidad. Inténtalo de nuevo.' }, 500);
+    }
+    const sameDayConflict = otherBranchSameDayError(sameDay ?? [], booking.branchId);
+    if (sameDayConflict) {
+      return jsonResponse({ error: sameDayConflict }, 409);
+    }
   }
 
   // Se ignora el endTime del cliente: la duración real es la del servicio.

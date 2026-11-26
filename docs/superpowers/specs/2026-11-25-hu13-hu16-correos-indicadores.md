@@ -29,7 +29,7 @@ Como Paciente yo debería poder recibir un recordatorio por correo un día antes
 Se mantiene la consulta con DNI + código enviado al correo registrado (ya existe con "reenviar códigos"). Se agrega:
 - Caso límite 1: bloquear la consulta 5 minutos tras 3 códigos incorrectos (por DNI).
 - Caso límite 2: el mismo mensaje si el DNI no está registrado (ya existe: `MISMATCH_ERROR`; el bloqueo también aplica a DNIs no registrados, así no revela nada).
-- Desviación aceptada: el código es el de la cita (KD-XXXXXX), no uno de 6 dígitos que vence a los 10 minutos.
+- Desviación aceptada (decisión del usuario, 2026-11-26): el código es el de la cita (KD-XXXXXX) y no vence. El criterio 2 del PDF pide 6 dígitos y vencimiento a los 10 minutos; queda pendiente si la revisión del sprint lo exige.
 
 ## HU16 — Panel de indicadores de la sede
 Como Administrador de sede yo debería poder ver indicadores básicos de las citas de mi sede.
@@ -40,3 +40,10 @@ Como Administrador de sede yo debería poder ver indicadores básicos de las cit
 - Usabilidad: en una sola pantalla.
 
 Definiciones: **Reservadas** = todas las citas del periodo; **Atendidas** = completed; **Canceladas** = cancelled; **No asistidas** = pending/confirmed cuya hora de fin ya pasó (hora de Lima); **Por atender** = el resto (pending/confirmed futuras e in_room). Reservadas = atendidas + no asistidas + canceladas + por atender.
+
+## Regla adicional (pedida por el usuario, 2026-11-26): una sede por día
+El paciente no puede tener, el mismo día, citas vigentes (no canceladas) en dos sedes distintas; en la misma sede sí, sin cruces de horario (eso ya lo impide `appointments_no_patient_overlap`).
+- Se aplica solo al paciente: reserva pública (`create-public-appointment`, cuando la llamada no trae la sesión de una cuenta interna activa) y su reprogramación (`patient-appointments`).
+- El personal ("Nueva cita" del panel, reprogramar desde el panel) puede saltarla.
+- Mensaje: "Ya tienes una cita ese día en otra sede. Elige otro día o reserva en la misma sede."
+- Comprobación manual: con un DNI que tiene una cita el día X en la sede A, reservar en la web el día X en la sede B → rechazado; en la sede A a otra hora → permitido; desde "Nueva cita" del panel en la sede B → permitido.

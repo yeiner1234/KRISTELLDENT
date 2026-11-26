@@ -5,6 +5,9 @@ import {
   bookingMatchesPatient,
   limaNow,
   missingPatientFields,
+  isStaffRole,
+  OTHER_BRANCH_SAME_DAY,
+  otherBranchSameDayError,
   overlapErrorMessage,
   SERVICE_NOT_OFFERED,
   serviceOfferError,
@@ -207,5 +210,53 @@ describe('serviceOfferError', () => {
     expect(serviceOfferError(false)).toBe(SERVICE_NOT_OFFERED);
     expect(serviceOfferError(null)).toBe(SERVICE_NOT_OFFERED);
     expect(SERVICE_NOT_OFFERED).toBe('Este servicio no se brinda en esta sede.');
+  });
+});
+
+// El paciente no puede tener citas vigentes en dos sedes distintas el mismo día.
+describe('otherBranchSameDayError', () => {
+  it('rechaza si ese día ya tiene una cita vigente en otra sede', () => {
+    const sameDay = [{ branch_id: 'sede-norte', status: 'confirmed' }];
+
+    expect(otherBranchSameDayError(sameDay, 'sede-centro')).toBe(OTHER_BRANCH_SAME_DAY);
+  });
+
+  it('en la misma sede sí puede tener otra cita ese día', () => {
+    const sameDay = [{ branch_id: 'sede-centro', status: 'pending' }];
+
+    expect(otherBranchSameDayError(sameDay, 'sede-centro')).toBeNull();
+  });
+
+  it('las canceladas no cuentan', () => {
+    const sameDay = [{ branch_id: 'sede-norte', status: 'cancelled' }];
+
+    expect(otherBranchSameDayError(sameDay, 'sede-centro')).toBeNull();
+  });
+
+  it('una cita ya atendida ese día en otra sede también cuenta', () => {
+    expect(otherBranchSameDayError([{ branch_id: 'sede-norte', status: 'completed' }], 'sede-centro')).toBe(OTHER_BRANCH_SAME_DAY);
+  });
+
+  it('sin otras citas ese día, sin error', () => {
+    expect(otherBranchSameDayError([], 'sede-centro')).toBeNull();
+  });
+
+  it('el mensaje explica qué hacer', () => {
+    expect(OTHER_BRANCH_SAME_DAY).toContain('otra sede');
+  });
+});
+
+// La regla es solo para el paciente: el personal con sesión puede saltarla.
+describe('isStaffRole', () => {
+  it('cualquier rol interno es personal', () => {
+    for (const role of ['admin_global', 'admin_sede', 'especialista', 'odontologa_general', 'tecnica']) {
+      expect(isStaffRole(role)).toBe(true);
+    }
+  });
+
+  it('sin rol (paciente sin sesión) o con un rol desconocido no es personal', () => {
+    expect(isStaffRole(null)).toBe(false);
+    expect(isStaffRole(undefined)).toBe(false);
+    expect(isStaffRole('anon')).toBe(false);
   });
 });
