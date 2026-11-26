@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { MapPin } from 'lucide-react';
 import BookingShell from '../../components/booking/BookingShell';
 import BranchSelector from '../../components/booking/BranchSelector';
+import StepHeader from '../../components/booking/StepHeader';
 import AttentionStep from '../../components/booking/AttentionStep';
 import ProfessionalStep from '../../components/booking/ProfessionalStep';
 import { ANY_PROFESSIONAL } from '../../utils/bookingCandidates';
@@ -137,7 +139,16 @@ function BookingPage() {
       onContinue={current.onContinue}
       continueDisabled={!current.canContinue}
     >
-      {step === 1 && <BranchSelector selectedId={branchId} onSelect={handleChangeBranch} />}
+      {step === 1 && (
+        <>
+          <StepHeader
+            icon={MapPin}
+            title="¿En qué sede quieres atenderte?"
+            subtitle="Elige la sede más cercana. Verás el horario de atención de hoy."
+          />
+          <BranchSelector selectedId={branchId} onSelect={handleChangeBranch} />
+        </>
+      )}
 
       {step === 2 && branchId && (
         <AttentionStep

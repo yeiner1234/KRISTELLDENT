@@ -1,4 +1,4 @@
-import { MapPin } from 'lucide-react';
+import { Check, Clock, MapPin } from 'lucide-react';
 import { useBranches } from '../../hooks/useBranches';
 import { useBranchOpenStatus } from '../../hooks/useBranchOpenStatus';
 import EmptyState from '../common/EmptyState';
@@ -30,7 +30,7 @@ function BranchSelector({ selectedId, onSelect }: BranchSelectorProps) {
   }
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
+    <div className="grid gap-2.5 sm:grid-cols-2 sm:gap-3">
       {branches.map((branch) => (
         <BranchOption
           key={branch.id}
@@ -52,51 +52,46 @@ interface BranchOptionProps {
 function BranchOption({ branch, isSelected, onSelect }: BranchOptionProps) {
   const { isOpen, todayLabel } = useBranchOpenStatus(branch.id);
 
+  // Fila compacta: en celular caben varias sedes sin bajar tanto.
   return (
     <button
       type="button"
       aria-pressed={isSelected}
       onClick={onSelect}
-      className="rounded-2xl p-4 text-left transition-colors"
-      style={{
-        border: isSelected ? '1.5px solid #0f7b86' : '1px solid #e1e8ec',
-        background: isSelected ? '#f5fafb' : '#ffffff',
-        boxShadow: isSelected ? '0 0 0 3px #e6f3f5' : 'none',
-      }}
-      onMouseEnter={(event) => {
-        if (!isSelected) {
-          event.currentTarget.style.borderColor = '#b8d7dc';
-          event.currentTarget.style.background = '#fbfdfd';
-        }
-      }}
-      onMouseLeave={(event) => {
-        if (!isSelected) {
-          event.currentTarget.style.borderColor = '#e1e8ec';
-          event.currentTarget.style.background = '#ffffff';
-        }
-      }}
+      className={`flex w-full items-start gap-3.5 rounded-2xl border p-4 text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
+        isSelected
+          ? 'border-brand-600 bg-[#f5fafb] shadow-[0_0_0_3px_#e6f3f5]'
+          : 'border-[#e1e8ec] bg-white hover:border-[#b8d7dc] hover:bg-[#fbfdfd]'
+      }`}
     >
-      <div className="flex items-start justify-between">
-        <span className="flex h-[38px] w-[38px] items-center justify-center rounded-[11px] bg-brand-50 text-brand-700">
-          <MapPin size={18} />
-        </span>
-        <span
-          className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
-          style={
-            isOpen
-              ? { background: 'var(--color-confirm-bg)', color: 'var(--color-confirm)', border: '1px solid #c6e7d5' }
-              : { background: '#f2f5f7', color: '#5d7078', border: '1px solid #e1e8ec' }
-          }
-        >
-          {isOpen ? 'Abierta' : 'Cerrada'}
-        </span>
-      </div>
+      <span
+        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors ${
+          isSelected ? 'bg-brand-600 text-white' : 'bg-brand-50 text-brand-700'
+        }`}
+      >
+        {isSelected ? <Check size={20} strokeWidth={2.5} /> : <MapPin size={19} />}
+      </span>
 
-      <p className="mt-3 text-base font-semibold text-brand-900">{branch.name}</p>
-      <p className="mt-0.5 text-sm text-ink-secondary">{branch.address}</p>
-      {branch.region && <p className="text-sm text-ink-secondary">{branch.region}</p>}
-
-      <p className="mt-2 text-[12.5px] text-ink-tertiary">{todayLabel}</p>
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="flex items-start justify-between gap-2">
+          <span className="text-[15px] font-semibold leading-snug text-brand-900">{branch.name}</span>
+          <span
+            className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
+              isOpen ? 'border-[#c6e7d5] bg-confirm-bg text-confirm' : 'border-[#e1e8ec] bg-[#f2f5f7] text-ink-tertiary'
+            }`}
+          >
+            {isOpen ? 'Abierta' : 'Cerrada'}
+          </span>
+        </span>
+        <span className="mt-0.5 text-[13.5px] leading-snug text-ink-secondary">
+          {branch.address}
+          {branch.region && <span className="text-ink-tertiary"> · {branch.region}</span>}
+        </span>
+        <span className="mt-1.5 inline-flex items-center gap-1.5 text-[12.5px] text-ink-tertiary">
+          <Clock size={13} aria-hidden="true" />
+          {todayLabel}
+        </span>
+      </span>
     </button>
   );
 }
