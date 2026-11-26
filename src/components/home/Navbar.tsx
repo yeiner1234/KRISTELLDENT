@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { LogIn, Menu, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { CalendarPlus, LogIn, Menu, X } from 'lucide-react';
 import Button from '../common/Button';
 import logoIcon from '../../../imagenes/kristelldent-icon.png';
 import logoWordmark from '../../../imagenes/kristelldent-wordmark.png';
@@ -46,16 +47,24 @@ function Navbar() {
             <a
               key={link.href}
               href={link.href}
-              className="whitespace-nowrap text-sm font-medium text-ink-secondary transition-colors hover:text-brand-700"
+              className="relative whitespace-nowrap py-1 text-sm font-medium text-ink-secondary transition-colors after:absolute after:inset-x-0 after:-bottom-0.5 after:h-[2px] after:origin-left after:scale-x-0 after:rounded-full after:bg-kd-pink-500 after:transition-transform hover:text-brand-900 hover:after:scale-x-100"
             >
               {link.label}
             </a>
           ))}
         </nav>
 
-        <div className="hidden min-[1000px]:block">
-          <Button to="/login" size="sm" icon={<LogIn size={16} />}>
+        {/* Lo principal para el paciente es reservar; el acceso del personal, discreto. */}
+        <div className="hidden items-center gap-4 min-[1000px]:flex">
+          <Link
+            to="/login"
+            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-ink-tertiary transition-colors hover:text-brand-700"
+          >
+            <LogIn size={15} />
             Acceso interno
+          </Link>
+          <Button to="/reservar" size="sm" icon={<CalendarPlus size={16} />}>
+            Reservar cita
           </Button>
         </div>
 
@@ -95,16 +104,24 @@ function Navbar() {
                   {link.label}
                 </a>
               ))}
-              <div className="px-1 pt-2">
+              <div className="flex flex-col gap-2 px-1 pt-2">
                 <Button
-                  to="/login"
+                  to="/reservar"
                   size="sm"
-                  icon={<LogIn size={16} />}
+                  icon={<CalendarPlus size={16} />}
                   className="w-full"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Acceso interno
+                  Reservar cita
                 </Button>
+                <Link
+                  to="/login"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl text-sm font-medium text-ink-tertiary hover:bg-brand-50 hover:text-brand-700"
+                >
+                  <LogIn size={15} />
+                  Acceso interno
+                </Link>
               </div>
             </div>
           </motion.nav>

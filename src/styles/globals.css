@@ -2,6 +2,8 @@
 
 @theme {
   --font-sans: "Instrument Sans", system-ui, "Segoe UI", Roboto, sans-serif;
+  /* Títulos de la web pública: redondeada, como el logotipo de KristellDent. */
+  --font-display: "Fredoka", "Instrument Sans", system-ui, sans-serif;
 
   /* Core clinic palette — exact obligatory values, single source of truth */
   --color-brand-50: #eef6f7;
@@ -201,6 +203,12 @@ h1,
 h2,
 h3 {
   text-wrap: pretty;
+}
+
+/* Web pública (PublicLayout): los títulos usan la letra redondeada del logo.
+   El panel interno y el inicio de sesión no llevan esta clase. */
+.public-site :is(h1, h2, h3) {
+  font-family: var(--font-display);
 }
 
 @media (prefers-reduced-motion: reduce) {

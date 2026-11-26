@@ -77,7 +77,7 @@ function Footer() {
         </div>
 
         <div className="flex flex-col gap-2.5">
-          <h4 className="text-[12.5px] font-semibold uppercase tracking-[0.09em]" style={{ color: 'rgba(207,224,230,0.6)' }}>
+          <h4 className="text-[14px] font-semibold text-kd-pink-300">
             Navegación
           </h4>
           {navigationLinks.map((link) => (
@@ -88,7 +88,7 @@ function Footer() {
         </div>
 
         <div className="flex flex-col gap-2.5">
-          <h4 className="text-[12.5px] font-semibold uppercase tracking-[0.09em]" style={{ color: 'rgba(207,224,230,0.6)' }}>
+          <h4 className="text-[14px] font-semibold text-kd-pink-300">
             Paciente
           </h4>
           <Link to="/reservar" className="text-sm hover:text-white">
@@ -106,7 +106,7 @@ function Footer() {
         </div>
 
         <div className="flex flex-col gap-2.5">
-          <h4 className="text-[12.5px] font-semibold uppercase tracking-[0.09em]" style={{ color: 'rgba(207,224,230,0.6)' }}>
+          <h4 className="text-[14px] font-semibold text-kd-pink-300">
             Sedes
           </h4>
           {branches.map((branch) => (

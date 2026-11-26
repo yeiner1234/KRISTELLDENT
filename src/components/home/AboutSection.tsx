@@ -8,16 +8,19 @@ const highlights = [
     icon: Award,
     title: 'Experiencia',
     text: 'Más de una década tratando casos de ortodoncia, endodoncia y cirugía en la misma clínica.',
+    tile: 'bg-brand-50 text-brand-700',
   },
   {
     icon: HeartHandshake,
     title: 'Atención personalizada',
     text: 'Un profesional de referencia por paciente, que sigue su caso de principio a fin.',
+    tile: 'bg-kd-pink-50 text-kd-pink-700',
   },
   {
     icon: ScanLine,
     title: 'Tecnología moderna',
     text: 'Radiografía digital, escáner intraoral y planificación 3D antes de cada intervención.',
+    tile: 'bg-kd-aqua-50 text-kd-aqua-700',
   },
 ];
 
@@ -59,9 +62,9 @@ function AboutSection() {
           </p>
 
           <div className="grid gap-5 sm:grid-cols-3">
-            {highlights.map(({ icon: Icon, title, text }) => (
+            {highlights.map(({ icon: Icon, title, text, tile }) => (
               <div key={title} className="flex flex-col gap-2.5">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-tint text-brand-600">
+                <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${tile}`}>
                   <Icon size={20} />
                 </span>
                 <p className="text-sm font-semibold text-brand-900">{title}</p>

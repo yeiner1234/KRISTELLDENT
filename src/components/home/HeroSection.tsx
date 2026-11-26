@@ -7,11 +7,14 @@ import clinicPhoto from '../../assets/images/home/consultorio.jpg';
 
 const easing: [number, number, number, number] = [0.22, 0.61, 0.36, 1];
 
+// Cada icono con uno de los colores del logotipo.
 const trustItems = [
-  { icon: UserRoundCheck, label: 'Atención profesional' },
-  { icon: Zap, label: 'Reserva rápida' },
-  { icon: Clock, label: 'Horarios disponibles' },
+  { icon: UserRoundCheck, label: 'Atención profesional', tile: 'bg-brand-50 text-brand-700' },
+  { icon: Zap, label: 'Reserva rápida', tile: 'bg-kd-pink-50 text-kd-pink-700' },
+  { icon: Clock, label: 'Horarios disponibles', tile: 'bg-kd-aqua-50 text-kd-aqua-700' },
 ];
+
+const avatarTones = ['bg-brand-600', 'bg-kd-pink-500', 'bg-kd-aqua-500', 'bg-brand-700'];
 
 function HeroSection() {
   const shouldReduceMotion = useReducedMotion();
@@ -24,33 +27,19 @@ function HeroSection() {
       className="relative flex items-center overflow-hidden px-5 py-[72px] pb-20"
       style={{
         minHeight: 'min(90vh, 760px)',
-        background: 'linear-gradient(168deg, #eff7f9 0%, #e4f0f3 52%, #dfedf1 100%)',
+        // Bruma aguamarina que se entibia en rosa, los dos colores del logotipo.
+        background: 'linear-gradient(170deg, #ebf9fa 0%, #f4fbfc 55%, #fdf0f5 100%)',
       }}
     >
-      <div
+      {/* Formas quietas, sin animación: el único movimiento es la sonrisa. */}
+      <span
         aria-hidden="true"
-        className={`pointer-events-none absolute -right-24 -top-24 h-[620px] w-[620px] rounded-full ${
-          shouldReduceMotion ? '' : 'animate-drift'
-        }`}
-        style={{ background: 'radial-gradient(circle, rgba(15,123,134,0.16), transparent 68%)' }}
+        className="pointer-events-none absolute -right-32 -top-32 h-[520px] w-[520px] rounded-full bg-kd-aqua-100/60"
       />
-
-      <svg
+      <span
         aria-hidden="true"
-        viewBox="0 0 200 240"
-        className="pointer-events-none absolute -bottom-6 left-0 hidden w-[280px] opacity-[0.12] sm:block"
-      >
-        <motion.path
-          d="M100 10c-22 0-34 14-46 14-14 0-24-8-34-2-12 7-10 24-4 34 5 8 6 12 6 24 0 20 8 46 20 62 8 11 14 16 20 16 8 0 8-20 12-40 2-10 6-14 12-14s10 4 12 14c4 20 4 40 12 40 6 0 12-5 20-16 12-16 20-42 20-62 0-12 1-16 6-24 6-10 8-27-4-34-10-6-20 2-34 2-12 0-24-14-46-14z"
-          fill="none"
-          stroke="#0f7b86"
-          strokeWidth="1.6"
-          strokeDasharray={900}
-          initial={shouldReduceMotion ? { strokeDashoffset: 0 } : { strokeDashoffset: 900 }}
-          animate={{ strokeDashoffset: 0 }}
-          transition={shouldReduceMotion ? { duration: 0 } : { duration: 2.8, ease: 'easeOut' }}
-        />
-      </svg>
+        className="pointer-events-none absolute -bottom-24 -left-20 h-[260px] w-[260px] rounded-full bg-kd-pink-100/50"
+      />
 
       <div className="relative mx-auto grid w-full min-w-0 max-w-[1240px] grid-cols-1 items-center gap-14 lg:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-6">
@@ -60,20 +49,32 @@ function HeroSection() {
             transition={shouldReduceMotion ? { duration: 0.18 } : { duration: 0.7, ease: easing }}
             className="flex flex-col gap-6"
           >
-            <span
-              className="inline-flex h-[30px] w-fit items-center gap-2 rounded-full border px-4 text-[12.5px] font-semibold text-brand-700"
-              style={{ background: '#eef6f7', borderColor: 'rgba(15,123,134,0.16)' }}
-            >
+            <span className="inline-flex h-[32px] w-fit items-center gap-2 rounded-full border border-kd-pink-100 bg-white/80 px-4 text-[13px] font-semibold text-kd-pink-700">
               <Sparkle size={14} />
               Tu sonrisa, nuestra prioridad
             </span>
 
-            <h1
-              className="text-pretty max-w-[18ch] text-[clamp(36px,5.2vw,58px)] font-semibold text-brand-900"
-              style={{ lineHeight: 1.08, letterSpacing: '-0.035em' }}
-            >
-              Atención odontológica pensada para ti
-            </h1>
+            <div className="flex flex-col">
+              <h1
+                className="text-pretty max-w-[17ch] text-[clamp(38px,5.4vw,62px)] font-semibold text-brand-900"
+                style={{ lineHeight: 1.04, letterSpacing: '-0.015em' }}
+              >
+                Atención odontológica pensada para ti
+              </h1>
+              {/* La curva rosada de sonrisa del logotipo: se dibuja una vez al cargar. */}
+              <svg aria-hidden="true" viewBox="0 0 320 30" className="mt-2 h-[26px] w-[min(300px,72%)]">
+                <motion.path
+                  d="M8 8 C 90 34, 230 34, 312 6"
+                  fill="none"
+                  stroke="#e0387f"
+                  strokeWidth="7"
+                  strokeLinecap="round"
+                  initial={shouldReduceMotion ? { pathLength: 1 } : { pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={shouldReduceMotion ? { duration: 0 } : { duration: 1.1, delay: 0.5, ease: easing }}
+                />
+              </svg>
+            </div>
           </motion.div>
 
           <motion.p
@@ -111,12 +112,12 @@ function HeroSection() {
             initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 30 }}
             animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
             transition={shouldReduceMotion ? { duration: 0.18 } : { duration: 0.7, delay: 0.4, ease: easing }}
-            className="flex flex-wrap gap-6 border-t border-border pt-6"
+            className="flex flex-wrap gap-x-6 gap-y-3 border-t border-[#dcebee] pt-6"
           >
-            {trustItems.map(({ icon: Icon, label }) => (
+            {trustItems.map(({ icon: Icon, label, tile }) => (
               <div key={label} className="flex items-center gap-2.5">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
-                  <Icon size={16} />
+                <span className={`flex h-9 w-9 items-center justify-center rounded-[10px] ${tile}`}>
+                  <Icon size={17} />
                 </span>
                 <span className="text-sm font-medium text-ink-secondary">{label}</span>
               </div>
@@ -130,8 +131,10 @@ function HeroSection() {
           transition={shouldReduceMotion ? { duration: 0.18 } : { duration: 0.8, delay: 0.2, ease: easing }}
           className="relative mx-auto w-full min-w-0 max-w-md"
         >
+          {/* Marco aguamarina desplazado detrás de la foto. */}
+          <span aria-hidden="true" className="absolute -bottom-4 -right-4 left-6 top-6 rounded-[28px] bg-kd-aqua-300/45" />
           <div
-            className="relative aspect-[4/3] w-full overflow-hidden rounded-[20px]"
+            className="relative aspect-[4/3] w-full overflow-hidden rounded-[24px]"
             style={{
               background: 'linear-gradient(135deg, #cfe6ea, #e4f0f3)',
               boxShadow: 'var(--shadow-hero-image)',
@@ -157,9 +160,7 @@ function HeroSection() {
             }`}
             style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(12px)', boxShadow: 'var(--shadow-soft-hover)' }}
           >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-brand-700">
-              Próxima disponibilidad
-            </p>
+            <p className="text-[12.5px] font-semibold text-kd-pink-700">Próxima disponibilidad</p>
             <p className="mt-1 text-[22px] font-semibold text-brand-900">Hoy 16:30</p>
             <p className="text-sm text-ink-secondary">Odontología general</p>
           </motion.div>
@@ -191,7 +192,7 @@ function HeroSection() {
                 {previewProfessionals.map((professional, index) => (
                   <span
                     key={professional.id}
-                    className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-brand-900 bg-brand-600 text-[10px] font-semibold text-white"
+                    className={`flex h-7 w-7 items-center justify-center rounded-full border-2 border-brand-900 text-[10px] font-semibold text-white ${avatarTones[index % avatarTones.length]}`}
                     style={{ marginLeft: index === 0 ? 0 : -9 }}
                   >
                     {getInitials(professional.fullName)}

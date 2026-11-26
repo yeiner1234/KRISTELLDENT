@@ -1,5 +1,5 @@
 import { UserRoundX } from 'lucide-react';
-import AnimatedSection, { RevealItem } from '../common/AnimatedSection';
+import AnimatedSection from '../common/AnimatedSection';
 import SectionTitle from '../common/SectionTitle';
 import HorizontalCarousel from '../common/HorizontalCarousel';
 import ProfessionalCard from '../professionals/ProfessionalCard';
@@ -12,7 +12,7 @@ function ProfessionalsSection() {
   const { specialties } = useSpecialties();
 
   return (
-    <AnimatedSection id="profesionales" className="bg-surface-alt py-24">
+    <AnimatedSection id="profesionales" className="bg-kd-aqua-50 py-24">
       <div className="mx-auto max-w-[1240px] px-5">
         <SectionTitle
           eyebrow="Nuestro equipo"
@@ -43,16 +43,16 @@ function ProfessionalsSection() {
               ariaLabel="Profesionales"
               itemClassName="w-[80vw] sm:w-[calc(33.333%-14px)] lg:w-[calc(25%-15px)]"
             >
-            {professionals.map((professional, index) => {
+            {professionals.map((professional) => {
               const specialtyName = specialties
                 .filter((specialty) => professional.specialtyIds.includes(specialty.id))
                 .map((specialty) => specialty.name)
                 .join(', ');
 
               return (
-                <RevealItem key={professional.id} index={index} className="h-full min-w-0">
+                <div key={professional.id} className="h-full min-w-0">
                   <ProfessionalCard professional={professional} specialtyName={specialtyName || undefined} />
-                </RevealItem>
+                </div>
               );
             })}
             </HorizontalCarousel>

@@ -41,7 +41,7 @@ function BookingStepper({ currentStep }: BookingStepperProps) {
         >
           <div
             data-testid="booking-stepper-bar"
-            className="h-full rounded-full bg-brand-600 transition-[width] duration-300"
+            className="h-full rounded-full bg-gradient-to-r from-brand-600 via-kd-aqua-500 to-kd-pink-500 transition-[width] duration-300"
             style={{ width: progress }}
           />
         </div>

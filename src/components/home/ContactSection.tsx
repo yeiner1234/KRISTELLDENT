@@ -1,5 +1,5 @@
 import { ExternalLink, MapPin, Phone } from 'lucide-react';
-import AnimatedSection, { RevealItem } from '../common/AnimatedSection';
+import AnimatedSection from '../common/AnimatedSection';
 import SectionTitle from '../common/SectionTitle';
 import HorizontalCarousel from '../common/HorizontalCarousel';
 import BranchStatusBadge from '../common/BranchStatusBadge';
@@ -36,8 +36,8 @@ function ContactSection() {
         ) : (
         <div className="mt-10">
         <HorizontalCarousel ariaLabel="Sedes" itemClassName="w-[80vw] sm:w-[calc(60%-10px)] lg:w-[calc(50%-10px)]">
-          {branches.map((branch, index) => (
-            <RevealItem key={branch.id} index={index} className="h-full min-w-0">
+          {branches.map((branch) => (
+            <div key={branch.id} className="h-full min-w-0">
               <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-white" style={{ boxShadow: 'var(--shadow-soft)' }}>
                 <div className="flex-1 p-5">
                   <div className="flex items-start justify-between gap-2">
@@ -87,7 +87,7 @@ function ContactSection() {
                   </div>
                 )}
               </div>
-            </RevealItem>
+            </div>
           ))}
         </HorizontalCarousel>
         </div>

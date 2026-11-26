@@ -47,7 +47,8 @@ function BookingShell({
 
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <span className="text-[12px] font-semibold uppercase tracking-[0.04em] text-brand-600">
+          <span className="inline-flex items-center gap-2 text-[13.5px] font-semibold text-kd-pink-700">
+            <span aria-hidden="true" className="h-[3px] w-5 rounded-full bg-kd-pink-500" />
             Reserva online
           </span>
           <h1 className="mt-1 text-[26px] font-semibold text-brand-900 sm:text-[32px]">Reserva tu cita</h1>

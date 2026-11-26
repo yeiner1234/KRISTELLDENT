@@ -5,6 +5,7 @@ import MissionVisionSection from '../../components/home/MissionVisionSection';
 import SpecialtiesSection from '../../components/home/SpecialtiesSection';
 import ProfessionalsSection from '../../components/home/ProfessionalsSection';
 import ContactSection from '../../components/home/ContactSection';
+import BookingCtaBand from '../../components/home/BookingCtaBand';
 import Footer from '../../components/home/Footer';
 
 function HomePage() {
@@ -17,6 +18,7 @@ function HomePage() {
       <SpecialtiesSection />
       <ProfessionalsSection />
       <ContactSection />
+      <BookingCtaBand />
       <Footer />
     </>
   );

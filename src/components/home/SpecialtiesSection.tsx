@@ -1,11 +1,13 @@
 import { ArrowRight, Smile } from 'lucide-react';
-import AnimatedSection, { RevealItem } from '../common/AnimatedSection';
+import AnimatedSection from '../common/AnimatedSection';
 import SectionTitle from '../common/SectionTitle';
 import HorizontalCarousel from '../common/HorizontalCarousel';
 import EmptyState from '../common/EmptyState';
 import Spinner from '../common/Spinner';
 import { useSpecialties } from '../../hooks/useProfessionals';
 import { getSpecialtyIcon } from '../booking/specialtyIcons';
+import { accentClasses } from '../common/accentClasses';
+import { accentToneFor } from '../../utils/accentTone';
 
 function SpecialtiesSection() {
   const { specialties, isLoading, error } = useSpecialties();
@@ -39,14 +41,16 @@ function SpecialtiesSection() {
         ) : (
         <div className="mt-10">
         <HorizontalCarousel ariaLabel="Especialidades">
-          {specialties.map((specialty, index) => {
+          {specialties.map((specialty) => {
             const Icon = getSpecialtyIcon(specialty.name);
+            // Mismo color por especialidad en toda la app (accentToneFor).
+            const accent = accentClasses[accentToneFor(specialty.name)];
 
             return (
-              <RevealItem key={specialty.id} index={index} className="group h-full min-w-0">
+              <div key={specialty.id} className="group h-full min-w-0">
                 <a
                   href="#especialidades"
-                  className="flex h-full flex-col gap-3 rounded-2xl border border-border p-6 transition-all duration-200 hover:-translate-y-[5px] hover:border-brand-600/30"
+                  className="flex h-full flex-col gap-3 rounded-[22px] border border-border bg-white p-6 transition-colors duration-200 hover:border-brand-600/30"
                   style={{ boxShadow: 'var(--shadow-soft)' }}
                   onMouseEnter={(event) => {
                     event.currentTarget.style.boxShadow = 'var(--shadow-soft-hover)';
@@ -55,17 +59,17 @@ function SpecialtiesSection() {
                     event.currentTarget.style.boxShadow = 'var(--shadow-soft)';
                   }}
                 >
-                  <span className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-tint text-brand-600 transition-transform duration-200 group-hover:scale-105">
-                    <Icon size={22} />
+                  <span className={`flex h-12 w-12 items-center justify-center rounded-2xl ${accent.soft} ${accent.text}`}>
+                    <Icon size={23} />
                   </span>
-                  <h3 className="text-lg font-semibold text-brand-900">{specialty.name}</h3>
+                  <h3 className="text-[19px] font-semibold text-brand-900">{specialty.name}</h3>
                   <p className="text-[14.5px] leading-relaxed text-ink-secondary">{specialty.description}</p>
                   <span className="mt-auto inline-flex items-center gap-1.5 pt-1 text-sm font-semibold text-brand-700">
                     Conocer más
                     <ArrowRight size={15} />
                   </span>
                 </a>
-              </RevealItem>
+              </div>
             );
           })}
         </HorizontalCarousel>

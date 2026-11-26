@@ -1,24 +1,19 @@
 import { Eye, Target } from 'lucide-react';
-import { useReducedMotion } from 'framer-motion';
-import AnimatedSection, { RevealItem } from '../common/AnimatedSection';
+import AnimatedSection from '../common/AnimatedSection';
 import HorizontalCarousel from '../common/HorizontalCarousel';
 import smilePhoto from '../../assets/images/home/sonrisa.jpg';
 
 function MissionVisionSection() {
-  const shouldReduceMotion = useReducedMotion();
-
   return (
-    <AnimatedSection className="relative overflow-hidden bg-surface-alt py-[88px]">
+    <AnimatedSection className="relative overflow-hidden bg-kd-pink-50 py-[88px]">
       <svg
         aria-hidden="true"
         viewBox="0 0 200 240"
-        className={`pointer-events-none absolute -right-16 top-1/2 hidden w-[340px] -translate-y-1/2 opacity-[0.07] sm:block ${
-          shouldReduceMotion ? '' : 'animate-drift-slow'
-        }`}
+        className="pointer-events-none absolute -right-16 top-1/2 hidden w-[340px] -translate-y-1/2 opacity-[0.08] sm:block"
       >
         <path
           d="M100 10c-22 0-34 14-46 14-14 0-24-8-34-2-12 7-10 24-4 34 5 8 6 12 6 24 0 20 8 46 20 62 8 11 14 16 20 16 8 0 8-20 12-40 2-10 6-14 12-14s10 4 12 14c4 20 4 40 12 40 6 0 12-5 20-16 12-16 20-42 20-62 0-12 1-16 6-24 6-10 8-27-4-34-10-6-20 2-34 2-12 0-24-14-46-14z"
-          fill="#0f7b86"
+          fill="#e0387f"
         />
       </svg>
 
@@ -27,7 +22,7 @@ function MissionVisionSection() {
           ariaLabel="Misión y visión"
           itemClassName="w-[80vw] sm:w-[calc(50%-10px)] lg:w-[calc(33.333%-14px)]"
         >
-        <RevealItem index={0} className="h-full min-w-0">
+        <div className="h-full min-w-0">
           <figure className="relative h-full min-h-[280px] overflow-hidden rounded-[20px]" style={{ boxShadow: 'var(--shadow-soft)' }}>
             <img
               src={smilePhoto}
@@ -41,13 +36,13 @@ function MissionVisionSection() {
               style={{ background: 'linear-gradient(180deg, rgba(18,35,43,0) 35%, rgba(18,35,43,0.82) 100%)' }}
             />
             <figcaption className="absolute inset-x-0 bottom-0 p-7">
-              <p className="text-[12.5px] font-semibold uppercase tracking-[0.09em] text-white/80">Nuestro propósito</p>
+              <p className="text-[13.5px] font-semibold text-kd-pink-100">Nuestro propósito</p>
               <p className="mt-1 text-pretty text-xl font-semibold text-white">Sonrisas sanas, explicadas paso a paso.</p>
             </figcaption>
           </figure>
-        </RevealItem>
+        </div>
 
-        <RevealItem index={1} className="h-full min-w-0">
+        <div className="h-full min-w-0">
           <div
             className="h-full rounded-[20px] border border-border bg-white p-8"
             style={{ boxShadow: 'var(--shadow-soft)' }}
@@ -61,9 +56,9 @@ function MissionVisionSection() {
               cada paciente y un equipo que explique cada decisión clínica antes de tomarla.
             </p>
           </div>
-        </RevealItem>
+        </div>
 
-        <RevealItem index={2} className="h-full min-w-0">
+        <div className="h-full min-w-0">
           <div
             className="h-full rounded-[20px] p-8"
             style={{ background: 'linear-gradient(150deg, #12232b, #0a656e)' }}
@@ -80,7 +75,7 @@ function MissionVisionSection() {
               tan simple como consultar el horario y el historial de cada paciente viaje con él.
             </p>
           </div>
-        </RevealItem>
+        </div>
         </HorizontalCarousel>
       </div>
     </AnimatedSection>

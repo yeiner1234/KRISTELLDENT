@@ -10,8 +10,12 @@ function SectionTitle({ eyebrow, title, subtitle, align = 'center' }: SectionTit
 
   return (
     <div className={`flex max-w-2xl flex-col gap-3 ${alignment}`}>
+      {/* Solo la web pública usa eyebrow: rosa Kristell, como el logotipo. */}
       {eyebrow && (
-        <span className="text-[12.5px] font-semibold uppercase tracking-[0.09em] text-brand-700">{eyebrow}</span>
+        <span className="inline-flex items-center gap-2 text-[14px] font-semibold text-kd-pink-700">
+          <span aria-hidden="true" className="h-[3px] w-5 rounded-full bg-kd-pink-500" />
+          {eyebrow}
+        </span>
       )}
       <h2 className="text-pretty text-[clamp(28px,3.4vw,38px)] font-semibold tracking-[-0.028em] text-brand-900">
         {title}
