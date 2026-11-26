@@ -82,8 +82,8 @@ function HorizontalCarousel({ children, ariaLabel, itemClassName = DEFAULT_ITEM 
 
       {/* Si todas las tarjetas caben, no hace falta navegar. */}
       {items.length > 1 && (canScroll.back || canScroll.forward) && (
-        <div className="flex items-center justify-between gap-4">
-          <div role="group" aria-label={`Elegir tarjeta de ${ariaLabel}`} className="flex flex-wrap items-center gap-1.5">
+        <div className="relative flex min-h-11 items-center justify-center">
+          <div role="group" aria-label={`Elegir tarjeta de ${ariaLabel}`} className="flex flex-wrap items-center justify-center gap-1.5">
             {items.map((_, index) => (
               <button
                 key={index}
@@ -101,7 +101,7 @@ function HorizontalCarousel({ children, ariaLabel, itemClassName = DEFAULT_ITEM 
               </button>
             ))}
           </div>
-          <div className="hidden items-center gap-2 sm:flex">
+          <div className="absolute right-0 top-1/2 hidden -translate-y-1/2 items-center gap-2 sm:flex">
             <button type="button" aria-label="Anterior" onClick={() => scrollByPage(-1)} disabled={!canScroll.back} className={arrowClasses}>
               <ChevronLeft size={20} />
             </button>
