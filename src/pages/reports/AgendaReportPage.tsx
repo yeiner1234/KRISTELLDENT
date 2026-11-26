@@ -120,8 +120,10 @@ function AgendaReportPage() {
 
   return (
     <div className="agenda-report flex flex-col gap-5">
-      {/* En celular cada filtro ocupa todo el ancho; la hoja se desplaza en su contenedor. */}
-      <div className="agenda-toolbar flex flex-wrap items-end gap-3 rounded-[14px] border border-adm-line-card bg-white p-4 [&>*]:w-full sm:[&>*]:w-auto">
+      {/* En celular los filtros van de a dos por fila, con etiquetas más chicas,
+          para llegar rápido a la hoja; desde sm, la fila de siempre. La hoja se
+          desplaza en su contenedor. */}
+      <div className="agenda-toolbar grid grid-cols-2 items-end gap-x-2.5 gap-y-2.5 rounded-[14px] border border-adm-line-card bg-white p-3 [&_label]:text-[12.5px] sm:flex sm:flex-wrap sm:gap-3 sm:p-4 sm:[&>*]:w-auto sm:[&_label]:text-sm">
         <Input
           label="Fecha"
           type="date"
@@ -171,11 +173,13 @@ function AgendaReportPage() {
           type="button"
           variant="admin-solid"
           size="md"
-          className="ml-auto"
+          className="w-full sm:ml-auto sm:w-auto"
           icon={<Printer size={16} />}
           onClick={() => window.print()}
+          aria-label="Imprimir / Descargar PDF"
         >
-          Imprimir / Descargar PDF
+          <span className="sm:hidden">Imprimir PDF</span>
+          <span className="hidden sm:inline">Imprimir / Descargar PDF</span>
         </Button>
       </div>
 
