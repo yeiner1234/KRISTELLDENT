@@ -1,5 +1,5 @@
-import { useMemo, useState, type ReactNode } from 'react';
-import { CalendarX2, Printer } from 'lucide-react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { CalendarX2, Minus, Plus, Printer, Scan } from 'lucide-react';
 import Button from '../../components/common/Button';
 import EmptyState from '../../components/common/EmptyState';
 import Input from '../../components/common/Input';
@@ -32,6 +32,8 @@ import {
   summarizeAgenda,
   type AgendaShift,
   type AgendaStatusFilter,
+  sheetFitScale,
+  zoomSheet,
 } from '../../utils/reports/agenda';
 import type { AppointmentStatus } from '../../types/Appointment';
 import icon from '../../../imagenes/kristelldent-icon.png';
@@ -41,8 +43,14 @@ import '../../styles/agenda-report.css';
 // Reporte operativo "Agenda de citas de la sede": una hoja A4 que se imprime
 // (o se guarda como PDF) con la impresión del navegador. La RLS ya limita las
 // citas de la técnica y de la admin de sede a sus sedes.
+// Ancho real de la hoja A4 en pantalla (210 mm a 96 ppp).
+const SHEET_WIDTH_PX = 794;
+
 function AgendaReportPage() {
   const { user } = useAuth();
+  // Tamaño de la hoja en pantalla (controles del celular); al imprimir, siempre real.
+  const [sheetZoom, setSheetZoom] = useState(1);
+  const sheetScrollRef = useRef<HTMLDivElement>(null);
   const { appointments, isLoading: isLoadingAppointments, error: appointmentsError } = useAllAppointments();
   const { patients, isLoading: isLoadingPatients } = useAllPatients();
   // get_public_professionals: la técnica no puede leer profiles.
@@ -183,8 +191,42 @@ function AgendaReportPage() {
         </Button>
       </div>
 
-      <div className="agenda-sheet-scroll">
-      <article className="agenda-sheet">
+      {/* Celular y tablet: agrandar, achicar o ajustar la hoja a la pantalla. */}
+      <div className="agenda-zoom-controls flex items-center justify-end gap-1.5 lg:hidden" role="group" aria-label="Tamaño de la hoja">
+        <button
+          type="button"
+          aria-label="Reducir la hoja"
+          onClick={() => setSheetZoom((current) => zoomSheet(current, -1))}
+          className={zoomButtonClasses}
+        >
+          <Minus size={17} />
+        </button>
+        <span className="min-w-[52px] text-center text-[13px] font-semibold text-adm-ink-700 [font-variant-numeric:tabular-nums]">
+          {Math.round(sheetZoom * 100)} %
+        </span>
+        <button
+          type="button"
+          aria-label="Agrandar la hoja"
+          onClick={() => setSheetZoom((current) => zoomSheet(current, 1))}
+          className={zoomButtonClasses}
+        >
+          <Plus size={17} />
+        </button>
+        <button
+          type="button"
+          aria-label="Ajustar la hoja a la pantalla"
+          onClick={() => setSheetZoom(sheetFitScale(sheetScrollRef.current?.clientWidth ?? 0, SHEET_WIDTH_PX))}
+          className={`${zoomButtonClasses} w-auto gap-1.5 px-3 text-[13px] font-medium`}
+        >
+          <Scan size={16} />
+          Ajustar
+        </button>
+      </div>
+
+      <div ref={sheetScrollRef} className="agenda-sheet-scroll">
+      {/* zoom (y no transform): también cambia el espacio que ocupa, así el
+          desplazamiento de lado coincide con lo que se ve. */}
+      <article className="agenda-sheet" style={sheetZoom !== 1 ? { zoom: sheetZoom } : undefined}>
         {/* 1. Encabezado */}
         <div className="flex items-start justify-between gap-6">
           <div className="flex items-start gap-3">
@@ -344,6 +386,9 @@ function AgendaReportPage() {
     </div>
   );
 }
+
+const zoomButtonClasses =
+  'flex h-10 w-10 items-center justify-center rounded-[10px] border border-adm-line-control bg-white text-adm-ink-700 transition-colors hover:border-adm-accent-line hover:bg-adm-surface-sel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-adm-accent-ring';
 
 function Meta({ label, children }: { label: string; children: ReactNode }) {
   return (

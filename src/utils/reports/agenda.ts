@@ -255,3 +255,23 @@ export function branchHoursLabel(branchName: string, hours: WeeklyHours, isoDate
   const day = hours[WEEKDAY_KEYS[weekdayIndex(isoDate)]];
   return day ? `Sede ${branchName} · ${day.open} – ${day.close}` : 'Sede cerrada';
 }
+
+// Tamaños de la hoja en pantalla (controles − / + del celular). Al imprimir
+// siempre sale a tamaño real.
+export const SHEET_ZOOM_STEPS = [0.4, 0.5, 0.6, 0.75, 0.9, 1, 1.25, 1.5];
+
+// Siguiente paso hacia arriba (1) o hacia abajo (-1), sin salir de los límites.
+export function zoomSheet(current: number, direction: 1 | -1): number {
+  const steps = direction === 1 ? SHEET_ZOOM_STEPS : [...SHEET_ZOOM_STEPS].reverse();
+  const next = steps.find((step) => (direction === 1 ? step > current + 0.001 : step < current - 0.001));
+  return next ?? steps[steps.length - 1];
+}
+
+// "Ajustar": la hoja (contentWidth px) al ancho disponible (containerWidth px),
+// sin agrandarla nunca más allá de su tamaño real.
+export function sheetFitScale(containerWidth: number, contentWidth: number): number {
+  if (containerWidth <= 0 || contentWidth <= 0) {
+    return 1;
+  }
+  return Math.min(1, containerWidth / contentWidth);
+}

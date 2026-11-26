@@ -144,6 +144,37 @@ describe('AgendaReportPage', () => {
   });
 });
 
+describe('AgendaReportPage — tamaño de la hoja en celular', () => {
+  const sheet = () => document.querySelector('.agenda-sheet') as HTMLElement;
+
+  it('empieza a tamaño real; "−" y "+" la achican y la agrandan', async () => {
+    const user = userEvent.setup();
+    render(<AgendaReportPage />);
+
+    expect(screen.getByText('100 %')).toBeInTheDocument();
+    expect(sheet().style.zoom).toBe('');
+
+    await user.click(screen.getByRole('button', { name: 'Reducir la hoja' }));
+    expect(screen.getByText('90 %')).toBeInTheDocument();
+    expect(sheet().style.zoom).toBe('0.9');
+
+    await user.click(screen.getByRole('button', { name: 'Agrandar la hoja' }));
+    expect(screen.getByText('100 %')).toBeInTheDocument();
+  });
+
+  it('"Ajustar" la deja del ancho de la pantalla', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(397);
+    render(<AgendaReportPage />);
+
+    await user.click(screen.getByRole('button', { name: 'Ajustar la hoja a la pantalla' }));
+
+    expect(sheet().style.zoom).toBe('0.5');
+    expect(screen.getByText('50 %')).toBeInTheDocument();
+    vi.restoreAllMocks();
+  });
+});
+
 describe('AgendaReportPage — en el panel profesional', () => {
   afterEach(() => {
     access.branchIds = ['bagua'];

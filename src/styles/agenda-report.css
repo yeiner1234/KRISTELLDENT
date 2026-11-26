@@ -66,6 +66,7 @@
   body:has(.agenda-report) aside,
   body:has(.agenda-report) header,
   .agenda-toolbar,
+  .agenda-zoom-controls,
   .agenda-screen-footer {
     display: none !important;
   }
@@ -84,6 +85,8 @@
   }
 
   .agenda-sheet {
+    /* El tamaño elegido en pantalla no llega al papel: siempre A4 real. */
+    zoom: 1 !important;
     width: auto;
     min-height: 0;
     padding: 0;
