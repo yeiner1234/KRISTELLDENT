@@ -17,7 +17,14 @@ import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 import { limaToday } from '../create-public-appointment/booking.ts';
 import { sendEmail } from '../_shared/email.ts';
 import { reminderEmail, type EmailAppointment } from '../_shared/emailTemplates.ts';
-import { isAuthorized, isReminderDue, notificationEmail, type NotificationKind, type ReminderCandidate } from './appointmentEmails.ts';
+import {
+  isAuthorized,
+  isReminderDue,
+  notificationEmail,
+  notificationRecipient,
+  type NotificationKind,
+  type ReminderCandidate,
+} from './appointmentEmails.ts';
 
 // Filas por llamada: con 3000 citas al mes en las 4 sedes alcanza de sobra.
 const BATCH_SIZE = 50;
@@ -42,7 +49,7 @@ interface LoadedAppointment {
 async function loadAppointment(client: SupabaseClient, appointmentId: string): Promise<LoadedAppointment | null> {
   const { data: row, error } = await client
     .from('appointments')
-    .select('appointment_code, appointment_date, start_time, branch_id, professional_id, service_id, service_name, patient_id')
+    .select('appointment_code, appointment_date, start_time, branch_id, professional_id, service_id, service_name, patient_id, contact_email')
     .eq('id', appointmentId)
     .maybeSingle();
   if (error) throw error;
@@ -63,7 +70,8 @@ async function loadAppointment(client: SupabaseClient, appointmentId: string): P
 
   return {
     patientName: patient.data?.first_name ?? '',
-    email: patient.data?.email?.trim() || null,
+    // Al correo con que se reservó la cita (contact_email); si es antigua, al registrado.
+    email: notificationRecipient(row.contact_email, patient.data?.email ?? null),
     appointment: {
       code: row.appointment_code,
       date: row.appointment_date,

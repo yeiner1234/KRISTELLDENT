@@ -3,6 +3,7 @@ import {
   addMinutes,
   limaToday,
   bookingMatchesPatient,
+  bookingRecipient,
   limaNow,
   missingPatientFields,
   isStaffRole,
@@ -258,5 +259,14 @@ describe('isStaffRole', () => {
     expect(isStaffRole(null)).toBe(false);
     expect(isStaffRole(undefined)).toBe(false);
     expect(isStaffRole('anon')).toBe(false);
+  });
+});
+
+// El correo de la reserva va a quien reserva: al correo y nombre que escribió.
+describe('bookingRecipient', () => {
+  const booking = { email: 'quien.reserva@correo.pe', firstName: 'Lucía' };
+
+  it('usa el correo y el nombre escritos al reservar (aunque el DNI tenga otro correo registrado)', () => {
+    expect(bookingRecipient(booking)).toEqual({ to: 'quien.reserva@correo.pe', name: 'Lucía' });
   });
 });

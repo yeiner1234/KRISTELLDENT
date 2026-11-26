@@ -61,3 +61,9 @@ export function notificationEmail(
 ) {
   return kind === 'cancelled' ? cancelledEmail(input) : rescheduledEmail(input);
 }
+
+// Avisos y recordatorios van al correo con que se reservó la cita; las citas
+// anteriores a contact_email usan el correo registrado del paciente.
+export function notificationRecipient(contactEmail: string | null, patientEmail: string | null): string | null {
+  return contactEmail?.trim() || patientEmail?.trim() || null;
+}

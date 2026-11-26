@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { isAuthorized, isReminderDue, limaStartInstant, notificationEmail, type ReminderCandidate } from './appointmentEmails';
+import {
+  isAuthorized,
+  isReminderDue,
+  limaStartInstant,
+  notificationEmail,
+  notificationRecipient,
+  type ReminderCandidate,
+} from './appointmentEmails';
 import type { EmailAppointment } from '../_shared/emailTemplates';
 
 describe('limaStartInstant', () => {
@@ -85,5 +92,21 @@ describe('notificationEmail', () => {
     const input = { patientName: 'Lucía', appointment, siteUrl: null };
     expect(notificationEmail('rescheduled', input).subject).toContain('reprogramada');
     expect(notificationEmail('cancelled', input).subject).toContain('cancelada');
+  });
+});
+
+// Avisos y recordatorios van al correo con que se reservó esa cita.
+describe('notificationRecipient', () => {
+  it('prefiere el correo de contacto de la cita', () => {
+    expect(notificationRecipient(' reserva@correo.pe ', 'registrado@correo.pe')).toBe('reserva@correo.pe');
+  });
+
+  it('citas antiguas sin correo de contacto: el registrado del paciente', () => {
+    expect(notificationRecipient(null, 'registrado@correo.pe')).toBe('registrado@correo.pe');
+    expect(notificationRecipient('  ', 'registrado@correo.pe')).toBe('registrado@correo.pe');
+  });
+
+  it('sin ningún correo, null', () => {
+    expect(notificationRecipient(null, null)).toBeNull();
   });
 });

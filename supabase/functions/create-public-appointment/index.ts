@@ -23,6 +23,7 @@ import { bookingEmail } from '../_shared/emailTemplates.ts';
 import {
   addMinutes,
   bookingMatchesPatient,
+  bookingRecipient,
   isStaffRole,
   limaToday,
   otherBranchSameDayError,
@@ -224,6 +225,8 @@ Deno.serve(async (req) => {
       reason: booking.reason,
       status: 'pending',
       code_limited: codeLimited,
+      // Los correos de esta cita van a quien la reservó (ver bookingRecipient).
+      contact_email: booking.email,
       // service_name, service_price y service_duration_minutes los copia el
       // trigger appointments_copy_service desde el servicio.
     })
@@ -238,12 +241,11 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'No se pudo registrar la cita. Inténtalo de nuevo.' }, 400);
   }
 
-  // Paciente existente: solo a su correo registrado (si no tiene, no se envía),
-  // así también se entera de una reserva hecha con su DNI. Paciente nuevo: al
-  // correo que acaba de dar.
-  const recipient = existingPatient ? (existingPatient.email?.trim() ?? '') : booking.email;
+  // Al correo y nombre de quien reserva, aunque el DNI tenga otro correo
+  // registrado.
+  const recipient = bookingRecipient(booking);
   const email = bookingEmail({
-    patientName: existingPatient?.first_name?.trim() || booking.firstName,
+    patientName: recipient.name,
     appointment: {
       code: appointment.appointment_code,
       date: appointment.appointment_date,
@@ -254,7 +256,7 @@ Deno.serve(async (req) => {
     },
     siteUrl: Deno.env.get('SITE_URL') ?? null,
   });
-  const emailSent = recipient ? await sendEmail({ to: recipient, ...email }) : false;
+  const emailSent = await sendEmail({ to: recipient.to, ...email });
 
   return jsonResponse(
     {

@@ -233,3 +233,10 @@ const STAFF_ROLES = ['admin_global', 'admin_sede', 'especialista', 'odontologa_g
 export function isStaffRole(role: string | null | undefined): boolean {
   return role !== null && role !== undefined && STAFF_ROLES.includes(role);
 }
+
+// El correo de la reserva va a quien reserva: al correo y nombre que
+// escribió, aunque el DNI tenga otro correo registrado (ese se guarda en la
+// cita como contact_email para los avisos posteriores).
+export function bookingRecipient(booking: Pick<ValidBooking, 'email' | 'firstName'>): { to: string; name: string } {
+  return { to: booking.email, name: booking.firstName };
+}
