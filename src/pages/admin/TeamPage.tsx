@@ -10,6 +10,7 @@ import Spinner from '../../components/common/Spinner';
 import Modal from '../../components/common/Modal';
 import Input from '../../components/common/Input';
 import Select from '../../components/common/Select';
+import SearchInput from '../../components/common/SearchInput';
 import StatusBadge from '../../components/common/StatusBadge';
 import FormError from '../../components/common/FormError';
 import MemberBranchesModal from '../../components/team/MemberBranchesModal';
@@ -23,7 +24,7 @@ import {
   setProfileActive,
   type TeamMember,
 } from '../../services/teamService';
-import { accountAction } from '../../utils/teamAccounts';
+import { accountAction, countTeamRoles, filterTeamMembers, type TeamFilters } from '../../utils/teamAccounts';
 import { setProfessionalBranchActive } from '../../services/professionalService';
 import { PROFESSIONAL_ROLES } from '../../services/professionalService';
 import type { AppRole } from '../../types/User';
@@ -81,6 +82,17 @@ function TeamPage() {
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const activeBranches = useMemo(() => branches.filter((branch) => branch.active), [branches]);
+
+  const [filters, setFilters] = useState<TeamFilters>({ query: '', role: '', status: '', branchId: '' });
+  const updateFilters = (patch: Partial<TeamFilters>) => setFilters((current) => ({ ...current, ...patch }));
+  const filteredMembers = useMemo(() => filterTeamMembers(members, filters), [members, filters]);
+  const roleCounts = useMemo(() => countTeamRoles(members, filters), [members, filters]);
+  // Solo las pestañas de roles que existen en el equipo.
+  const roleTabs = useMemo(
+    () => (Object.keys(roleLabels) as AppRole[]).filter((role) => members.some((member) => member.role === role)),
+    [members],
+  );
+  const hasFilters = Boolean(filters.query.trim() || filters.role || filters.status || filters.branchId);
 
   const openModal = () => {
     setForm({ fullName: '', email: '', role: assignableRoles[0], branchIds: [] });
@@ -156,10 +168,92 @@ function TeamPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <SectionTitle title="Equipo" align="left" />
-        <Button type="button" variant="admin-solid" size="sm" icon={<Plus size={16} />} onClick={openModal}>
-          Invitar usuario
-        </Button>
+        <div className="flex items-center gap-3">
+          {members.length > 0 && (
+            <span className="text-[13px] text-adm-ink-300">
+              {hasFilters ? `${filteredMembers.length} de ${members.length}` : members.length}{' '}
+              {members.length === 1 ? 'persona' : 'personas'}
+            </span>
+          )}
+          <Button type="button" variant="admin-solid" size="sm" icon={<Plus size={16} />} onClick={openModal}>
+            Invitar usuario
+          </Button>
+        </div>
       </div>
+
+      {members.length > 0 && (
+        <div className="flex flex-col gap-3 rounded-[14px] border border-adm-line-card bg-white p-4">
+          <div className="flex flex-col gap-2.5 md:flex-row md:items-end">
+            <SearchInput
+              value={filters.query}
+              onChange={(event) => updateFilters({ query: event.target.value })}
+              placeholder="Buscar por nombre o correo..."
+              aria-label="Buscar en el equipo"
+              wrapperClassName="min-w-[180px] flex-1"
+            />
+            <div className="grid grid-cols-2 gap-2.5 md:flex">
+              <div className="md:w-[160px]">
+                <Select
+                  label="Estado"
+                  hideLabel
+                  value={filters.status}
+                  onChange={(event) => updateFilters({ status: event.target.value as TeamFilters['status'] })}
+                  options={[
+                    { value: '', label: 'Todos los estados' },
+                    { value: 'active', label: 'Activos' },
+                    { value: 'inactive', label: 'Inactivos' },
+                  ]}
+                  className="w-full"
+                />
+              </div>
+              <div className="md:w-[200px]">
+                <Select
+                  label="Sede"
+                  hideLabel
+                  value={filters.branchId}
+                  onChange={(event) => updateFilters({ branchId: event.target.value })}
+                  options={[
+                    { value: '', label: 'Todas las sedes' },
+                    ...branches
+                      .filter((branch) => canManageBranch(branch.id))
+                      .map((branch) => ({ value: branch.id, label: branch.name })),
+                  ]}
+                  className="w-full"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div role="tablist" aria-label="Filtrar por rol" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
+            {(['', ...roleTabs] as (AppRole | '')[]).map((role) => {
+              const isActive = filters.role === role;
+              return (
+                <button
+                  key={role || 'all'}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => updateFilters({ role })}
+                  className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'border-adm-accent-deep bg-adm-accent-deep text-white'
+                      : 'border-adm-line-control bg-white text-adm-ink-500 hover:border-adm-accent-line hover:bg-adm-surface-sel'
+                  }`}
+                >
+                  {role ? roleLabels[role] : 'Todos'}
+                  <span
+                    className={`min-w-6 rounded-full px-1.5 text-center text-xs font-semibold [font-variant-numeric:tabular-nums] ${
+                      isActive ? 'bg-white/25' : 'bg-adm-line-div text-adm-ink-400'
+                    }`}
+                  >
+                    {roleCounts[role]}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {successMessage && (
         <p className="rounded-[10px] border border-adm-status-confirmed-border bg-adm-status-confirmed-bg px-3.5 py-2.5 text-sm font-medium text-adm-status-confirmed-text">
@@ -181,9 +275,15 @@ function TeamPage() {
           title="No hay usuarios internos registrados"
           description="Invita a la primera cuenta de administrador de sede, especialista, odontóloga general o técnica."
         />
+      ) : filteredMembers.length === 0 ? (
+        <EmptyState
+          icon={UsersRound}
+          title="Nadie coincide con los filtros"
+          description="Cambia la búsqueda, el rol, el estado o la sede."
+        />
       ) : (
         <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
-          {members.map((member) => (
+          {filteredMembers.map((member) => (
             <div
               key={member.id}
               className="flex h-full flex-col rounded-[14px] border border-adm-line-card bg-white p-5 shadow-soft transition-shadow duration-[180ms] hover:border-[#d7e2e6] hover:shadow-adm-elev-1"

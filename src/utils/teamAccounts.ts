@@ -45,3 +45,52 @@ export function accountAction(member: MemberLike, viewer: Viewer): AccountAction
   }
   return { kind: 'account', blockedReason: 'Trabaja también en otra sede: quítale tu sede con "Editar sedes".' };
 }
+
+// Filtros de la pantalla Equipo. '' = sin filtro.
+export interface TeamFilters {
+  query: string;
+  role: AppRole | '';
+  status: 'active' | 'inactive' | '';
+  branchId: string;
+}
+
+export interface TeamMemberLike {
+  fullName: string;
+  email: string;
+  role: AppRole;
+  active: boolean;
+  branchIds: string[];
+}
+
+// Sin tildes ni mayúsculas: "rios" encuentra a "Ríos".
+function normalize(text: string): string {
+  return text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+}
+
+export function filterTeamMembers<T extends TeamMemberLike>(members: T[], filters: TeamFilters): T[] {
+  const term = normalize(filters.query.trim());
+  return members.filter(
+    (member) =>
+      (!filters.role || member.role === filters.role) &&
+      (!filters.status || member.active === (filters.status === 'active')) &&
+      (!filters.branchId || member.branchIds.includes(filters.branchId)) &&
+      (!term || normalize(`${member.fullName} ${member.email}`).includes(term)),
+  );
+}
+
+// Cuántos hay de cada rol con los demás filtros aplicados ('' = todos).
+export function countTeamRoles(members: TeamMemberLike[], filters: TeamFilters): Record<AppRole | '', number> {
+  const counts: Record<AppRole | '', number> = {
+    '': 0,
+    admin_global: 0,
+    admin_sede: 0,
+    especialista: 0,
+    odontologa_general: 0,
+    tecnica: 0,
+  };
+  for (const member of filterTeamMembers(members, { ...filters, role: '' })) {
+    counts[''] += 1;
+    counts[member.role] += 1;
+  }
+  return counts;
+}

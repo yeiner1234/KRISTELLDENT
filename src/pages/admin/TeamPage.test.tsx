@@ -200,4 +200,22 @@ describe('TeamPage', () => {
     ).toBeInTheDocument();
     expect(inviteInternalUser).not.toHaveBeenCalled();
   });
+
+  it('filtra el equipo por nombre, rol y sede', async () => {
+    const user = renderPage();
+
+    await user.type(screen.getByLabelText('Buscar en el equipo'), 'tere');
+    expect(screen.getByText('Tere')).toBeInTheDocument();
+    expect(screen.queryByText('ANali')).not.toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText('Buscar en el equipo'));
+    await user.click(screen.getByRole('tab', { name: /Especialista/ }));
+    expect(screen.getByText('ANali')).toBeInTheDocument();
+    expect(screen.queryByText('Tere')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: /Todos/ }));
+    await user.selectOptions(screen.getByLabelText('Sede'), 'bagua');
+    expect(screen.getByText('ANali')).toBeInTheDocument();
+    expect(screen.queryByText('Tere')).not.toBeInTheDocument();
+  });
 });
