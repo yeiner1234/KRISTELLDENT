@@ -29,6 +29,12 @@ vi.mock('../../hooks/useAppointments', () => ({
     refetch: vi.fn(),
   }),
 }));
+vi.mock('../../hooks/useProfessionals', () => ({
+  useProfessionals: () => ({ professionals: [], isLoading: false, error: null }),
+}));
+vi.mock('../../hooks/useServices', () => ({
+  useServices: () => ({ services: [], isLoading: false, error: null }),
+}));
 vi.mock('../../hooks/usePatients', () => ({
   useAllPatients: () => ({
     patients: [

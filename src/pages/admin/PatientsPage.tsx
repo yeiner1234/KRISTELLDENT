@@ -1,62 +1,43 @@
-import { useMemo, useState } from 'react';
-import { Plus, Users } from 'lucide-react';
-import SectionTitle from '../../components/common/SectionTitle';
-import SearchInput from '../../components/common/SearchInput';
+import { useCallback } from 'react';
+import { Plus } from 'lucide-react';
 import Button from '../../components/common/Button';
-import EmptyState from '../../components/common/EmptyState';
-import Spinner from '../../components/common/Spinner';
-import PatientCard from '../../components/patients/PatientCard';
+import PatientsOverview from '../../components/patients/PatientsOverview';
 import { useAllPatients } from '../../hooks/usePatients';
+import { useAllAppointments } from '../../hooks/useAppointments';
+import { useAdminProfessionals } from '../../hooks/useAdminProfessionals';
+import { useAdminServices } from '../../hooks/useAdminServices';
+import { useAdminBranches } from '../../hooks/useAdminBranches';
 
+// Todos los pacientes que la RLS deja ver (admin_sede: los de sus sedes),
+// también los que aún no tienen citas.
 function PatientsPage() {
-  const { patients, isLoading, error } = useAllPatients();
-  const [query, setQuery] = useState('');
-
-  const filteredPatients = useMemo(() => {
-    const term = query.trim().toLowerCase();
-    if (!term) return patients;
-
-    return patients.filter((patient) =>
-      `${patient.firstName} ${patient.lastName} ${patient.dni}`.toLowerCase().includes(term),
-    );
-  }, [query, patients]);
+  const { patients, isLoading: isLoadingPatients, error: patientsError } = useAllPatients();
+  const { appointments, isLoading: isLoadingAppointments, error: appointmentsError } = useAllAppointments();
+  const { professionals, error: professionalsError } = useAdminProfessionals();
+  const { services, error: servicesError } = useAdminServices();
+  const { branches, error: branchesError } = useAdminBranches();
+  const branchName = useCallback(
+    (branchId: string) => branches.find((branch) => branch.id === branchId)?.name ?? '—',
+    [branches],
+  );
 
   return (
-    <div className="flex flex-col gap-6">
-      <SectionTitle title="Pacientes" align="left" />
-
-      <div className="flex flex-wrap items-center gap-2.5 rounded-[14px] border border-adm-line-card bg-white p-4">
-        <SearchInput
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Buscar por nombre o DNI..."
-          wrapperClassName="min-w-[180px] flex-1"
-        />
+    <PatientsOverview
+      title="Pacientes"
+      patients={patients}
+      appointments={appointments}
+      professionals={professionals}
+      services={services}
+      branchName={branchName}
+      isLoading={isLoadingPatients || isLoadingAppointments}
+      error={patientsError ?? appointmentsError ?? professionalsError ?? servicesError ?? branchesError}
+      emptyDescription="Los pacientes aparecerán aquí a medida que reserven citas."
+      headerAction={
         <Button type="button" variant="admin-solid" size="sm" icon={<Plus size={16} />}>
           Nuevo paciente
         </Button>
-      </div>
-
-      {isLoading ? (
-        <div className="flex justify-center py-10">
-          <Spinner size={28} />
-        </div>
-      ) : error ? (
-        <EmptyState icon={Users} title="No se pudieron cargar los pacientes" description={error} />
-      ) : filteredPatients.length === 0 ? (
-        <EmptyState
-          icon={Users}
-          title="Sin pacientes registrados"
-          description="Los pacientes aparecerán aquí a medida que reserven citas."
-        />
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {filteredPatients.map((patient) => (
-            <PatientCard key={patient.id} patient={patient} />
-          ))}
-        </div>
-      )}
-    </div>
+      }
+    />
   );
 }
 

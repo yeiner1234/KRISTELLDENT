@@ -1,13 +1,10 @@
-import { useMemo, useState } from 'react';
-import { Users } from 'lucide-react';
-import SectionTitle from '../../components/common/SectionTitle';
-import SearchInput from '../../components/common/SearchInput';
-import EmptyState from '../../components/common/EmptyState';
-import Spinner from '../../components/common/Spinner';
-import PatientCard from '../../components/patients/PatientCard';
+import { useMemo } from 'react';
+import PatientsOverview from '../../components/patients/PatientsOverview';
 import { useAllPatients } from '../../hooks/usePatients';
 import { useAuth } from '../../hooks/useAuth';
 import { useMyAppointments } from '../../hooks/useAppointments';
+import { useProfessionals } from '../../hooks/useProfessionals';
+import { useServices } from '../../hooks/useServices';
 import { patientsOfAppointments } from '../../utils/appointmentViews';
 import { usePanelBranch } from '../../hooks/usePanelBranch';
 import { filterByPanelBranch } from '../../utils/panelBranch';
@@ -16,62 +13,32 @@ function MyPatientsPage() {
   const { user } = useAuth();
   const { patients: visiblePatients, isLoading: isLoadingPatients, error: patientsError } = useAllPatients();
   const { appointments, isLoading: isLoadingAppointments, error: appointmentsError } = useMyAppointments(user?.id);
-  const { selectedBranchId } = usePanelBranch();
+  const { professionals, error: professionalsError } = useProfessionals();
+  const { services, error: servicesError } = useServices();
+  const { selectedBranchId, branchName } = usePanelBranch();
   // Solo los pacientes de sus propias citas (criterio 2 de HU12), en la sede
   // elegida arriba.
-  const patients = useMemo(
-    () => patientsOfAppointments(visiblePatients, filterByPanelBranch(appointments, selectedBranchId)),
-    [visiblePatients, appointments, selectedBranchId],
+  const branchAppointments = useMemo(
+    () => filterByPanelBranch(appointments, selectedBranchId),
+    [appointments, selectedBranchId],
   );
-  const isLoading = isLoadingPatients || isLoadingAppointments;
-  const error = patientsError ?? appointmentsError;
-  const [query, setQuery] = useState('');
-
-  const filteredPatients = useMemo(() => {
-    const term = query.trim().toLowerCase();
-    if (!term) return patients;
-
-    return patients.filter((patient) =>
-      `${patient.firstName} ${patient.lastName} ${patient.dni}`.toLowerCase().includes(term),
-    );
-  }, [query, patients]);
+  const patients = useMemo(
+    () => patientsOfAppointments(visiblePatients, branchAppointments),
+    [visiblePatients, branchAppointments],
+  );
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <SectionTitle title="Mis pacientes" align="left" />
-        <span className="text-[13px] text-adm-ink-300">
-          {filteredPatients.length} {filteredPatients.length === 1 ? 'paciente' : 'pacientes'}
-        </span>
-      </div>
-
-      <SearchInput
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        placeholder="Buscar por nombre o DNI..."
-        wrapperClassName="max-w-sm"
-      />
-
-      {isLoading ? (
-        <div className="flex justify-center py-10">
-          <Spinner size={28} />
-        </div>
-      ) : error ? (
-        <EmptyState icon={Users} title="No se pudieron cargar tus pacientes" description={error} />
-      ) : filteredPatients.length === 0 ? (
-        <EmptyState
-          icon={Users}
-          title="Sin pacientes asignados"
-          description="Los pacientes que reserven contigo aparecerán aquí."
-        />
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {filteredPatients.map((patient) => (
-            <PatientCard key={patient.id} patient={patient} />
-          ))}
-        </div>
-      )}
-    </div>
+    <PatientsOverview
+      title="Mis pacientes"
+      patients={patients}
+      appointments={branchAppointments}
+      professionals={professionals}
+      services={services}
+      branchName={branchName}
+      isLoading={isLoadingPatients || isLoadingAppointments}
+      error={patientsError ?? appointmentsError ?? professionalsError ?? servicesError}
+      emptyDescription="Los pacientes que reserven contigo aparecerán aquí."
+    />
   );
 }
 
