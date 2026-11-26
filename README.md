@@ -90,15 +90,32 @@ Para quitarle el rol a una admin_global hay que dejar otra activa: la base no de
 | --- | --- | --- |
 | `create-internal-user` | Crear cuentas del personal e invitarlas por correo. A especialistas y odontólogas generales les crea también su ficha y sus sedes. Nunca crea `admin_global`. | Un admin con sesión (la función comprueba su rol). |
 | `create-public-appointment` | Reservar una cita (paciente o admin). Valida datos y horario libre y devuelve el código. | Público. |
-| `patient-appointments` | Ver, cancelar y reprogramar con DNI + código; reenviar los códigos al correo registrado. | Público. |
+| `patient-appointments` | Ver, cancelar y reprogramar con DNI + código; reenviar los códigos al correo registrado. Bloquea 5 minutos un DNI tras 3 códigos incorrectos. | Público. |
+| `appointment-emails` | Correos de cita reprogramada o cancelada (venga del paciente o del panel) y recordatorios 24 horas antes. | La base: el trigger `enqueue_appointment_email` (pg_net) y pg_cron cada 10 minutos, con el secreto `x-cron-secret`. |
 
 ```bash
 npx supabase functions deploy create-internal-user
 npx supabase functions deploy create-public-appointment --no-verify-jwt
 npx supabase functions deploy patient-appointments --no-verify-jwt
+npx supabase functions deploy appointment-emails --no-verify-jwt
 ```
 
-Las dos funciones públicas se despliegan con `--no-verify-jwt` porque el paciente no tiene sesión y la clave `sb_publishable_...` no es un JWT; ellas mismas validan cada pedido.
+Las dos funciones públicas se despliegan con `--no-verify-jwt` porque el paciente no tiene sesión y la clave `sb_publishable_...` no es un JWT; ellas mismas validan cada pedido. `appointment-emails` también, porque la llama la base con su propio secreto (`APPOINTMENT_EMAILS_SECRET`), no con un JWT.
+
+#### Correos automáticos (avisos y recordatorios)
+
+Después de aplicar la migración `20261125000000_hu13_hu14_correos_citas.sql`, una vez, en el SQL Editor (el mismo secreto en los dos lados):
+
+```sql
+select vault.create_secret('https://<ref>.supabase.co/functions/v1/appointment-emails', 'appointment_emails_url');
+select vault.create_secret('<secreto largo al azar>', 'appointment_emails_secret');
+```
+
+```bash
+npx supabase secrets set APPOINTMENT_EMAILS_SECRET=<secreto largo al azar>
+```
+
+Sin esos secretos las citas se guardan igual; los avisos esperan en `appointment_email_outbox` y no salen recordatorios.
 
 ### Secretos de las funciones
 
