@@ -129,8 +129,10 @@ function ServicesPage() {
         }
       />
 
-      <div className="flex flex-wrap items-center gap-2.5 rounded-[14px] border border-adm-line-card bg-white p-4">
-        <div className="w-full max-w-[240px]">
+      {/* En celular: sede y especialidad lado a lado y el buscador a lo ancho
+          debajo; desde sm, la fila de siempre. */}
+      <div className="grid grid-cols-2 items-center gap-2.5 rounded-[14px] border border-adm-line-card bg-white p-3 sm:flex sm:flex-wrap sm:p-4">
+        <div className="min-w-0 sm:w-full sm:max-w-[240px]">
           <Select
             label="Sede"
             hideLabel
@@ -143,9 +145,9 @@ function ServicesPage() {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Buscar servicio..."
-          wrapperClassName="min-w-[180px] flex-1"
+          wrapperClassName="order-last col-span-2 sm:order-none sm:min-w-[180px] sm:flex-1"
         />
-        <div className="w-full max-w-[220px]">
+        <div className="min-w-0 sm:w-full sm:max-w-[220px]">
           <Select
             label="Especialidad"
             hideLabel
