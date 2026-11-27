@@ -10,6 +10,7 @@ interface ServiceRow {
   duration_minutes: number;
   price: number | string;
   active: boolean;
+  sessions?: number | null;
 }
 
 function mapRow(row: ServiceRow): Service {
@@ -22,10 +23,11 @@ function mapRow(row: ServiceRow): Service {
     // numeric llega como texto desde PostgREST.
     price: Number(row.price),
     active: row.active,
+    sessions: row.sessions ?? 1,
   };
 }
 
-const SELECT_COLUMNS = 'id, name, specialty_id, branch_id, duration_minutes, price, active';
+const SELECT_COLUMNS = 'id, name, specialty_id, branch_id, duration_minutes, price, active, sessions';
 
 export async function getServices(): Promise<Service[]> {
   const { data, error } = await supabase
@@ -58,11 +60,14 @@ export interface ServiceInput {
   specialtyId: string;
   duration: number;
   price: number;
+  // Sesiones que requiere: más de una = tratamiento. Sin valor, no se cambia (1 al crear).
+  sessions?: number;
 }
 
 export const MAX_SERVICE_DURATION = 480;
+export const MAX_SERVICE_SESSIONS = 60;
 
-// Lo mismo que exige la base (services_duration_max, precio >= 0), dicho antes
+// Lo mismo que exige la base (services_duration_max, precio >= 0, services_sessions_range), dicho antes
 // de enviar.
 export function validateServiceInput(input: ServiceInput): string | null {
   if (!input.name.trim()) return 'Escribe el nombre del servicio.';
@@ -71,6 +76,12 @@ export function validateServiceInput(input: ServiceInput): string | null {
     return `La duración debe estar entre 1 y ${MAX_SERVICE_DURATION} minutos.`;
   }
   if (!Number.isFinite(input.price) || input.price < 0) return 'El precio no puede ser negativo.';
+  if (
+    input.sessions !== undefined &&
+    (!Number.isInteger(input.sessions) || input.sessions < 1 || input.sessions > MAX_SERVICE_SESSIONS)
+  ) {
+    return `Las sesiones deben estar entre 1 y ${MAX_SERVICE_SESSIONS}.`;
+  }
   return null;
 }
 
@@ -80,6 +91,7 @@ function toRow(input: ServiceInput) {
     specialty_id: input.specialtyId,
     duration_minutes: input.duration,
     price: input.price,
+    ...(input.sessions !== undefined && { sessions: input.sessions }),
   };
 }
 

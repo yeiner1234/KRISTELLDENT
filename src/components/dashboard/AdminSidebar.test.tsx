@@ -44,6 +44,10 @@ describe('AdminSidebar: Imprimibles', () => {
 
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByRole('link', { name: 'Agenda de citas' })).toHaveAttribute('href', '/admin/reportes/agenda');
+    expect(screen.getByRole('link', { name: 'Reporte de citas' })).toHaveAttribute('href', '/admin/reportes/citas');
+    expect(screen.getByRole('link', { name: 'Reporte de pacientes' })).toHaveAttribute('href', '/admin/reportes/pacientes');
+    expect(screen.getByRole('link', { name: 'Reporte de desempeño' })).toHaveAttribute('href', '/admin/reportes/desempeno');
+    expect(screen.getByRole('link', { name: 'Reporte de ingresos' })).toHaveAttribute('href', '/admin/reportes/ingresos');
 
     await userEvent.click(toggle);
     expect(screen.queryByRole('link', { name: 'Agenda de citas' })).not.toBeInTheDocument();

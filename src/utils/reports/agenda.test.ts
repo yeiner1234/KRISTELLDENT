@@ -204,6 +204,12 @@ describe('reportRoleLabel', () => {
     expect(reportRoleLabel('admin_sede')).toBe('Administradora de sede');
     expect(reportRoleLabel('admin_global')).toBe('Administradora general');
   });
+
+  it('la especialista lleva su especialidad; la odontóloga general, no', () => {
+    expect(reportRoleLabel('especialista', 'Endodoncia')).toBe('Especialista · Endodoncia');
+    expect(reportRoleLabel('especialista')).toBe('Especialista');
+    expect(reportRoleLabel('odontologa_general', 'Endodoncia')).toBe('Odontóloga general');
+  });
 });
 
 describe('branchHoursLabel', () => {

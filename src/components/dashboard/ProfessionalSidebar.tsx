@@ -20,8 +20,18 @@ const technicianItems = [
   { label: 'Pacientes', to: '/profesional/pacientes-sede', icon: Users },
 ];
 
-// Imprimibles: solo la técnica (la especialista y la odontóloga general no tienen).
-const technicianPrintables = [{ label: 'Agenda de citas', to: '/profesional/reportes/agenda' }];
+// Imprimibles de cada rol: la técnica, la agenda de la sede; la especialista y
+// la odontóloga general, sus citas y sus pacientes. Ambas, la historia de paciente.
+const technicianPrintables = [
+  { label: 'Agenda de citas', to: '/profesional/reportes/agenda' },
+  { label: 'Historia de paciente', to: '/profesional/reportes/historia' },
+];
+
+const professionalPrintables = [
+  { label: 'Reporte de mis citas', to: '/profesional/reportes/mis-citas' },
+  { label: 'Reporte de mis pacientes', to: '/profesional/reportes/mis-pacientes' },
+  { label: 'Historia de paciente', to: '/profesional/reportes/historia' },
+];
 
 function ProfessionalSidebar() {
   const { user, setAvatarPath } = useAuth();
@@ -52,7 +62,7 @@ function ProfessionalSidebar() {
             {label}
           </NavLink>
         ))}
-        {isTechnician && <SidebarNavGroup label="Imprimibles" icon={Printer} links={technicianPrintables} />}
+        <SidebarNavGroup label="Imprimibles" icon={Printer} links={isTechnician ? technicianPrintables : professionalPrintables} />
       </nav>
 
       {/* Al tocar su nombre o su foto, la persona cambia su foto de perfil. */}

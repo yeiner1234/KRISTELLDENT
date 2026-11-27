@@ -49,6 +49,16 @@ describe('appointmentService', () => {
     expect(appointment).toMatchObject({ id: 'a1', code: 'KD-ABC234', status: 'in_room', startTime: '09:00' });
   });
 
+  it('getAllAppointments trae cuándo se registró la cita (anticipación de reserva)', async () => {
+    const query = mockQuery({ data: [{ ...appointmentRow, created_at: '2026-11-15T14:00:00+00:00' }] });
+    vi.mocked(supabase.from).mockReturnValue(query as never);
+
+    const [appointment] = await getAllAppointments();
+
+    expect(findCall(query, 'select')?.args[0]).toContain('created_at');
+    expect(appointment.createdAt).toBe('2026-11-15T14:00:00+00:00');
+  });
+
   it('getAvailableSlots envía la cita a excluir al reprogramar', async () => {
     vi.mocked(supabase.rpc).mockResolvedValue({ data: [{ slot_start: '09:00:00', slot_end: '09:30:00' }], error: null } as never);
 

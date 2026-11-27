@@ -5,7 +5,13 @@ import Input from '../common/Input';
 import Select from '../common/Select';
 import FormError from '../common/FormError';
 import SpecialtyPicker from '../specialties/SpecialtyPicker';
-import { createService, MAX_SERVICE_DURATION, updateService, validateServiceInput } from '../../services/serviceService';
+import {
+  createService,
+  MAX_SERVICE_DURATION,
+  MAX_SERVICE_SESSIONS,
+  updateService,
+  validateServiceInput,
+} from '../../services/serviceService';
 import type { Specialty } from '../../types/Specialty';
 
 export interface EditableService {
@@ -14,6 +20,7 @@ export interface EditableService {
   specialtyId: string;
   duration: number;
   price: number;
+  sessions?: number;
 }
 
 interface ServiceFormModalProps {
@@ -46,12 +53,19 @@ function ServiceFormModal({
   const [specialtyId, setSpecialtyId] = useState(editing?.specialtyId ?? '');
   const [duration, setDuration] = useState(String(editing?.duration ?? 30));
   const [price, setPrice] = useState(String(editing?.price ?? ''));
+  const [sessions, setSessions] = useState(String(editing?.sessions ?? 1));
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    const input = { name, specialtyId, duration: Number(duration), price: price === '' ? Number.NaN : Number(price) };
+    const input = {
+      name,
+      specialtyId,
+      duration: Number(duration),
+      price: price === '' ? Number.NaN : Number(price),
+      sessions: Number(sessions),
+    };
     const problem = validateServiceInput(input) ?? (!editing && !branchId ? 'Elige una sede.' : null);
     if (problem) {
       setError(problem);
@@ -150,10 +164,22 @@ function ServiceFormModal({
             onChange={(event) => setDuration(event.target.value)}
             required
           />
+          <Input
+            label="Sesiones del tratamiento"
+            name="sessions"
+            type="number"
+            min={1}
+            max={MAX_SERVICE_SESSIONS}
+            variant="admin"
+            value={sessions}
+            onChange={(event) => setSessions(event.target.value)}
+            required
+          />
         </div>
         <p className="text-xs text-adm-ink-400">
           El precio y la duración son los de esta sede: otras sedes pueden tener un servicio con el mismo nombre y
-          otros valores.
+          otros valores. Con más de una sesión (endodoncia, ortodoncia…), la historia del paciente lo muestra como
+          tratamiento.
         </p>
       </form>
     </Modal>

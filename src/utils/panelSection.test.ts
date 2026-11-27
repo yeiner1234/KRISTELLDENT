@@ -7,6 +7,8 @@ describe('getPanelSectionTitle', () => {
     expect(getPanelSectionTitle('/admin/citas', 'admin_sede')).toBe('Citas');
     expect(getPanelSectionTitle('/admin/servicios', 'admin_sede')).toBe('Servicios de la sede');
     expect(getPanelSectionTitle('/admin/reportes/agenda', 'admin_global')).toBe('Agenda de citas');
+    expect(getPanelSectionTitle('/admin/reportes/citas', 'admin_sede')).toBe('Reporte de citas');
+    expect(getPanelSectionTitle('/admin/reportes/ingresos', 'admin_global')).toBe('Reporte de ingresos');
   });
 
   it('ignora la barra final', () => {
@@ -22,6 +24,12 @@ describe('getPanelSectionTitle', () => {
     expect(getPanelSectionTitle('/profesional/agenda', 'odontologa_general')).toBe('Mi agenda');
     expect(getPanelSectionTitle('/profesional/agenda-sede', 'tecnica')).toBe('Agenda');
     expect(getPanelSectionTitle('/profesional/pacientes-sede', 'tecnica')).toBe('Pacientes');
+  });
+
+  it('nombra los imprimibles del Sprint 4', () => {
+    expect(getPanelSectionTitle('/profesional/reportes/mis-citas', 'especialista')).toBe('Reporte de mis citas');
+    expect(getPanelSectionTitle('/profesional/reportes/mis-pacientes', 'odontologa_general')).toBe('Reporte de mis pacientes');
+    expect(getPanelSectionTitle('/profesional/reportes/historia', 'tecnica')).toBe('Historia de paciente');
   });
 
   it('una ruta desconocida no tiene título', () => {

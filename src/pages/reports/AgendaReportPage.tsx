@@ -1,6 +1,5 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react';
-import { CalendarX2, Minus, Plus, Printer, Scan } from 'lucide-react';
-import Button from '../../components/common/Button';
+import { CalendarX2, Minus, Plus, Scan } from 'lucide-react';
 import EmptyState from '../../components/common/EmptyState';
 import Input from '../../components/common/Input';
 import Select from '../../components/common/Select';
@@ -17,7 +16,6 @@ import { usePanelBranch } from '../../hooks/usePanelBranch';
 import { getTodayIsoDate } from '../../utils/date';
 import {
   AGENDA_SHIFT_OPTIONS,
-  AGENDA_STATUS_LABELS,
   AGENDA_STATUS_OPTIONS,
   DOCTOR_COLORS,
   appointmentsOfDay,
@@ -35,7 +33,7 @@ import {
   sheetFitScale,
   zoomSheet,
 } from '../../utils/reports/agenda';
-import type { AppointmentStatus } from '../../types/Appointment';
+import { PrintButton, StatusMark } from '../../components/reports/ReportParts';
 import icon from '../../../imagenes/kristelldent-icon.png';
 import wordmark from '../../../imagenes/kristelldent-wordmark.png';
 import '../../styles/agenda-report.css';
@@ -177,18 +175,7 @@ function AgendaReportPage() {
           onChange={(event) => setShift(event.target.value as AgendaShift)}
           options={AGENDA_SHIFT_OPTIONS}
         />
-        <Button
-          type="button"
-          variant="admin-solid"
-          size="md"
-          className="w-full sm:ml-auto sm:w-auto"
-          icon={<Printer size={16} />}
-          onClick={() => window.print()}
-          aria-label="Imprimir / Descargar PDF"
-        >
-          <span className="sm:hidden">Imprimir PDF</span>
-          <span className="hidden sm:inline">Imprimir / Descargar PDF</span>
-        </Button>
+        <PrintButton fileName={buildDocumentCode(branch.name, date)} />
       </div>
 
       {/* Celular y tablet: agrandar, achicar o ajustar la hoja a la pantalla. */}
@@ -201,7 +188,7 @@ function AgendaReportPage() {
         >
           <Minus size={17} />
         </button>
-        <span className="min-w-[52px] text-center text-[13px] font-semibold text-adm-ink-700 [font-variant-numeric:tabular-nums]">
+        <span className="min-w-[52px] text-center text-sm font-semibold text-adm-ink-700 [font-variant-numeric:tabular-nums]">
           {Math.round(sheetZoom * 100)} %
         </span>
         <button
@@ -216,7 +203,7 @@ function AgendaReportPage() {
           type="button"
           aria-label="Ajustar la hoja a la pantalla"
           onClick={() => setSheetZoom(sheetFitScale(sheetScrollRef.current?.clientWidth ?? 0, SHEET_WIDTH_PX))}
-          className={`${zoomButtonClasses} w-auto gap-1.5 px-3 text-[13px] font-medium`}
+          className={`${zoomButtonClasses} w-auto gap-1.5 px-3 text-sm font-medium`}
         >
           <Scan size={16} />
           Ajustar
@@ -226,7 +213,7 @@ function AgendaReportPage() {
       <div ref={sheetScrollRef} className="agenda-sheet-scroll">
       {/* zoom (y no transform): también cambia el espacio que ocupa, así el
           desplazamiento de lado coincide con lo que se ve. */}
-      <article className="agenda-sheet" style={sheetZoom !== 1 ? { zoom: sheetZoom } : undefined}>
+      <article className="agenda-sheet" data-pdf-sheet style={sheetZoom !== 1 ? { zoom: sheetZoom } : undefined}>
         {/* 1. Encabezado */}
         <div className="flex items-start justify-between gap-6">
           <div className="flex items-start gap-3">
@@ -375,7 +362,7 @@ function AgendaReportPage() {
 
         {/* 8. Pie (en papel lo pone @page en cada hoja, con el número de página) */}
         <div className="agenda-screen-footer mt-8 flex items-center justify-between border-t border-ag-line pt-2 text-[9.5px] text-ag-label">
-          <span>KristellDent · Agenda de citas de la sede · Nivel operativo</span>
+          <span data-pdf-footer>KristellDent · Agenda de citas de la sede · Nivel operativo</span>
           <span>Confidencial — uso interno</span>
           <span>
             Página <strong className="text-ag-ink">1</strong> de <strong className="text-ag-ink">1</strong>
@@ -388,7 +375,7 @@ function AgendaReportPage() {
 }
 
 const zoomButtonClasses =
-  'flex h-10 w-10 items-center justify-center rounded-[10px] border border-adm-line-control bg-white text-adm-ink-700 transition-colors hover:border-adm-accent-line hover:bg-adm-surface-sel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-adm-accent-ring';
+  'flex h-11 w-11 items-center justify-center rounded-[10px] border border-adm-line-control bg-white text-adm-ink-700 transition-colors hover:border-adm-accent-line hover:bg-adm-surface-sel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-adm-accent-ring';
 
 function Meta({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -424,31 +411,6 @@ function Note({ children }: { children: ReactNode }) {
       <span className="font-bold text-ag-teal">–</span>
       <span>{children}</span>
     </li>
-  );
-}
-
-// Confirmada: círculo verde azulado con punto; Pendiente: aro naranja; el
-// resto, con el color de su StatusBadge.
-const STATUS_MARK_COLORS: Record<AppointmentStatus, { ring: string; dot: string | null }> = {
-  confirmed: { ring: '#008F9F', dot: '#008F9F' },
-  pending: { ring: '#E07B39', dot: null },
-  in_room: { ring: 'var(--color-adm-status-in-room-solid)', dot: 'var(--color-adm-status-in-room-solid)' },
-  completed: { ring: 'var(--color-adm-status-completed-solid)', dot: 'var(--color-adm-status-completed-solid)' },
-  cancelled: { ring: 'var(--color-adm-status-cancelled-solid)', dot: 'var(--color-adm-status-cancelled-solid)' },
-};
-
-function StatusMark({ status }: { status: AppointmentStatus }) {
-  const { ring, dot } = STATUS_MARK_COLORS[status];
-  return (
-    <span className="flex items-center gap-1.5 whitespace-nowrap">
-      <span
-        className="flex h-[11px] w-[11px] shrink-0 items-center justify-center rounded-full border-[1.5px]"
-        style={{ borderColor: ring }}
-      >
-        {dot && <span className="h-[4px] w-[4px] rounded-full" style={{ backgroundColor: dot }} />}
-      </span>
-      {AGENDA_STATUS_LABELS[status]}
-    </span>
   );
 }
 

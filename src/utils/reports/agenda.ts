@@ -241,13 +241,17 @@ export function summarizeAgenda(rows: AgendaRow[]): AgendaSummary {
 }
 
 const ROLE_LABELS: Partial<Record<AppRole, string>> = {
+  especialista: 'Especialista',
+  odontologa_general: 'Odontóloga general',
   tecnica: 'Técnica',
   admin_sede: 'Administradora de sede',
   admin_global: 'Administradora general',
 };
 
-export function reportRoleLabel(role: AppRole): string {
-  return ROLE_LABELS[role] ?? role;
+export function reportRoleLabel(role: AppRole, specialtyName?: string | null): string {
+  const label = ROLE_LABELS[role] ?? role;
+  // La especialista lleva su especialidad: "Especialista · Endodoncia".
+  return role === 'especialista' && specialtyName ? `${label} · ${specialtyName}` : label;
 }
 
 // "Sede Bagua · 08:00 – 18:00" con el horario de ese día de la semana.

@@ -18,7 +18,8 @@ import { useAdminBranches } from '../../hooks/useAdminBranches';
 import { useAdminSpecialties } from '../../hooks/useAdminSpecialties';
 import { useManageableBranchIds } from '../../hooks/useManageableBranchIds';
 import { useBranchOfferStatus } from '../../hooks/useOffer';
-import { setServiceActive } from '../../services/serviceService';
+import { useLoad } from '../../hooks/useLoad';
+import { getAllServicesForAdmin, setServiceActive } from '../../services/serviceService';
 import type { ServiceOfferStatus } from '../../types/Offer';
 
 interface Group {
@@ -61,6 +62,17 @@ function ServicesPage() {
   const specialtyFilter = searchParams.get('especialidad') ?? '';
 
   const { data: rows, isLoading: isLoadingRows, error: rowsError, refetch } = useBranchOfferStatus(branchId || null);
+  // Las sesiones de cada servicio no vienen en el estado de la oferta.
+  const { data: allServices, refetch: refetchServices } = useLoad(
+    'servicios',
+    getAllServicesForAdmin,
+    [],
+    'No se pudieron cargar los servicios.',
+  );
+  const sessionsById = useMemo(
+    () => new Map(allServices.map((service) => [service.id, service.sessions ?? 1])),
+    [allServices],
+  );
   const [query, setQuery] = useState('');
   const [modal, setModal] = useState<{ key: number; editing: EditableService | null } | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
@@ -232,6 +244,7 @@ function ServicesPage() {
                               specialtyId: row.specialtyId,
                               duration: row.duration,
                               price: row.price,
+                              sessions: sessionsById.get(row.serviceId),
                             },
                           })
                         }
@@ -254,6 +267,7 @@ function ServicesPage() {
           onSaved={() => {
             setModal(null);
             refetch();
+            refetchServices();
           }}
           editing={modal.editing}
           branchOptions={branchOptions.filter((branch) => branch.id === branchId)}

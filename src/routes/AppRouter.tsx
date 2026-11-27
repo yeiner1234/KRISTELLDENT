@@ -40,6 +40,13 @@ import ProfessionalBranchAgendaPage from '../pages/professional/BranchAgendaPage
 import ProfessionalBranchPatientsPage from '../pages/professional/BranchPatientsPage';
 
 import AgendaReportPage from '../pages/reports/AgendaReportPage';
+import MyAppointmentsReportPage from '../pages/reports/MyAppointmentsReportPage';
+import MyPatientsReportPage from '../pages/reports/MyPatientsReportPage';
+import PatientHistoryReportPage from '../pages/reports/PatientHistoryReportPage';
+import AdminAppointmentsReportPage from '../pages/reports/admin/AppointmentsReportPage';
+import AdminPatientsReportPage from '../pages/reports/admin/PatientsReportPage';
+import AdminPerformanceReportPage from '../pages/reports/admin/PerformanceReportPage';
+import AdminRevenueReportPage from '../pages/reports/admin/RevenueReportPage';
 
 function AppRouter() {
   return (
@@ -78,6 +85,11 @@ function AppRouter() {
               <Route path="oferta" element={<Navigate to="/admin/servicios" replace />} />
               <Route path="configuracion" element={<AdminSettingsPage />} />
               <Route path="reportes/agenda" element={<AgendaReportPage />} />
+              {/* Reportes de administración (catálogo): nivel global o sede según el rol. */}
+              <Route path="reportes/citas" element={<AdminAppointmentsReportPage />} />
+              <Route path="reportes/pacientes" element={<AdminPatientsReportPage />} />
+              <Route path="reportes/desempeno" element={<AdminPerformanceReportPage />} />
+              <Route path="reportes/ingresos" element={<AdminRevenueReportPage />} />
             </Route>
           </Route>
 
@@ -89,6 +101,13 @@ function AppRouter() {
                 <Route path="agenda" element={<ProfessionalMyAgendaPage />} />
                 <Route path="pacientes" element={<ProfessionalMyPatientsPage />} />
                 <Route path="citas" element={<ProfessionalMyAppointmentsPage />} />
+                {/* Imprimibles de la especialista y la odontóloga general (Sprint 4). */}
+                <Route path="reportes/mis-citas" element={<MyAppointmentsReportPage />} />
+                <Route path="reportes/mis-pacientes" element={<MyPatientsReportPage />} />
+              </Route>
+              {/* Historia de paciente: profesionales y técnica (la RPC limita qué citas ve cada una). */}
+              <Route element={<RoleRoute allowedRoles={[...PROFESSIONAL_ROLES, 'tecnica']} />}>
+                <Route path="reportes/historia" element={<PatientHistoryReportPage />} />
               </Route>
               {/* Agenda y pacientes de la sede, y la agenda imprimible: solo la técnica. */}
               <Route element={<RoleRoute allowedRoles={['tecnica']} />}>

@@ -7,4 +7,6 @@ export interface Service {
   duration: number;
   price: number;
   active: boolean;
+  // Sesiones que requiere (más de una = tratamiento). Ausente en datos viejos.
+  sessions?: number;
 }

@@ -176,6 +176,7 @@ interface AppointmentRow {
   end_time: string;
   status: AppointmentStatus;
   reason: string | null;
+  created_at?: string | null;
 }
 
 function mapRow(row: AppointmentRow): Appointment {
@@ -195,6 +196,7 @@ function mapRow(row: AppointmentRow): Appointment {
     // numeric llega como texto desde PostgREST.
     servicePrice: row.service_price === null ? null : Number(row.service_price),
     serviceDuration: row.service_duration_minutes,
+    createdAt: row.created_at ?? null,
   };
 }
 
@@ -202,7 +204,7 @@ export async function getAllAppointments(): Promise<Appointment[]> {
   const { data, error } = await supabase
     .from('appointments')
     .select(
-      'id, appointment_code, patient_id, professional_id, branch_id, service_id, service_name, service_price, service_duration_minutes, appointment_date, start_time, end_time, status, reason',
+      'id, appointment_code, patient_id, professional_id, branch_id, service_id, service_name, service_price, service_duration_minutes, appointment_date, start_time, end_time, status, reason, created_at',
     )
     .order('appointment_date', { ascending: false });
 

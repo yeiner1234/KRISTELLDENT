@@ -73,6 +73,7 @@ vi.mock('../../services/serviceService', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../services/serviceService')>()),
   createService: vi.fn(),
   updateService: vi.fn(),
+  getAllServicesForAdmin: vi.fn().mockResolvedValue([]),
   setServiceActive: vi.fn(),
 }));
 vi.mock('../../services/specialtyService', () => ({ createSpecialty: vi.fn() }));
@@ -146,6 +147,7 @@ describe('ServicesPage — servicios de la sede', () => {
       specialtyId: 'orto',
       price: 80,
       duration: 45,
+      sessions: 1,
     });
   });
 
@@ -197,6 +199,7 @@ describe('ServicesPage — servicios de la sede', () => {
       name: 'Limpieza profunda',
       specialtyId: 'perio',
       price: 120,
+      sessions: 1,
       duration: 30,
     });
   });

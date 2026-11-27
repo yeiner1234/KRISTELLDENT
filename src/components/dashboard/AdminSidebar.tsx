@@ -44,7 +44,17 @@ const items: SidebarEntry[] = [
   { label: 'Equipo', to: '/admin/equipo', icon: UsersRound },
   { label: 'Agenda', to: '/admin/agenda', icon: CalendarRange },
   { label: 'Citas', to: '/admin/citas', icon: ClipboardList },
-  { label: 'Imprimibles', icon: Printer, links: [{ label: 'Agenda de citas', to: '/admin/reportes/agenda' }] },
+  {
+    label: 'Imprimibles',
+    icon: Printer,
+    links: [
+      { label: 'Agenda de citas', to: '/admin/reportes/agenda' },
+      { label: 'Reporte de citas', to: '/admin/reportes/citas' },
+      { label: 'Reporte de pacientes', to: '/admin/reportes/pacientes' },
+      { label: 'Reporte de desempeño', to: '/admin/reportes/desempeno' },
+      { label: 'Reporte de ingresos', to: '/admin/reportes/ingresos' },
+    ],
+  },
   { label: 'Pacientes', to: '/admin/pacientes', icon: Users },
   { label: 'Profesionales', to: '/admin/profesionales', icon: UserRound },
   { label: 'Especialidades', to: '/admin/especialidades', icon: Tags },

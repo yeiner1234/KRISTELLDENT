@@ -20,9 +20,10 @@ const row = {
   duration_minutes: 30,
   price: '80.00',
   active: true,
+  sessions: 4,
 };
 
-const input = { name: '  Control de ortodoncia ', specialtyId: 'orto', duration: 30, price: 80 };
+const input = { name: '  Control de ortodoncia ', specialtyId: 'orto', duration: 30, price: 80, sessions: 4 };
 
 describe('validateServiceInput', () => {
   it('acepta un servicio completo', () => {
@@ -36,6 +37,13 @@ describe('validateServiceInput', () => {
     expect(validateServiceInput({ ...input, duration: 481 })).toBe('La duración debe estar entre 1 y 480 minutos.');
     expect(validateServiceInput({ ...input, duration: 12.5 })).toBe('La duración debe estar entre 1 y 480 minutos.');
     expect(validateServiceInput({ ...input, price: -1 })).toBe('El precio no puede ser negativo.');
+  });
+
+  it('las sesiones van de 1 a 60 y son enteras; sin sesiones, vale 1', () => {
+    expect(validateServiceInput({ ...input, sessions: 0 })).toBe('Las sesiones deben estar entre 1 y 60.');
+    expect(validateServiceInput({ ...input, sessions: 61 })).toBe('Las sesiones deben estar entre 1 y 60.');
+    expect(validateServiceInput({ ...input, sessions: 1.5 })).toBe('Las sesiones deben estar entre 1 y 60.');
+    expect(validateServiceInput({ ...input, sessions: undefined })).toBeNull();
   });
 });
 
@@ -56,6 +64,7 @@ describe('serviceService', () => {
       specialty_id: 'orto',
       duration_minutes: 30,
       price: 80,
+      sessions: 4,
     });
     expect(service).toEqual({
       id: 's1',
@@ -65,6 +74,7 @@ describe('serviceService', () => {
       duration: 30,
       price: 80,
       active: true,
+      sessions: 4,
     });
   });
 
@@ -93,6 +103,15 @@ describe('serviceService', () => {
     await updateService('s1', input);
 
     expect(findCall(query, 'update')?.args[0]).not.toHaveProperty('branch_id');
+  });
+
+  it('un servicio sin columna de sesiones (datos viejos) cuenta como de una sesión', async () => {
+    const { sessions: _omit, ...oldRow } = row;
+    vi.mocked(supabase.from).mockReturnValue(mockQuery({ data: oldRow }) as never);
+
+    const service = await updateService('s1', input);
+
+    expect(service.sessions).toBe(1);
   });
 
   it('RLS de otra sede se traduce a un mensaje claro', async () => {

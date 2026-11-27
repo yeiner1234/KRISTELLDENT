@@ -18,6 +18,8 @@ export interface Appointment {
   serviceName?: string | null;
   servicePrice?: number | null;
   serviceDuration?: number | null;
+  // Cuándo se registró (anticipación de reserva en los reportes).
+  createdAt?: string | null;
 }
 
 // Cita tal como la ve el paciente en /mis-citas (Edge Function patient-appointments).
