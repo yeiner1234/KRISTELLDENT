@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { Link } from 'react-router-dom';
-import { CalendarPlus, LogIn, Menu, X } from 'lucide-react';
+import { LogIn, Menu, X } from 'lucide-react';
 import Button from '../common/Button';
 import logoIcon from '../../../imagenes/kristelldent-icon.png';
 import logoWordmark from '../../../imagenes/kristelldent-wordmark.png';
@@ -54,17 +53,10 @@ function Navbar() {
           ))}
         </nav>
 
-        {/* Lo principal para el paciente es reservar; el acceso del personal, discreto. */}
+        {/* Acceso del personal. */}
         <div className="hidden items-center gap-4 min-[1000px]:flex">
-          <Link
-            to="/login"
-            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-ink-tertiary transition-colors hover:text-brand-700"
-          >
-            <LogIn size={15} />
-            Acceso interno
-          </Link>
-          <Button to="/reservar" size="sm" icon={<CalendarPlus size={16} />}>
-            Reservar cita
+          <Button to="/login" size="sm" icon={<LogIn size={16} />}>
+            Iniciar sesión
           </Button>
         </div>
 
@@ -106,22 +98,14 @@ function Navbar() {
               ))}
               <div className="flex flex-col gap-2 px-1 pt-2">
                 <Button
-                  to="/reservar"
+                  to="/login"
                   size="sm"
-                  icon={<CalendarPlus size={16} />}
+                  icon={<LogIn size={16} />}
                   className="w-full"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Reservar cita
+                  Iniciar sesión
                 </Button>
-                <Link
-                  to="/login"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl text-sm font-medium text-ink-tertiary hover:bg-brand-50 hover:text-brand-700"
-                >
-                  <LogIn size={15} />
-                  Acceso interno
-                </Link>
               </div>
             </div>
           </motion.nav>
